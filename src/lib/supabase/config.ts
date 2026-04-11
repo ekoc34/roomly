@@ -1,0 +1,15 @@
+export function getSupabaseConfig(): { url: string; anonKey: string } | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  // Debug logs to verify env loading
+  console.log("SUPABASE URL:", url);
+  console.log("SUPABASE ANON KEY:", anonKey ? "***" + anonKey.slice(-4) : "undefined");
+  
+  if (!url || !anonKey) return null;
+  return { url, anonKey };
+}
+
+export function isSupabaseConfigured(): boolean {
+  return getSupabaseConfig() !== null;
+}
