@@ -11,6 +11,23 @@ export function RegisterForm() {
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Check if Supabase is configured
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const isSupabaseConfigured = !!(supabaseUrl && supabaseKey);
+
+  if (!isSupabaseConfigured) {
+    return (
+      <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-8 text-center shadow-sm">
+        <h2 className="text-xl font-semibold text-amber-900">Supabase niet geconfigureerd</h2>
+        <p className="mt-2 text-sm text-amber-800">
+          Registratie is momenteel niet beschikbaar omdat de database niet is geconfigureerd.
+          Neem contact op met de beheerder.
+        </p>
+      </div>
+    );
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
