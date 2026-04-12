@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ApplicationForm } from "@/components/forms/ApplicationForm";
 import { DetailGallery } from "@/components/listings/DetailGallery";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
+import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import { fetchListingById } from "@/lib/data/listings";
 import { getSupabaseConfig } from "@/lib/supabase/config";
@@ -44,7 +45,7 @@ export default async function ListingDetailPage({
   const ownerMemberSince = (ownerProfile as Profile | null)?.created_at ?? listing.created_at;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-10 pb-28 sm:px-6 sm:pb-10 lg:px-8">
       <Link
         href="/kamers"
         className="text-sm font-medium text-rose-600 hover:underline"
@@ -114,6 +115,14 @@ export default async function ListingDetailPage({
           </div>
         </div>
       </div>
+
+      <StickyApplyCTA
+        price={listing.price}
+        listingId={listing.id}
+        canApply={canApply}
+        isOwner={isOwner}
+        isLoggedIn={Boolean(user)}
+      />
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function ApplicationForm({ listingId }: Props) {
       onSubmit={onSubmit}
       className="space-y-4 rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm"
     >
-      <h2 className="text-lg font-semibold text-stone-900">Reageer</h2>
+      <h2 className="text-lg font-semibold text-stone-900">Reageer op deze advertentie</h2>
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
@@ -90,9 +90,9 @@ export function ApplicationForm({ listingId }: Props) {
       </div>
       <button
         type="submit"
-        className="w-full rounded-2xl bg-stone-900 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-stone-800"
+        className="w-full rounded-2xl bg-rose-500 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
       >
-        Aanvraag versturen
+        Stuur aanvraag →
       </button>
     </form>
   );
