@@ -7,7 +7,7 @@ import type { ListingType } from "@/types/database";
 
 function parsePrice(raw: string): number | null {
   const n = Number.parseFloat(raw.replace(",", "."));
-  if (Number.isNaN(n) || n < 0) return null;
+  if (Number.isNaN(n) || n <= 0) return null;
   return n;
 }
 
@@ -45,17 +45,13 @@ export async function createListing(formData: FormData) {
     "short_stay",
   ];
 
-  if (
-    !title ||
-    !description ||
-    price === null ||
-    !location ||
-    !validTypes.includes(type)
-  ) {
-    return { error: "Vul alle verplichte velden correct in." };
-  }
+  if (!title) return { error: "Vul een titel in." };
+  if (!description) return { error: "Vul een beschrijving in." };
+  if (price === null) return { error: "Vul een geldige prijs in (groter dan 0)." };
+  if (!location) return { error: "Kies een locatie." };
+  if (!validTypes.includes(type)) return { error: "Kies een geldig type advertentie." };
 
-  const { error } = await supabase.from("listings").insert({
+  const { error: insertError } = await supabase.from("listings").insert({
     user_id: user.id,
     title,
     description,
@@ -66,8 +62,17 @@ export async function createListing(formData: FormData) {
     availability_date: availabilityDate || null,
   });
 
-  if (error) {
-    return { error: "Advertentie kon niet worden opgeslagen. Probeer opnieuw." };
+  if (insertError) {
+    console.error("[createListing] Supabase insert error:", {
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+      user_id: user.id,
+    });
+    return {
+      error: `Er ging iets mis bij het plaatsen van je advertentie. Controleer je gegevens en probeer opnieuw. (code: ${insertError.code ?? "unknown"})`,
+    };
   }
 
   revalidatePath("/kamers");
@@ -135,7 +140,17 @@ export async function updateListing(listingId: string, formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    return { error: "Advertentie kon niet worden bijgewerkt." };
+    console.error("[updateListing] Supabase update error:", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      listingId,
+      user_id: user.id,
+    });
+    return {
+      error: `Er ging iets mis bij het bijwerken van je advertentie. (code: ${error.code ?? "unknown"})`,
+    };
   }
 
   revalidatePath("/kamers");
