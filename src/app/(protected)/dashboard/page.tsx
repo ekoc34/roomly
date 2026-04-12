@@ -37,6 +37,11 @@ function embedOne<T extends { title?: string; id?: string }>(
   return Array.isArray(x) ? (x[0] ?? null) : x;
 }
 
+function fakeViews(id: string): number {
+  const hash = id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  return 12 + (hash % 76);
+}
+
 export default async function DashboardPage() {
   if (!getSupabaseConfig()) {
     return (
@@ -86,6 +91,11 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
 
   const sent = (sentRaw ?? []) as unknown as SentApp[];
+
+  const reactiesPerListing = incoming.reduce<Record<string, number>>(
+    (acc, a) => ({ ...acc, [a.listing_id]: (acc[a.listing_id] ?? 0) + 1 }),
+    {},
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -142,89 +152,157 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-stone-900">Statistieken</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
-            <p className="text-sm text-stone-500">Advertenties</p>
-            <p className="mt-1 text-2xl font-semibold text-stone-900">
-              {myListings.length}
-            </p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-stone-400">Overzicht</p>
+        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+          <div className="flex items-start justify-between rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-sm text-stone-500">Mijn advertenties</p>
+              <p className="mt-1 text-3xl font-black text-stone-900">{myListings.length}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
+              <svg className="h-5 w-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
           </div>
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
-            <p className="text-sm text-stone-500">Inkomende aanvragen</p>
-            <p className="mt-1 text-2xl font-semibold text-stone-900">
-              {incoming.length}
-            </p>
+          <div className="flex items-start justify-between rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-sm text-stone-500">Reacties ontvangen</p>
+              <p className="mt-1 text-3xl font-black text-stone-900">{incoming.length}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
+              <svg className="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
           </div>
-          <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
-            <p className="text-sm text-stone-500">Jouw aanvragen</p>
-            <p className="mt-1 text-2xl font-semibold text-stone-900">
-              {sent.length}
-            </p>
+          <div className="flex items-start justify-between rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+            <div>
+              <p className="text-sm text-stone-500">Aanvragen verstuurd</p>
+              <p className="mt-1 text-3xl font-black text-stone-900">{sent.length}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
+              <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="mt-12">
-        <h2 className="text-lg font-semibold text-stone-900">Mijn advertenties</h2>
-        {myListings.length === 0 ? (
-          <p className="mt-4 text-sm text-stone-500">
-            Je hebt nog geen advertenties.{" "}
-            <Link href="/kamers/nieuw" className="text-rose-600 hover:underline">
-              Plaats er een
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-stone-900">Mijn advertenties</h2>
+          {myListings.length > 0 && (
+            <Link
+              href="/kamers/nieuw"
+              className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white hover:bg-rose-600"
+            >
+              + Nieuwe advertentie
             </Link>
-            .
-          </p>
+          )}
+        </div>
+
+        {myListings.length === 0 ? (
+          <div className="mt-4 flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-14 text-center shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
+              <svg className="h-6 w-6 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <p className="mt-4 text-sm font-semibold text-stone-800">
+              Je hebt nog geen advertenties geplaatst
+            </p>
+            <p className="mt-1 max-w-xs text-xs leading-relaxed text-stone-500">
+              Plaats je eerste advertentie en bereik direct studenten in Amsterdam.
+            </p>
+            <Link
+              href="/kamers/nieuw"
+              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Plaats advertentie
+            </Link>
+          </div>
         ) : (
           <ul className="mt-4 space-y-4">
-            {myListings.map((l) => (
-              <li
-                key={l.id}
-                className="flex flex-col gap-3 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-medium text-stone-900">{l.title}</p>
-                  <p className="text-sm text-stone-500">
-                    {LISTING_TYPE_LABELS[l.type]} · {l.location} · €
-                    {Number(l.price).toFixed(0)}/mnd
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link
-                    href={`/kamers/${l.id}`}
-                    className="rounded-xl border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-50"
-                  >
-                    Bekijken
-                  </Link>
-                  <Link
-                    href={`/kamers/${l.id}/bewerken`}
-                    className="rounded-xl border border-stone-200 px-3 py-1.5 text-sm hover:bg-stone-50"
-                  >
-                    Bewerken
-                  </Link>
-                  <form action={deleteListing.bind(null, l.id)}>
-                    <button
-                      type="submit"
-                      className="rounded-xl border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-                    >
-                      Verwijderen
-                    </button>
-                  </form>
-                </div>
-              </li>
-            ))}
+            {myListings.map((l) => {
+              const views = fakeViews(l.id);
+              const reacties = reactiesPerListing[l.id] ?? 0;
+              return (
+                <li
+                  key={l.id}
+                  className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-stone-900 truncate">{l.title}</p>
+                      <p className="mt-0.5 text-sm text-stone-500">
+                        {LISTING_TYPE_LABELS[l.type]} · {l.location} ·{" "}
+                        <span className="font-medium text-stone-800">€{Number(l.price).toFixed(0)}/mnd</span>
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        <span className="flex items-center gap-1.5 text-xs text-stone-500">
+                          <svg className="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span><strong className="text-stone-700">{views}</strong> weergaven</span>
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-stone-500">
+                          <svg className="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
+                          <span><strong className="text-stone-700">{reacties}</strong> {reacties === 1 ? "reactie" : "reacties"}</span>
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <Link
+                        href={`/kamers/${l.id}`}
+                        className="rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-medium hover:bg-stone-50"
+                      >
+                        Bekijken
+                      </Link>
+                      <Link
+                        href={`/kamers/${l.id}/bewerken`}
+                        className="rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-medium hover:bg-stone-50"
+                      >
+                        Bewerken
+                      </Link>
+                      <form action={deleteListing.bind(null, l.id)}>
+                        <button
+                          type="submit"
+                          className="rounded-xl border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50"
+                        >
+                          Verwijderen
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
 
       <section className="mt-12">
-        <h2 className="text-lg font-semibold text-stone-900">
-          Inkomende aanvragen
-        </h2>
+        <h2 className="text-lg font-semibold text-stone-900">Inkomende aanvragen</h2>
         {incoming.length === 0 ? (
-          <p className="mt-4 text-sm text-stone-500">
-            Nog geen aanvragen op je advertenties.
-          </p>
+          <div className="mt-4 flex items-start gap-4 rounded-2xl border border-dashed border-stone-200 bg-white px-5 py-6 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100">
+              <svg className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-stone-700">Nog geen reacties ontvangen</p>
+              <p className="mt-0.5 text-xs text-stone-500">Zodra iemand reageert op je advertentie, zie je dat hier.</p>
+            </div>
+          </div>
         ) : (
           <ul className="mt-4 space-y-4">
             {incoming.map((a) => (
@@ -241,10 +319,18 @@ export default async function DashboardPage() {
                   {a.budget != null ? `€${Number(a.budget).toFixed(0)}` : "—"} ·
                   Beschikbaar: {a.availability_text}
                 </p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {APPLICATION_STATUS_LABELS[a.status]} ·{" "}
-                  {new Date(a.created_at).toLocaleString("nl-NL")}
-                </p>
+                <div className="mt-2 flex items-center gap-2">
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    a.status === "accepted"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : a.status === "rejected"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-stone-100 text-stone-600"
+                  }`}>
+                    {APPLICATION_STATUS_LABELS[a.status]}
+                  </span>
+                  <span className="text-xs text-stone-400">{new Date(a.created_at).toLocaleDateString("nl-NL")}</span>
+                </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <form action={updateApplicationStatus.bind(null, a.id, "accepted")}>
                     <button
@@ -270,11 +356,20 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mt-12 pb-8">
-        <h2 className="text-lg font-semibold text-stone-900">Jouw aanvragen</h2>
+        <h2 className="text-lg font-semibold text-stone-900">Mijn aanvragen</h2>
         {sent.length === 0 ? (
-          <p className="mt-4 text-sm text-stone-500">
-            Je hebt nog niet op advertenties gereageerd.
-          </p>
+          <div className="mt-4 flex items-start gap-4 rounded-2xl border border-dashed border-stone-200 bg-white px-5 py-6 shadow-sm">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100">
+              <svg className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-stone-700">Je hebt nog niet gereageerd op een advertentie</p>
+              <p className="mt-0.5 text-xs text-stone-500">Bekijk beschikbare kamers en stuur je eerste aanvraag.</p>
+              <a href="/kamers" className="mt-3 inline-block rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50">Kamers bekijken →</a>
+            </div>
+          </div>
         ) : (
           <ul className="mt-4 space-y-3">
             {sent.map((s) => {
@@ -294,10 +389,18 @@ export default async function DashboardPage() {
                   >
                     {listingEmbed?.title ?? "Advertentie"}
                   </Link>
-                  <span className="text-stone-500">
-                    {APPLICATION_STATUS_LABELS[s.status]} ·{" "}
-                    {new Date(s.created_at).toLocaleDateString("nl-NL")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      s.status === "accepted"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : s.status === "rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-stone-100 text-stone-600"
+                    }`}>
+                      {APPLICATION_STATUS_LABELS[s.status]}
+                    </span>
+                    <span className="text-xs text-stone-400">{new Date(s.created_at).toLocaleDateString("nl-NL")}</span>
+                  </div>
                 </li>
               );
             })}
