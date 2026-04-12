@@ -30,7 +30,6 @@ export function RegisterForm() {
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    setInfo(null);
     setLoading(true);
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email") ?? "").trim();
