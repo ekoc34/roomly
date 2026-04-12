@@ -12,6 +12,7 @@ export async function fetchListings(params: {
   max?: string;
   district?: string;
   type?: string;
+  sort?: string;
 }): Promise<Listing[]> {
   if (!getSupabaseConfig()) return [];
 
@@ -41,7 +42,11 @@ export async function fetchListings(params: {
     q = q.or(`title.ilike.${pattern},description.ilike.${pattern}`);
   }
 
-  const { data, error } = await q.order("created_at", { ascending: false });
+  const cheapest = params.sort === "cheapest";
+  const { data, error } = await q.order(
+    cheapest ? "price" : "created_at",
+    { ascending: cheapest },
+  );
 
   if (error || !data) return [];
   return data as Listing[];

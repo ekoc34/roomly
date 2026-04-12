@@ -14,6 +14,7 @@ type Search = {
   max?: string;
   district?: string;
   type?: string;
+  sort?: string;
 };
 
 function FiltersSkeleton() {
@@ -35,6 +36,7 @@ export default async function KamersPage({
         max: sp.max,
         district: sp.district,
         type: sp.type,
+        sort: sp.sort,
       })
     : [];
 
@@ -64,6 +66,13 @@ export default async function KamersPage({
       ) : null}
 
       <div className="mt-10">
+        {listings.length > 0 && (
+          <p className="mb-4 text-sm text-stone-500">
+            <span className="font-medium text-stone-800">{listings.length}</span>{" "}
+            {listings.length === 1 ? "kamer gevonden" : "kamers gevonden"}
+            {sp.sort === "cheapest" ? " · Goedkoopste eerst" : " · Nieuwste eerst"}
+          </p>
+        )}
         {listings.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-100">
@@ -72,12 +81,11 @@ export default async function KamersPage({
               </svg>
             </div>
             <h3 className="mt-4 text-base font-semibold text-stone-800">
-              Geen kamers gevonden
+              Geen resultaten gevonden
             </h3>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">
-              Er zijn momenteel nog geen kamers beschikbaar in Amsterdam die
-              overeenkomen met je filters. We werken eraan om meer aanbod toe te
-              voegen.
+              Probeer andere filters of een bredere zoekopdracht. Er zijn
+              momenteel nog geen kamers die exact overeenkomen.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
