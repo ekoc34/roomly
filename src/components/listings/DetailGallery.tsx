@@ -14,8 +14,11 @@ export function DetailGallery({ images, title }: Props) {
 
   if (!main) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-2xl bg-stone-100 text-stone-400">
-        Geen foto
+      <div className="flex aspect-[4/3] flex-col items-center justify-center gap-3 rounded-2xl bg-stone-100">
+        <svg className="h-14 w-14 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        <p className="text-sm text-stone-400">Geen foto beschikbaar</p>
       </div>
     );
   }

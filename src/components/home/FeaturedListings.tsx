@@ -22,12 +22,32 @@ export function FeaturedListings({ listings }: Props) {
           href="/kamers"
           className="text-sm font-medium text-rose-600 hover:underline"
         >
-          Alles bekijken
+          Alles bekijken →
         </Link>
       </div>
       {listings.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-stone-200 bg-stone-50/50 px-6 py-12 text-center text-sm text-stone-500">
-          Nog geen advertenties. Wees de eerste die een kamer plaatst.
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
+            <svg className="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </div>
+          <h3 className="mt-4 text-base font-semibold text-stone-800">
+            Nog geen kamers beschikbaar
+          </h3>
+          <p className="mt-2 max-w-sm text-sm text-stone-500">
+            Er zijn nog geen kamers beschikbaar. Kom later terug of plaats zelf
+            een advertentie.
+          </p>
+          <Link
+            href="/kamers/nieuw"
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Plaats een advertentie
+          </Link>
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
