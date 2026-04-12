@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationForm } from "@/components/forms/ApplicationForm";
 import { DetailGallery } from "@/components/listings/DetailGallery";
+import { OwnerBadges } from "@/components/listings/OwnerBadges";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import { fetchListingById } from "@/lib/data/listings";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import type { Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,13 @@ export default async function ListingDetailPage({
   } = await supabase.auth.getUser();
   const isOwner = user?.id === listing.user_id;
   const canApply = Boolean(user) && !isOwner;
+
+  const { data: ownerProfile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", listing.user_id)
+    .maybeSingle();
+  const ownerMemberSince = (ownerProfile as Profile | null)?.created_at ?? listing.created_at;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
@@ -73,7 +82,14 @@ export default async function ListingDetailPage({
             </p>
           </div>
 
-          <div className="mt-8 space-y-4" id="reageer">
+          <div className="mt-6">
+            <OwnerBadges
+              profile={ownerProfile as Profile | null}
+              memberSince={ownerMemberSince}
+            />
+          </div>
+
+          <div className="mt-6 space-y-4" id="reageer">
             {isOwner ? (
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-sm text-stone-700">
                 Dit is jouw advertentie. Beheer aanvragen in je{" "}

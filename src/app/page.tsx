@@ -1,6 +1,7 @@
 import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { OnboardingBanner } from "@/components/home/OnboardingBanner";
+import { WhyRoomly } from "@/components/home/WhyRoomly";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { fetchFeaturedListings } from "@/lib/data/listings";
 
@@ -16,6 +17,8 @@ export default async function HomePage() {
       <OnboardingBanner />
 
       <FeaturedListings listings={listings} />
+
+      <WhyRoomly />
     </div>
   );
 }
