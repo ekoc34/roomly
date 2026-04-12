@@ -8,7 +8,6 @@ import { createClient } from "@/lib/supabase/client";
 export function RegisterForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Check if Supabase is configured
@@ -46,16 +45,13 @@ export function RegisterForm() {
       const { error: signErr } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        options: { emailRedirectTo: `${window.location.origin}/welkom` },
       });
       if (signErr) {
         setError(signErr.message || "Registratie mislukt.");
         return;
       }
-      setInfo(
-        "Controleer je inbox om je e-mail te bevestigen (indien verplicht door je project). Daarna kun je inloggen.",
-      );
-      router.refresh();
+      router.push("/welkom");
     } catch {
       setError("Er ging iets mis. Probeer het later opnieuw.");
     } finally {
@@ -77,11 +73,6 @@ export function RegisterForm() {
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
           {error}
-        </div>
-      )}
-      {info && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-          {info}
         </div>
       )}
       <div>
