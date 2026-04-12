@@ -7,16 +7,18 @@ type Props = {
   listing: Listing;
 };
 
-function isNew(createdAt: string): boolean {
-  const diffDays =
-    (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
-  return diffDays <= 3;
+function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
+  const diffHours =
+    (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  if (diffHours < 24) return "vandaag";
+  if (diffHours < 72) return "nieuw";
+  return null;
 }
 
 export function ListingCard({ listing }: Props) {
   const img = listing.images[0];
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
-  const showNew = isNew(listing.created_at);
+  const newLabel = getNewLabel(listing.created_at);
 
   return (
     <Link
@@ -44,8 +46,13 @@ export function ListingCard({ listing }: Props) {
           <span className="rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-stone-700 shadow-sm backdrop-blur-sm">
             {typeLabel}
           </span>
-          {showNew && (
+          {newLabel === "vandaag" && (
             <span className="rounded-full bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+              Nieuw vandaag
+            </span>
+          )}
+          {newLabel === "nieuw" && (
+            <span className="rounded-full bg-stone-700 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
               Nieuw
             </span>
           )}

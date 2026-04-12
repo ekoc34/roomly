@@ -74,9 +74,10 @@ export default async function KamersPage({
             <h3 className="mt-4 text-base font-semibold text-stone-800">
               Geen kamers gevonden
             </h3>
-            <p className="mt-2 max-w-sm text-sm text-stone-500">
-              Er zijn geen kamers die overeenkomen met je filters. Pas je filters
-              aan of plaats zelf een advertentie.
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">
+              Er zijn momenteel nog geen kamers beschikbaar in Amsterdam die
+              overeenkomen met je filters. We werken eraan om meer aanbod toe te
+              voegen.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link

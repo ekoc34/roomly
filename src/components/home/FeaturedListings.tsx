@@ -12,10 +12,10 @@ export function FeaturedListings({ listings }: Props) {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">
-            Uitgelichte advertenties
+            Recent toegevoegd
           </h2>
           <p className="mt-1 text-sm text-stone-500">
-            Populaire kamers en mede-huurders in Amsterdam.
+            De nieuwste kamers en mede-huurders in Amsterdam.
           </p>
         </div>
         <Link
@@ -35,9 +35,9 @@ export function FeaturedListings({ listings }: Props) {
           <h3 className="mt-4 text-base font-semibold text-stone-800">
             Nog geen kamers beschikbaar
           </h3>
-          <p className="mt-2 max-w-sm text-sm text-stone-500">
-            Er zijn nog geen kamers beschikbaar. Kom later terug of plaats zelf
-            een advertentie.
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">
+            Er zijn momenteel nog geen kamers beschikbaar in Amsterdam. We
+            werken eraan om meer aanbod toe te voegen.
           </p>
           <Link
             href="/kamers/nieuw"
@@ -46,7 +46,7 @@ export function FeaturedListings({ listings }: Props) {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
-            Plaats een advertentie
+            Plaats als eerste een advertentie
           </Link>
         </div>
       ) : (
