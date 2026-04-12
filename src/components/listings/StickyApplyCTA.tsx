@@ -23,7 +23,7 @@ export function StickyApplyCTA({
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 z-50 border-t border-stone-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-md md:hidden">
+    <div className="fixed bottom-[4.5rem] inset-x-0 z-40 border-t border-stone-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-md md:hidden">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-xs text-stone-500">Huurprijs</p>

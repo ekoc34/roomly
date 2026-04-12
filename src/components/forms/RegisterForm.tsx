@@ -84,7 +84,7 @@ export function RegisterForm() {
           type="email"
           autoComplete="email"
           required
-          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-3 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
         />
       </div>
       <div>
@@ -101,7 +101,7 @@ export function RegisterForm() {
           autoComplete="new-password"
           required
           minLength={8}
-          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-3 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
         />
         <p className="mt-1 text-xs text-stone-500">Minimaal 8 tekens.</p>
       </div>

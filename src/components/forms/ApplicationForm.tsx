@@ -55,7 +55,7 @@ export function ApplicationForm({ listingId }: Props) {
           required
           rows={4}
           placeholder="Vertel kort wie je bent en waarom je interesse hebt."
-          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+          className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-3 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -68,7 +68,7 @@ export function ApplicationForm({ listingId }: Props) {
             name="budget"
             type="text"
             inputMode="decimal"
-            className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-3 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
           />
         </div>
         <div>
@@ -84,7 +84,7 @@ export function ApplicationForm({ listingId }: Props) {
             type="text"
             required
             placeholder="bijv. per 1 september"
-            className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            className="mt-1 w-full rounded-xl border border-stone-200 px-3 py-3 text-stone-900 shadow-sm focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
           />
         </div>
       </div>
