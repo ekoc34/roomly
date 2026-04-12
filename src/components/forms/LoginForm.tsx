@@ -65,8 +65,8 @@ export function LoginForm() {
       className="mx-auto max-w-md space-y-5 rounded-2xl border border-stone-200/80 bg-white p-8 shadow-sm"
     >
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Inloggen</h1>
-        <p className="mt-1 text-sm text-stone-500">Welkom terug bij Roomly.</p>
+        <h1 className="text-2xl font-semibold text-stone-900">Inloggen om te reageren op kamers</h1>
+        <p className="mt-1 text-sm text-stone-500">Log in en reageer direct op beschikbare kamers.</p>
       </div>
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -104,12 +104,12 @@ export function LoginForm() {
         disabled={loading}
         className="w-full rounded-2xl bg-rose-500 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-60"
       >
-        {loading ? "Bezig" : "Inloggen"}
+        {loading ? "Bezig…" : "Inloggen →"}
       </button>
       <p className="text-center text-sm text-stone-600">
         Nog geen account?{" "}
         <Link href="/registreren" className="font-medium text-rose-600 hover:underline">
-          Registreren
+          Maak gratis een account aan
         </Link>
       </p>
     </form>

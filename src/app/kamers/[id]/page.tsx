@@ -102,13 +102,22 @@ export default async function ListingDetailPage({
             ) : null}
             {!user ? (
               <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-sm text-stone-700 shadow-sm">
-                <p>Log in om te reageren op deze advertentie.</p>
-                <Link
-                  href={`/inloggen?next=/kamers/${listing.id}`}
-                  className="mt-3 inline-flex rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
-                >
-                  Inloggen en reageren
-                </Link>
+                <p className="font-medium text-stone-800">Reageer op deze kamer — maak gratis een account aan.</p>
+                <p className="mt-1 text-xs text-stone-500">Al een account? Log dan direct in.</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Link
+                    href={`/inloggen?next=/kamers/${listing.id}`}
+                    className="inline-flex rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-600"
+                  >
+                    Inloggen om te reageren
+                  </Link>
+                  <Link
+                    href={`/registreren?next=/kamers/${listing.id}`}
+                    className="inline-flex rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
+                  >
+                    Gratis account aanmaken
+                  </Link>
+                </div>
               </div>
             ) : null}
             {canApply ? <ApplicationForm listingId={listing.id} /> : null}

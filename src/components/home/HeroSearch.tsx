@@ -13,8 +13,8 @@ export function HeroSearch() {
           <span className="text-rose-500">zonder gedoe</span>
         </h1>
         <p className="mt-4 text-base leading-relaxed text-stone-600 sm:text-lg">
-          Speciaal voor studenten die een kamer zoeken of aanbieden. Duidelijke
-          prijzen, eerlijke advertenties.
+          Vind een kamer, reageer direct en spreek af met de verhuurder.
+          Gratis voor studenten — altijd.
         </p>
         <form
           action="/kamers"

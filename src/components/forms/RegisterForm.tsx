@@ -64,9 +64,9 @@ export function RegisterForm() {
       className="mx-auto max-w-md space-y-5 rounded-2xl border border-stone-200/80 bg-white p-8 shadow-sm"
     >
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Account aanmaken</h1>
+        <h1 className="text-2xl font-semibold text-stone-900">Maak gratis een account aan</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Start met zoeken of adverteren op Roomly.
+          Vind een kamer of bied er een aan. Gratis, altijd.
         </p>
       </div>
       {error && (
@@ -110,12 +110,12 @@ export function RegisterForm() {
         disabled={loading}
         className="w-full rounded-2xl bg-rose-500 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-60"
       >
-        {loading ? "Bezig…" : "Registreren"}
+        {loading ? "Bezig…" : "Gratis account aanmaken →"}
       </button>
       <p className="text-center text-sm text-stone-600">
         Heb je al een account?{" "}
         <Link href="/inloggen" className="font-medium text-rose-600 hover:underline">
-          Inloggen
+          Log in
         </Link>
       </p>
     </form>

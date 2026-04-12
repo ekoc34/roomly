@@ -25,7 +25,7 @@ export function OnboardingBanner() {
           href="/kamers/nieuw"
           className="shrink-0 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 active:scale-95"
         >
-          Draag bij →
+          Kamer plaatsen →
         </Link>
       </div>
     </div>

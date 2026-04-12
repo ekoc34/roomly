@@ -39,7 +39,7 @@ export async function Header() {
                 href="/kamers/nieuw"
                 className="rounded-full border border-stone-200 px-4 py-1.5 text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
-                Adverteren
+                Kamer plaatsen
               </Link>
               <form action={signOut}>
                 <button
@@ -59,7 +59,7 @@ export async function Header() {
                 href="/registreren"
                 className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
               >
-                Account aanmaken
+                Gratis aanmelden
               </Link>
             </>
           )}
@@ -79,7 +79,7 @@ export async function Header() {
               href="/registreren"
               className="rounded-full bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
             >
-              Account aanmaken
+              Gratis aanmelden
             </Link>
           )}
         </div>

@@ -45,7 +45,7 @@ export function StickyApplyCTA({
             href={`/inloggen?next=/kamers/${listingId}`}
             className="flex-1 rounded-2xl bg-rose-500 py-3 text-center text-sm font-semibold text-white shadow-md transition hover:bg-rose-600"
           >
-            Inloggen en reageren
+            Inloggen om te reageren
           </a>
         ) : null}
       </div>
