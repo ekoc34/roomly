@@ -6,15 +6,15 @@ export function HeroSearch() {
       <div className="relative mx-auto max-w-3xl text-center">
         <p className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-rose-600">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-400" />
-          Voor studenten in Amsterdam
+          Voor heel Nederland
         </p>
         <h1 className="mt-4 text-3xl font-bold tracking-tight text-stone-900 sm:text-5xl sm:leading-tight">
-          Vind snel een kamer in Amsterdam{" "}
+          Find your home in the Netherlands{" "}
           <span className="text-rose-500">zonder gedoe</span>
         </h1>
         <p className="mt-4 text-base leading-relaxed text-stone-600 sm:text-lg">
           Vind een kamer, reageer direct en spreek af met de verhuurder.
-          Gratis voor studenten — altijd.
+          Gratis voor iedereen — altijd.
         </p>
         <form
           action="/kamers"
@@ -45,6 +45,36 @@ export function HeroSearch() {
           >
             Bekijk alle kamers →
           </Link>
+        </div>
+
+        {/* Placeholder filter buttons - Coming soon */}
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            disabled
+            className="group relative flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-medium text-stone-400 cursor-not-allowed"
+            title="Coming soon"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Room type
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-lg bg-stone-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Coming soon
+            </span>
+          </button>
+          <button
+            disabled
+            className="group relative flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-medium text-stone-400 cursor-not-allowed"
+            title="Coming soon"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Budget
+            <span className="absolute -top-8 left-1/2 -translate-x-1/2 rounded-lg bg-stone-800 px-2 py-1 text-xs text-white opacity-0 transition-opacity group-hover:opacity-100">
+              Coming soon
+            </span>
+          </button>
         </div>
 
         <div className="mt-8 flex flex-wrap justify-center gap-3">
