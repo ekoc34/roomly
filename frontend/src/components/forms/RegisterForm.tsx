@@ -61,12 +61,15 @@ export function RegisterForm() {
   return (
     <form
       onSubmit={onSubmit}
+      method="post"
+      action="?"
       className="mx-auto max-w-md space-y-5 rounded-2xl border border-stone-200/80 bg-white p-8 shadow-sm"
+      data-testid="register-form"
     >
       <div>
         <h1 className="text-2xl font-semibold text-stone-900">Maak gratis een account aan</h1>
         <p className="mt-1 text-sm text-stone-500">
-          Vind een kamer of bied er een aan. Gratis, altijd.
+          Vind een woning of bied er een aan. Voor iedereen — gratis, altijd.
         </p>
       </div>
       {error && (

@@ -62,11 +62,14 @@ export function LoginForm() {
   return (
     <form
       onSubmit={onSubmit}
+      method="post"
+      action="?"
       className="mx-auto max-w-md space-y-5 rounded-2xl border border-stone-200/80 bg-white p-8 shadow-sm"
+      data-testid="login-form"
     >
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Inloggen om te reageren op kamers</h1>
-        <p className="mt-1 text-sm text-stone-500">Log in en reageer direct op beschikbare kamers.</p>
+        <h1 className="text-2xl font-semibold text-stone-900">Inloggen</h1>
+        <p className="mt-1 text-sm text-stone-500">Log in om te reageren op woningen en chats te starten.</p>
       </div>
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
