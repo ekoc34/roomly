@@ -63,13 +63,15 @@ export async function createListing(formData: FormData) {
   });
 
   if (insertError) {
-    console.error("[createListing] Supabase insert error:", {
-      code: insertError.code,
-      message: insertError.message,
-      details: insertError.details,
-      hint: insertError.hint,
-      user_id: user.id,
-    });
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[createListing] Supabase insert error:", {
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        user_id: user.id,
+      });
+    }
     return {
       error: `Er ging iets mis bij het plaatsen van je advertentie. Controleer je gegevens en probeer opnieuw. (code: ${insertError.code ?? "unknown"})`,
     };
@@ -140,14 +142,16 @@ export async function updateListing(listingId: string, formData: FormData) {
     .eq("user_id", user.id);
 
   if (error) {
-    console.error("[updateListing] Supabase update error:", {
-      code: error.code,
-      message: error.message,
-      details: error.details,
-      hint: error.hint,
-      listingId,
-      user_id: user.id,
-    });
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[updateListing] Supabase update error:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        listingId,
+        user_id: user.id,
+      });
+    }
     return {
       error: `Er ging iets mis bij het bijwerken van je advertentie. (code: ${error.code ?? "unknown"})`,
     };

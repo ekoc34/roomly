@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -59,7 +60,7 @@ export async function sendMessage(
 
   const body = String(formData.get("body") ?? "").trim();
   if (!body) return { error: "Bericht mag niet leeg zijn." };
-  if (body.length > 4000) return { error: "Bericht is te lang." };
+  if (body.length > MAX_MESSAGE_LENGTH) return { error: "Bericht is te lang." };
 
   const { error } = await supabase.from("messages").insert({
     conversation_id: conversationId,

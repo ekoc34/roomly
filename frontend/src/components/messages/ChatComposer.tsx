@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { sendMessage } from "@/app/actions/messages";
+import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { useRouter } from "next/navigation";
 
 export function ChatComposer({ conversationId }: { conversationId: string }) {
@@ -36,7 +37,7 @@ export function ChatComposer({ conversationId }: { conversationId: string }) {
         required
         rows={1}
         placeholder="Typ een bericht..."
-        maxLength={4000}
+        maxLength={MAX_MESSAGE_LENGTH}
         className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {

@@ -14,11 +14,11 @@ export function DetailGallery({ images, title }: Props) {
 
   const prev = useCallback(() => {
     setActive((i) => (i > 0 ? i - 1 : images.length - 1));
-  }, [images.length]);
+  }, [images]);
 
   const next = useCallback(() => {
     setActive((i) => (i < images.length - 1 ? i + 1 : 0));
-  }, [images.length]);
+  }, [images]);
 
   const onTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -27,7 +27,13 @@ export function DetailGallery({ images, title }: Props) {
   const onTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        next();
+      } else {
+        prev();
+      }
+    }
     touchStartX.current = null;
   };
 

@@ -20,9 +20,13 @@ export async function createClient() {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options),
           );
-        } catch {
-          /* Server Component — cookies kunnen hier niet gezet worden */
-        }
+    } catch (error) {
+      // Server Component — cookies kunnen hier niet gezet worden.
+      // Logged in dev only; middleware refreshes the session for protected routes.
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[supabase/server] cookie set skipped:", error);
+      }
+    }
       },
     },
   });

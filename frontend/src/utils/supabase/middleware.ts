@@ -9,7 +9,9 @@ export const createClient = (request: NextRequest) => {
 
     // Guard: Return early if env variables are missing
     if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase environment variables in middleware");
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[supabase/middleware] Missing Supabase environment variables");
+      }
       return NextResponse.next({
         request,
       });
@@ -46,7 +48,9 @@ export const createClient = (request: NextRequest) => {
     return supabaseResponse
   } catch (error) {
     // Safe fallback: never break the app
-    console.error("Middleware error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[supabase/middleware] error:", error);
+    }
     return NextResponse.next({
       request,
     });

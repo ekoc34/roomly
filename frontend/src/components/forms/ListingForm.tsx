@@ -61,12 +61,14 @@ export function ListingForm({ mode, listing }: Props) {
     setImageUrls((prev) => prev.filter((u) => u !== url));
   }
 
-  const formAction =
-    mode === "create"
-      ? createListing
-      : listing
-        ? updateListing.bind(null, listing.id)
-        : createListing;
+  let formAction: typeof createListing | ((fd: FormData) => Promise<{ error: string } | void>);
+  if (mode === "create") {
+    formAction = createListing;
+  } else if (listing) {
+    formAction = updateListing.bind(null, listing.id);
+  } else {
+    formAction = createListing;
+  }
 
   return (
     <form

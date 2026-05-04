@@ -5,8 +5,10 @@ let supabaseHost = "localhost";
 if (raw) {
   try {
     supabaseHost = new URL(raw).hostname;
-  } catch {
-    /* ongeldige URL — fallback */
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[next.config] invalid NEXT_PUBLIC_SUPABASE_URL:", error);
+    }
   }
 }
 

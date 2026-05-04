@@ -8,6 +8,12 @@ import type { ApplicationStatus, Listing, Profile } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_BADGE_CLASS: Record<ApplicationStatus, string> = {
+  accepted: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-red-100 text-red-700",
+  pending: "bg-stone-100 text-stone-600",
+};
+
 type IncomingApp = {
   id: string;
   message: string;
@@ -354,13 +360,7 @@ export default async function DashboardPage() {
                   Beschikbaar: {a.availability_text}
                 </p>
                 <div className="mt-2 flex items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    a.status === "accepted"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : a.status === "rejected"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-stone-100 text-stone-600"
-                  }`}>
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[a.status]}`}>
                     {APPLICATION_STATUS_LABELS[a.status]}
                   </span>
                   <span className="text-xs text-stone-400">{new Date(a.created_at).toLocaleDateString("nl-NL")}</span>
@@ -424,13 +424,7 @@ export default async function DashboardPage() {
                     {listingEmbed?.title ?? "Advertentie"}
                   </Link>
                   <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      s.status === "accepted"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : s.status === "rejected"
-                        ? "bg-red-100 text-red-700"
-                        : "bg-stone-100 text-stone-600"
-                    }`}>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_BADGE_CLASS[s.status]}`}>
                       {APPLICATION_STATUS_LABELS[s.status]}
                     </span>
                     <span className="text-xs text-stone-400">{new Date(s.created_at).toLocaleDateString("nl-NL")}</span>

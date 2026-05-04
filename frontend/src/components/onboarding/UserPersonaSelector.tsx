@@ -37,6 +37,13 @@ const PERSONAS: Record<
   },
 };
 
+const PERSONA_COLOR_CLASSES: Record<string, string> = {
+  rose: "bg-rose-50 group-hover:bg-rose-100",
+  blue: "bg-blue-50 group-hover:bg-blue-100",
+  emerald: "bg-emerald-50 group-hover:bg-emerald-100",
+  amber: "bg-amber-50 group-hover:bg-amber-100",
+};
+
 export function UserPersonaSelector() {
   const [selectedPersona, setSelectedPersona] = useState<Persona | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -82,13 +89,7 @@ export function UserPersonaSelector() {
             >
               <div
                 className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition ${
-                  persona.color === "rose"
-                    ? "bg-rose-50 group-hover:bg-rose-100"
-                    : persona.color === "blue"
-                    ? "bg-blue-50 group-hover:bg-blue-100"
-                    : persona.color === "emerald"
-                    ? "bg-emerald-50 group-hover:bg-emerald-100"
-                    : "bg-amber-50 group-hover:bg-amber-100"
+                  PERSONA_COLOR_CLASSES[persona.color] ?? PERSONA_COLOR_CLASSES.rose
                 }`}
               >
                 <span className="text-2xl">{persona.icon}</span>

@@ -6,7 +6,9 @@ export async function middleware(request: NextRequest) {
     return await createClient(request);
   } catch (error) {
     // Safe fallback: never break the app
-    console.error("Middleware error:", error);
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[middleware] error:", error);
+    }
     return NextResponse.next({
       request,
     });

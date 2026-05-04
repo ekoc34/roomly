@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
-import { LISTING_TYPE_LABELS } from "@/lib/constants";
+import {
+  LISTING_TYPE_LABELS,
+  NEW_LABEL_RECENT_HOURS,
+  NEW_LABEL_TODAY_HOURS,
+} from "@/lib/constants";
 import type { Listing } from "@/types/database";
 
 type Props = {
@@ -12,8 +16,8 @@ type Props = {
 function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
   const diffHours =
     (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  if (diffHours < 24) return "vandaag";
-  if (diffHours < 72) return "nieuw";
+  if (diffHours < NEW_LABEL_TODAY_HOURS) return "vandaag";
+  if (diffHours < NEW_LABEL_RECENT_HOURS) return "nieuw";
   return null;
 }
 
