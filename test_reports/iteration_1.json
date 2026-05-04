@@ -1,0 +1,54 @@
+{
+  "summary": "Frontend-only testing of Roomly v2 (Next.js 16 + Supabase). Verified homepage redesign, quick filters, browse/filters page, header (unauth), mobile bottom nav, login/register UI, Supabase signup request, protected-route redirects. Authenticated flows (messaging/favorites/reports/profile/dashboard-weergaven) could not be fully exercised because (a) Supabase Email Confirmation is enabled on the project (login after signup returns 'email_not_confirmed') and (b) the listings table appears to be empty, so no listing cards render on /kamers or /home, which in turn blocks ContactButton / FavoriteButton / ReportListingButton / OwnerBadges / messaging flows.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "/app/frontend/src/components/forms/LoginForm.tsx",
+        "issue": "The <form> has no action/method attributes and relies purely on client-side onSubmit. If a user submits the form before React hydration completes (slow connection / Suspense boundary still showing), the browser performs the default GET submit and the plaintext password ends up in the URL (observed once during testing: /inloggen?email=...&password=...). Low probability in practice but a real privacy/security risk. Recommend adding method=\"post\" + a no-op action, or disable the submit button until hydrated.",
+        "selector": "form inside LoginForm",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Auth: signup → login",
+        "issue": "Supabase project has 'Confirm email' enabled. signUp returns 200 with confirmation_sent_at set and email_verified=false; signInWithPassword then fails with {code: 'email_not_confirmed'}. Because of this, no tenant/landlord test account can log in and all downstream authenticated flows (favorites, berichten, profiel, dashboard, welkom persona, reports) cannot be verified end-to-end through the UI.",
+        "affected_selectors": ["button[type=submit]"]
+      },
+      {
+        "flow": "Listings / Favorites / Contact / Report / Messaging",
+        "issue": "The Supabase listings table is empty in the configured project (both the homepage 'Featured' grid and /kamers render 0 cards). As a result, FavoriteButton, ContactButton (data-testid='contact-button'), OwnerBadges, ReportListingButton (data-testid='report-listing-button'), and the conversation-creation flow could not be exercised.",
+        "affected_selectors": ["[data-testid^='listing-card-']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Disable 'Confirm email' in Supabase Auth (or seed users with email_confirmed_at via SQL) so automated and manual testing can exercise authenticated flows. The test_credentials.md already flags this; please action it before the next test iteration.",
+    "Seed the Supabase listings table with a handful of rows (at least one with an owner profile, photos, price, district) so listing detail, FavoriteButton, ContactButton, ReportListingButton and messaging can be tested.",
+    "Harden LoginForm / RegisterForm against pre-hydration submits (add method='post' + server-side action fallback, or disable submit while not hydrated) to prevent credentials leaking into the URL as a GET querystring."
+  ],
+  "critical_code_review_comments": [
+    "LoginForm.tsx and RegisterForm.tsx are fully client-rendered inside a Suspense boundary; before hydration completes the browser's default form submission uses GET, exposing email and password in the URL. Use a server action or at minimum method='post' with a safe action URL.",
+    "/app/frontend/src/app/welkom/page.tsx is NOT inside the (protected) group and the unauth response shows the persona selector UI. setUserType server action will still fail for anonymous users, but the page should either redirect to /inloggen when not signed in, or explicitly state the user must register first.",
+    "Auto-verify EDU/.nl university emails: the handle_new_user trigger only sets student_verified on profiles, it does NOT set email_confirmed_at on auth.users. So university-email accounts STILL can't log in until Supabase email confirmation is disabled or handled — worth documenting clearly.",
+    "HeaderClient uses md:hidden for the mobile hamburger area but the mobile nav on screens <768px only shows 'Uitloggen' (when logged in) / 'Gratis aanmelden' — the 'Woningen' link and city selector disappear from the top header on mobile; relies entirely on MobileBottomNav which is fine, but there is no way to navigate back to /kamers from the mobile top header without scrolling to the bottom nav. Minor UX nit.",
+    "Listings page: when listings.length === 0 on /kamers we show an empty state with a 'Plaats advertentie' CTA that points to /kamers/nieuw (protected). Unauth users get redirected to /inloggen?next=/kamers/nieuw which works, but the CTA could indicate that sign-in is required."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "not tested (frontend-only request)",
+    "frontend": "public surface ~100% (homepage, /kamers, /inloggen, /registreren, mobile-nav, protected-redirects, signup API). Authenticated surface 0% — blocked by Supabase email confirmation + empty listings table."
+  },
+  "test_credentials": "Created during this run (registered but NOT email-confirmed, so cannot log in): student-test-1777919264@uva.nl / TestPassword123!. Universal test password: TestPassword123!.",
+  "seed_data_creation": "None — no seed listings/users were created (no admin access to Supabase SQL from inside the container). Recommend main agent seeds data via the Supabase dashboard or scripts/ directory.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "Next iteration: (1) ask user to disable Supabase 'Confirm email' OR seed 2 users (landlord + tenant) directly in auth.users with email_confirmed_at set; (2) seed 3-5 listings with owner_id pointing to the landlord user so /kamers and /kamers/[id] actually render cards. Once those two prerequisites are satisfied, the full happy-path can be tested: login → /kamers → click a listing card → verify FavoriteButton toggle writes to favorites table → ContactButton starts a conversation and navigates to /berichten/[id] → send a message via ChatComposer → ReportListingButton opens modal with category + reason + submit that inserts into listing_reports → /profiel ProfileForm updateProfile round-trip → /dashboard shows stats with NO 'weergaven' text → /welkom persona selector calls setUserType and redirects to /dashboard. All data-testid selectors exist in the codebase and are ready to use: header-favorites-link, header-messages-link, header-new-listing-link, header-signout-button, header-unread-badge, bottom-nav-*, listing-card-<id>, favorite-button-<id>, contact-button, owner-badges, report-listing-link, report-listing-button, report-modal, report-category-select, report-reason-input, report-submit-button.",
+  "rca_of_the_issue": "Observed 'email_not_confirmed' during login after a successful 200 signup. Reproduction: POST /auth/v1/signup with a fresh @uva.nl email → 200 and user row created with email_verified=false; immediate POST /auth/v1/token?grant_type=password → 400 {code:'email_not_confirmed'}. Root cause: the Supabase project still has 'Confirm email' ON in Authentication → Providers → Email. Mitigation (pick one): toggle 'Confirm email' OFF in Supabase Dashboard; or run SQL `update auth.users set email_confirmed_at = now() where email like '%@roomly-test.nl' or email like '%@uva.nl';` after seeding; or use the admin API to create pre-confirmed users."
+}

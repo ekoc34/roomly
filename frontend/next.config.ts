@@ -12,6 +12,7 @@ if (raw) {
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  allowedDevOrigins: ["*.preview.emergentagent.com", "*.preview.emergentcf.cloud", "*.cluster-0.preview.emergentcf.cloud"],
   images: {
     remotePatterns: [
       {

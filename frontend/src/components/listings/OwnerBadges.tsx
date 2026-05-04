@@ -6,48 +6,71 @@ type Props = {
 };
 
 export function OwnerBadges({ profile, memberSince }: Props) {
-  const joinYear = new Date(memberSince).getFullYear();
   const joinMonth = new Date(memberSince).toLocaleDateString("nl-NL", {
     month: "long",
     year: "numeric",
   });
+  const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
 
   return (
-    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm" data-testid="owner-badges">
       <h2 className="text-sm font-semibold text-stone-900">Over de plaatser</h2>
+
+      <div className="mt-4 flex items-center gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+          {profile?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-base font-semibold text-stone-500">{initial}</span>
+          )}
+        </div>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-stone-900">
+            {profile?.name ?? "Roomly gebruiker"}
+          </p>
+          <p className="text-xs text-stone-500">Lid sinds {joinMonth}</p>
+        </div>
+      </div>
+
+      {profile?.bio && (
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">
+          {profile.bio}
+        </p>
+      )}
 
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          E-mail geverifieerd
+          E-mail account
         </span>
 
-        {profile?.student_verified ? (
+        {profile?.email_auto_verified || profile?.student_verified ? (
           <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6" />
             </svg>
-            Student account
+            Geverifieerde student
           </span>
         ) : null}
 
-        {joinYear <= new Date().getFullYear() - 0 && profile !== null ? (
-          <span className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        {profile?.phone_verified ? (
+          <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            Lid sinds {joinMonth}
+            Telefoon geverifieerd
           </span>
         ) : null}
       </div>
 
-      <p className="mt-4 flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+      <p className="mt-4 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-800">
         <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        Controleer altijd zelf de verhuurder voordat je een overeenkomst aangaat.
+        Chat altijd via Roomly. Maak nooit geld over en deel geen ID-bewijs voordat je de woning hebt gezien.
       </p>
     </div>
   );

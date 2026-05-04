@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApplicationForm } from "@/components/forms/ApplicationForm";
+import { ContactButton } from "@/components/listings/ContactButton";
 import { DetailGallery } from "@/components/listings/DetailGallery";
+import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
+import { ReportListingButton } from "@/components/listings/ReportListingButton";
 import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import { fetchListingById } from "@/lib/data/listings";
@@ -44,24 +47,36 @@ export default async function ListingDetailPage({
     .maybeSingle();
   const ownerMemberSince = (ownerProfile as Profile | null)?.created_at ?? listing.created_at;
 
+  let isFavorited = false;
+  if (user) {
+    const { data } = await supabase
+      .from("favorites")
+      .select("listing_id")
+      .eq("user_id", user.id)
+      .eq("listing_id", listing.id)
+      .maybeSingle();
+    isFavorited = !!data;
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 pb-28 sm:px-6 sm:pb-10 lg:px-8">
       <Link
         href="/kamers"
         className="text-sm font-medium text-rose-600 hover:underline"
       >
-        Terug naar overzicht
+        ← Terug naar overzicht
       </Link>
 
       <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
+        <div className="relative">
           <DetailGallery images={listing.images} title={listing.title} />
+          <FavoriteButton listingId={listing.id} initialFavorited={isFavorited} variant="detail" />
         </div>
         <div>
           <p className="text-sm font-medium text-rose-600">
             {LISTING_TYPE_LABELS[listing.type]}
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-semibold text-stone-900 sm:text-3xl" data-testid="listing-title">
             {listing.title}
           </h1>
           <p className="mt-2 text-stone-500">{listing.location}</p>
@@ -75,6 +90,13 @@ export default async function ListingDetailPage({
               {new Date(listing.availability_date).toLocaleDateString("nl-NL")}
             </p>
           ) : null}
+
+          {/* Primary CTA: Send message */}
+          {!isOwner && (
+            <div className="mt-6">
+              <ContactButton listingId={listing.id} isLoggedIn={Boolean(user)} />
+            </div>
+          )}
 
           <div className="mt-8 rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
             <h2 className="text-sm font-semibold text-stone-900">Beschrijving</h2>
@@ -93,7 +115,7 @@ export default async function ListingDetailPage({
           <div className="mt-6 space-y-4" id="reageer">
             {isOwner ? (
               <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4 text-sm text-stone-700">
-                Dit is jouw advertentie. Beheer aanvragen in je{" "}
+                Dit is jouw advertentie. Beheer berichten en aanvragen in je{" "}
                 <Link href="/dashboard" className="font-medium text-rose-600 hover:underline">
                   dashboard
                 </Link>
@@ -102,7 +124,9 @@ export default async function ListingDetailPage({
             ) : null}
             {!user ? (
               <div className="rounded-2xl border border-stone-200 bg-white px-4 py-4 text-sm text-stone-700 shadow-sm">
-                <p className="font-medium text-stone-800">Reageer op deze kamer — maak gratis een account aan.</p>
+                <p className="font-medium text-stone-800">
+                  Reageer op deze woning — maak gratis een account aan.
+                </p>
                 <p className="mt-1 text-xs text-stone-500">Al een account? Log dan direct in.</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Link
@@ -122,6 +146,12 @@ export default async function ListingDetailPage({
             ) : null}
             {canApply ? <ApplicationForm listingId={listing.id} /> : null}
           </div>
+
+          {!isOwner && (
+            <div className="mt-6 flex justify-end">
+              <ReportListingButton listingId={listing.id} isLoggedIn={Boolean(user)} />
+            </div>
+          )}
         </div>
       </div>
 
