@@ -1,0 +1,45 @@
+The Roomly app has two critical bugs in the Stadsdelen (neighborhood) section:
+
+BUG 1: Stadsdelen shows "Geen stadsdelen gevonden in [city]" warning 
+       AT THE SAME TIME as displaying neighborhood pills for that city.
+BUG 2: When changing the selected city in the hero dropdown, the Stadsdelen 
+       section does NOT update and keeps showing the previous city's neighborhoods.
+
+ROOT CAUSE LIKELY:
+- The StadsdeelSection component might be rendering twice on the page 
+  (once with correct data, once with empty/null data).
+- The component may not be subscribed to SelectedCityContext updates properly.
+- The Supabase query might be using stale or incorrect city values.
+- There could be a race condition between the context update and the fetch.
+
+PLEASE FIX THE FOLLOWING:
+
+1. Check if `StadsdeelSection` is imported/used TWICE on HomePage or anywhere.
+   If yes, remove the duplicate.
+
+2. Ensure `StadsdeelSection` reads `selectedCity` from `SelectedCityContext` 
+   and re-fetches neighborhoods EVERY TIME `selectedCity` changes.
+   Use a `useEffect` with `[selectedCity]` dependency.
+
+3. When `selectedCity` is "Alle steden" or empty, fetch ALL neighborhoods 
+   grouped by city. Otherwise, fetch only the selected city's neighborhoods 
+   using `.ilike("location", "${selectedCity}%")`.
+
+4. Show the warning "Geen stadsdelen gevonden in [city]" ONLY when:
+   - Fetching is complete (loading = false)
+   - AND the fetched array is empty (neighborhoods.length === 0)
+   Make absolutely sure this warning is NOT shown while data is loading 
+   or when neighborhoods ARE present.
+
+5. Ensure the Supabase query handles errors gracefully with a try-catch 
+   and does not crash the page.
+
+6. After fixing, test: Select "Rotterdam" and verify that "Stadsdelen in Rotterdam" 
+   appears with Rotterdam neighborhoods, NOT Amsterdam ones. 
+   Verify that the "Geen stadsdelen gevonden" warning does NOT appear 
+   when neighborhoods are visible.
+
+7. All user-facing text must remain in Dutch (Nederlands).
+
+8. Commit with message: "Fix: Stadsdelen double render and city update sync bugs"
+   Push to GitHub main branch. If push fails, give me the commands for Shell.

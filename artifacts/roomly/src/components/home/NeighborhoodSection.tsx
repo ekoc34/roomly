@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 import { useSelectedCity } from "@/contexts/SelectedCityContext";
 
 function extractNeighborhood(location: string, city: string): string | null {
-  // "Amsterdam, Jordaan" → "Jordaan" (when city = "Amsterdam")
   const parts = location.split(",").map((s) => s.trim());
   if (parts.length >= 2 && parts[0].toLowerCase() === city.toLowerCase()) {
     return parts.slice(1).join(", ");
@@ -29,26 +28,46 @@ export function NeighborhoodSection() {
   useEffect(() => {
     if (!selectedCity || !supabase) {
       setNeighborhoods([]);
+      setLoading(false);
       return;
     }
+
+    let cancelled = false;
+
+    setNeighborhoods([]);
     setLoading(true);
+
     supabase
       .from("listings")
       .select("location")
       .ilike("location", `${selectedCity},%`)
       .limit(100)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setLoading(false);
+          return;
+        }
         const hoods = Array.from(
           new Set(
             (data ?? [])
-              .map((r: { location: string }) => extractNeighborhood(r.location, selectedCity))
+              .map((r: { location: string }) =>
+                extractNeighborhood(r.location, selectedCity)
+              )
               .filter((h): h is string => !!h && h.length > 0)
           )
         ).sort();
         setNeighborhoods(hoods);
         setLoading(false);
       })
-      .catch(() => { setLoading(false); });
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedCity]);
 
   if (!selectedCity) return null;
@@ -74,14 +93,20 @@ export function NeighborhoodSection() {
       {loading ? (
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
-            <div key={n} className="h-9 w-24 skeleton rounded-full" />
+            <div
+              key={n}
+              className="h-9 w-24 animate-pulse rounded-full bg-stone-200"
+            />
           ))}
         </div>
       ) : neighborhoods.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
           <p className="text-sm text-stone-500">
             Geen stadsdelen gevonden in <strong>{selectedCity}</strong>.{" "}
-            <Link href={`/kamers?q=${encodeURIComponent(selectedCity)}`} className="text-rose-600 hover:underline">
+            <Link
+              href={`/kamers?q=${encodeURIComponent(selectedCity)}`}
+              className="text-rose-600 hover:underline"
+            >
               Bekijk alle woningen
             </Link>{" "}
             in deze stad.
@@ -98,9 +123,23 @@ export function NeighborhoodSection() {
                 NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
               }`}
             >
-              <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              <svg
+                className="h-3.5 w-3.5 shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                />
               </svg>
               {hood}
             </Link>
