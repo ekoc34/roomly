@@ -1,0 +1,82 @@
+You are working on the Roomly project, a room/housing listing platform built with Vite + React + TypeScript + TailwindCSS. The site is deployed on Vercel (roomly-sooty.vercel.app) and uses Supabase as the backend.
+
+Please implement the following features IN ORDER, one at a time. After each feature, commit the changes to Git and push to GitHub. If you cannot push, tell me the exact commands I need to run in Shell.
+
+---
+
+## 1. DATABASE CONNECTION & REAL DATA
+Make sure Roomly is fully connected to Supabase so listings, profiles, and messages actually work with real data instead of mock data.
+
+- Verify supabase client is configured in `artifacts/roomly/src/lib/supabase.ts` (or wherever the client lives)
+- Replace any hardcoded/mock listings data with real Supabase queries
+- Ensure the listings page fetches from the `listings` table
+- Ensure the messages page fetches real messages from the `messages` table
+- Ensure user profiles fetch real data from the `profiles` table
+- If any tables are missing, check `supabase/schema.sql` and suggest running it in Supabase SQL Editor
+
+## 2. IMAGE UPLOAD FOR LISTINGS
+Allow users to attach real photos when creating or editing a listing.
+
+- Add an image upload component to the listing create/edit form
+- Allow multiple images (up to 5-6 photos per listing)
+- Upload images to Supabase Storage bucket (use the `avatars` or create a new `listings` bucket)
+- Show image previews before upload
+- Display uploaded images on the listing detail page in a gallery/grid
+- Handle loading states and error messages properly
+
+## 3. MAP VIEW OF LISTINGS
+Show listings on an interactive map so users can browse by location visually.
+
+- Add a map view page or a toggle on the listings page (list view ↔ map view)
+- Use a free map library: Leaflet or Mapbox (free tier) or a simple React map component
+- Place markers/pins on the map for each listing based on location data
+- Clicking a pin opens a small popup with listing title, price, and a link to the detail page
+- Handle cases where listings don't have location data (hide them from map or show a notice)
+- On mobile, the map should be responsive and touch-friendly
+
+## 4. PASSWORD RESET FLOW ("Wachtwoord vergeten?")
+Add a password reset flow so users can recover locked accounts via email.
+
+- Add a "Wachtwoord vergeten?" link on the login page
+- Create a "Forgot Password" page where users enter their email
+- On submit, call Supabase auth password reset: `supabase.auth.resetPasswordForEmail(email)`
+- Show success message: "Check je e-mail voor een reset link" (or similar Dutch text)
+- Create a "Reset Password" page where users land from the email link and can enter a new password
+- Call `supabase.auth.updateUser({ password: newPassword })` on submit
+- Redirect to login page on success with a confirmation message
+
+## 5. SPA ROUTING OPTIMIZATION
+Ensure direct URL visits (e.g. /kamers/123, /berichten, /dashboard) work without 404 errors.
+
+- Verify `artifacts/roomly/vercel.json` has proper SPA rewrite rules:
+  {
+    "rewrites": [
+      {
+        "source": "/((?!assets/).*)",
+        "destination": "/index.html"
+      }
+    ]
+  }
+- Ensure Wouter (the router) handles all client-side routes correctly
+- Test that refreshing any page doesn't cause a 404
+
+## 6. DESIGN POLISH
+Add professional design touches to improve the overall user experience.
+
+- Add a loading skeleton/spinner while pages load
+- Add empty state messages for listings, messages, and favorites (e.g., "Nog geen favorieten" instead of just blank)
+- Smooth transitions between pages (basic CSS transitions or framer-motion)
+- Hover effects on listing cards, buttons, and interactive elements
+- A subtle footer with copyright and links
+- Error boundaries for graceful error handling
+- Toast notifications for actions (already have sonner installed — use it for success/error messages)
+
+---
+
+## IMPORTANT NOTES:
+- The app uses Dutch (Nederlands) as the primary language for all user-facing text
+- Keep the existing TailwindCSS v4 styling system
+- The project is a Vite + React app (NOT Next.js)
+- All Supabase interactions should use the existing `@supabase/supabase-js` client
+- After each feature is complete, commit with a clear message in English
+- If Git push is restricted, tell me the commands to run in Shell

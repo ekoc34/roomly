@@ -1,4 +1,5 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Toaster } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -16,6 +17,9 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { WelcomePage } from "@/pages/WelcomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
+import { MapPage } from "@/pages/MapPage";
 
 function NotFound() {
   return (
@@ -36,6 +40,7 @@ function Router() {
       <Route path="/kamers/nieuw" component={NewListingPage} />
       <Route path="/kamers/:id/bewerken" component={EditListingPage} />
       <Route path="/kamers/:id" component={ListingDetailPage} />
+      <Route path="/kaart" component={MapPage} />
       <Route path="/favorieten" component={FavoritesPage} />
       <Route path="/berichten" component={MessagesPage} />
       <Route path="/berichten/:id" component={ConversationPage} />
@@ -44,6 +49,8 @@ function Router() {
       <Route path="/welkom" component={WelcomePage} />
       <Route path="/inloggen" component={LoginPage} />
       <Route path="/registreren" component={RegisterPage} />
+      <Route path="/wachtwoord-vergeten" component={ForgotPasswordPage} />
+      <Route path="/wachtwoord-instellen" component={ResetPasswordPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -60,6 +67,7 @@ export default function App() {
         <Footer />
         <MobileBottomNav />
       </WouterRouter>
+      <Toaster position="bottom-right" richColors closeButton />
     </div>
   );
 }

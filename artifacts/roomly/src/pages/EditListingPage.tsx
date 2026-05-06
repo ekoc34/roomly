@@ -1,8 +1,10 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation, useParams } from "wouter";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
+import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import type { Listing, ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
@@ -15,7 +17,7 @@ export function EditListingPage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [imageUrls, setImageUrls] = useState<string[]>([""]);
+  const [images, setImages] = useState<string[]>([]);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
@@ -25,22 +27,18 @@ export function EditListingPage() {
       const { data } = await supabase!.from("listings").select("*").eq("id", params.id).maybeSingle();
       if (!data) { setNotFound(true); setLoading(false); return; }
       setListing(data as Listing);
-      setImageUrls((data as Listing).images.length > 0 ? (data as Listing).images : [""]);
+      setImages((data as Listing).images ?? []);
       setLoading(false);
     }
     fetchListing();
   }, [params.id, authLoading]);
-
-  const addImageField = () => setImageUrls((prev) => [...prev, ""]);
-  const removeImageField = (i: number) => setImageUrls((prev) => prev.filter((_, idx) => idx !== i));
-  const updateImageField = (i: number, val: string) =>
-    setImageUrls((prev) => prev.map((u, idx) => (idx === i ? val : u)));
 
   const onDelete = () => {
     if (!confirm("Weet je zeker dat je deze advertentie wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) return;
     startTransition(async () => {
       if (!supabase || !user) return;
       await supabase.from("listings").delete().eq("id", params.id).eq("user_id", user.id);
+      toast.success("Advertentie verwijderd.");
       navigate("/dashboard");
     });
   };
@@ -55,12 +53,16 @@ export function EditListingPage() {
     const location = String(fd.get("location") ?? "").trim();
     const type = String(fd.get("type") ?? "room_for_rent") as ListingType;
     const availability_date = String(fd.get("availability_date") ?? "").trim() || null;
-    const images = imageUrls.map((u) => u.trim()).filter(Boolean);
     if (!title || !description || !location || price <= 0) { setError("Vul alle verplichte velden in."); return; }
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
-      const { error: err } = await supabase.from("listings").update({ title, description, price, location, type, availability_date, images }).eq("id", params.id).eq("user_id", user.id);
+      const { error: err } = await supabase
+        .from("listings")
+        .update({ title, description, price, location, type, availability_date, images })
+        .eq("id", params.id)
+        .eq("user_id", user.id);
       if (err) { setError("Opslaan mislukt."); return; }
+      toast.success("Wijzigingen opgeslagen!");
       navigate(`/kamers/${params.id}`);
     });
   };
@@ -132,24 +134,7 @@ export function EditListingPage() {
               <label htmlFor="el-desc" className="text-xs font-medium text-stone-700">Beschrijving *</label>
               <textarea id="el-desc" name="description" required rows={6} maxLength={4000} defaultValue={listing.description} className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
             </div>
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-xs font-medium text-stone-700">Foto URL's</label>
-                <button type="button" onClick={addImageField} className="text-xs text-rose-600 hover:underline">+ Foto toevoegen</button>
-              </div>
-              <div className="space-y-2">
-                {imageUrls.map((url, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input type="url" value={url} onChange={(e) => updateImageField(i, e.target.value)} placeholder="https://..." className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
-                    {imageUrls.length > 1 && (
-                      <button type="button" onClick={() => removeImageField(i)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-stone-200 text-stone-400 hover:border-red-200 hover:text-red-500" aria-label="Verwijder">
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <ListingImageUpload value={images} onChange={setImages} />
             {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
             <div className="flex gap-3">
               <button type="submit" disabled={isPending} data-testid="edit-listing-submit" className="flex-1 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">

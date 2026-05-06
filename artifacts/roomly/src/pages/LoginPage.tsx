@@ -51,7 +51,10 @@ export function LoginPage() {
             {isPending ? "Inloggen…" : "Inloggen"}
           </button>
         </form>
-        <p className="mt-5 text-center text-sm text-stone-500">
+        <p className="mt-4 text-center text-sm">
+          <Link href="/wachtwoord-vergeten" className="text-stone-500 hover:text-rose-600 hover:underline">Wachtwoord vergeten?</Link>
+        </p>
+        <p className="mt-3 text-center text-sm text-stone-500">
           Nog geen account?{" "}
           <Link href="/registreren" data-testid="login-register-link" className="font-medium text-rose-600 hover:underline">Aanmelden →</Link>
         </p>

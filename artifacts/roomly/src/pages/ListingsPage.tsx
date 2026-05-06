@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearch } from "wouter";
+import { Link, useSearch } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -57,11 +57,22 @@ export function ListingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">
-          {q ? `Resultaten voor "${q}"` : "Alle woningen"}
-        </h1>
-        <p className="text-sm text-stone-500">{loading ? "Laden…" : `${listings.length} woning${listings.length !== 1 ? "en" : ""} gevonden`}</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">
+            {q ? `Resultaten voor "${q}"` : "Alle woningen"}
+          </h1>
+          <p className="text-sm text-stone-500">{loading ? "Laden…" : `${listings.length} woning${listings.length !== 1 ? "en" : ""} gevonden`}</p>
+        </div>
+        <Link
+          href="/kaart"
+          className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          Kaartweergave
+        </Link>
       </div>
       <ListingFilters />
       <div className="mt-6">
