@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
+import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -77,16 +78,18 @@ function Router() {
 
 export default function App() {
   return (
-    <div className="flex min-h-screen flex-col bg-stone-50">
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-        <Header />
-        <main className="flex-1">
-          <Router />
-        </main>
-        <Footer />
-        <MobileBottomNav />
-      </WouterRouter>
-      <Toaster position="bottom-right" richColors closeButton />
-    </div>
+    <SelectedCityProvider>
+      <div className="flex min-h-screen flex-col bg-stone-50">
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <Header />
+          <main className="flex-1">
+            <Router />
+          </main>
+          <Footer />
+          <MobileBottomNav />
+        </WouterRouter>
+        <Toaster position="bottom-right" richColors closeButton />
+      </div>
+    </SelectedCityProvider>
   );
 }
