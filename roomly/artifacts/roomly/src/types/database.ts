@@ -24,7 +24,6 @@ export type Profile = {
   email_auto_verified: boolean;
   student_verified: boolean;
   student_verification_requested_at: string | null;
-  verification_badge: string | null;
   created_at: string;
   updated_at: string;
 };

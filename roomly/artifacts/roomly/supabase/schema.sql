@@ -1,0 +1,311 @@
+-- ============================================================
+-- Roomly Database Schema
+-- Run this in Supabase SQL Editor (Dashboard → SQL Editor)
+-- ============================================================
+
+-- Extensions
+create extension if not exists "uuid-ossp";
+
+-- ============================================================
+-- PROFILES
+-- ============================================================
+create table if not exists public.profiles (
+  id            uuid primary key references auth.users(id) on delete cascade,
+  email         text,
+  name          text,
+  avatar_url    text,
+  bio           text,
+  phone         text,
+  role          text not null default 'student' check (role in ('student','landlord','admin')),
+  user_type     text not null default 'tenant' check (user_type in ('tenant','landlord','student','professional','family')),
+  phone_verified          boolean not null default false,
+  email_auto_verified     boolean not null default false,
+  student_verified        boolean not null default false,
+  student_verification_requested_at timestamptz,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+
+-- Auto-create profile on sign-up
+create or replace function public.handle_new_user()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (id, email, email_auto_verified)
+  values (
+    new.id,
+    new.email,
+    new.email like '%@%.edu' or new.email like '%@%.ac.nl' or new.email like '%@student.%'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+-- Auto-update updated_at
+create or replace function public.set_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_updated_at on public.profiles;
+create trigger profiles_updated_at
+  before update on public.profiles
+  for each row execute procedure public.set_updated_at();
+
+-- ============================================================
+-- LISTINGS
+-- ============================================================
+create table if not exists public.listings (
+  id                uuid primary key default uuid_generate_v4(),
+  user_id           uuid not null references public.profiles(id) on delete cascade,
+  title             text not null,
+  description       text not null default '',
+  price             numeric(10,2) not null check (price > 0),
+  location          text not null default '',
+  type              text not null default 'room_for_rent' check (type in ('room_for_rent','roommate_search','short_stay')),
+  images            text[] not null default '{}',
+  availability_date date,
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
+);
+
+create index if not exists listings_user_id_idx   on public.listings(user_id);
+create index if not exists listings_type_idx      on public.listings(type);
+create index if not exists listings_price_idx     on public.listings(price);
+create index if not exists listings_created_at_idx on public.listings(created_at desc);
+
+drop trigger if exists listings_updated_at on public.listings;
+create trigger listings_updated_at
+  before update on public.listings
+  for each row execute procedure public.set_updated_at();
+
+-- ============================================================
+-- FAVORITES
+-- ============================================================
+create table if not exists public.favorites (
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  listing_id uuid not null references public.listings(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, listing_id)
+);
+
+create index if not exists favorites_user_id_idx on public.favorites(user_id);
+
+-- ============================================================
+-- CONVERSATIONS
+-- ============================================================
+create table if not exists public.conversations (
+  id              uuid primary key default uuid_generate_v4(),
+  listing_id      uuid not null references public.listings(id) on delete cascade,
+  tenant_id       uuid not null references public.profiles(id) on delete cascade,
+  landlord_id     uuid not null references public.profiles(id) on delete cascade,
+  last_message_at timestamptz not null default now(),
+  created_at      timestamptz not null default now(),
+  unique (listing_id, tenant_id)
+);
+
+create index if not exists conversations_tenant_id_idx   on public.conversations(tenant_id);
+create index if not exists conversations_landlord_id_idx on public.conversations(landlord_id);
+create index if not exists conversations_last_msg_idx    on public.conversations(last_message_at desc);
+
+-- Auto-update last_message_at when a message is inserted
+create or replace function public.update_conversation_last_message()
+returns trigger language plpgsql as $$
+begin
+  update public.conversations
+  set last_message_at = new.created_at
+  where id = new.conversation_id;
+  return new;
+end;
+$$;
+
+-- ============================================================
+-- MESSAGES
+-- ============================================================
+create table if not exists public.messages (
+  id              uuid primary key default uuid_generate_v4(),
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  sender_id       uuid not null references public.profiles(id) on delete cascade,
+  body            text not null check (char_length(body) between 1 and 4000),
+  read_at         timestamptz,
+  created_at      timestamptz not null default now()
+);
+
+create index if not exists messages_conversation_id_idx on public.messages(conversation_id);
+create index if not exists messages_sender_id_idx       on public.messages(sender_id);
+create index if not exists messages_created_at_idx      on public.messages(created_at asc);
+create index if not exists messages_unread_idx          on public.messages(conversation_id, sender_id) where read_at is null;
+
+drop trigger if exists messages_update_conversation on public.messages;
+create trigger messages_update_conversation
+  after insert on public.messages
+  for each row execute procedure public.update_conversation_last_message();
+
+-- ============================================================
+-- LISTING REPORTS
+-- ============================================================
+create table if not exists public.listing_reports (
+  id          uuid primary key default uuid_generate_v4(),
+  listing_id  uuid not null references public.listings(id) on delete cascade,
+  reporter_id uuid not null references public.profiles(id) on delete cascade,
+  category    text not null default 'other' check (category in ('scam','spam','inappropriate','fake_photos','duplicate','other')),
+  reason      text not null check (char_length(reason) between 1 and 1000),
+  created_at  timestamptz not null default now(),
+  unique (listing_id, reporter_id)
+);
+
+create index if not exists listing_reports_listing_id_idx on public.listing_reports(listing_id);
+
+-- ============================================================
+-- ROW LEVEL SECURITY
+-- ============================================================
+
+alter table public.profiles        enable row level security;
+alter table public.listings        enable row level security;
+alter table public.favorites       enable row level security;
+alter table public.conversations   enable row level security;
+alter table public.messages        enable row level security;
+alter table public.listing_reports enable row level security;
+
+-- PROFILES --
+create policy "Profiles are publicly readable"
+  on public.profiles for select using (true);
+
+create policy "Users can insert their own profile"
+  on public.profiles for insert
+  with check (auth.uid() = id);
+
+create policy "Users can update their own profile"
+  on public.profiles for update
+  using (auth.uid() = id);
+
+-- LISTINGS --
+create policy "Listings are publicly readable"
+  on public.listings for select using (true);
+
+create policy "Authenticated users can create listings"
+  on public.listings for insert
+  with check (auth.uid() = user_id);
+
+create policy "Owners can update their listings"
+  on public.listings for update
+  using (auth.uid() = user_id);
+
+create policy "Owners can delete their listings"
+  on public.listings for delete
+  using (auth.uid() = user_id);
+
+-- FAVORITES --
+create policy "Users can view their own favorites"
+  on public.favorites for select
+  using (auth.uid() = user_id);
+
+create policy "Users can add favorites"
+  on public.favorites for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can remove their own favorites"
+  on public.favorites for delete
+  using (auth.uid() = user_id);
+
+-- CONVERSATIONS --
+create policy "Participants can view their conversations"
+  on public.conversations for select
+  using (auth.uid() = tenant_id or auth.uid() = landlord_id);
+
+create policy "Authenticated users can start conversations"
+  on public.conversations for insert
+  with check (auth.uid() = tenant_id);
+
+-- MESSAGES --
+create policy "Participants can view messages"
+  on public.messages for select
+  using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id
+        and (c.tenant_id = auth.uid() or c.landlord_id = auth.uid())
+    )
+  );
+
+create policy "Participants can send messages"
+  on public.messages for insert
+  with check (
+    auth.uid() = sender_id
+    and exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id
+        and (c.tenant_id = auth.uid() or c.landlord_id = auth.uid())
+    )
+  );
+
+create policy "Recipients can mark messages as read"
+  on public.messages for update
+  using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = conversation_id
+        and (c.tenant_id = auth.uid() or c.landlord_id = auth.uid())
+    )
+  );
+
+-- LISTING REPORTS --
+create policy "Authenticated users can report listings"
+  on public.listing_reports for insert
+  with check (auth.uid() = reporter_id);
+
+create policy "Only admins can view reports"
+  on public.listing_reports for select
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- ============================================================
+-- STORAGE: avatars bucket
+-- ============================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('avatars', 'avatars', true, 5242880, array['image/jpeg','image/png','image/webp','image/gif'])
+on conflict (id) do nothing;
+
+create policy "Avatar images are publicly accessible"
+  on storage.objects for select
+  using (bucket_id = 'avatars');
+
+create policy "Users can upload their own avatar"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'avatars'
+    and auth.uid() is not null
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "Users can update their own avatar"
+  on storage.objects for update
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+create policy "Users can delete their own avatar"
+  on storage.objects for delete
+  using (
+    bucket_id = 'avatars'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- ============================================================
+-- REALTIME: enable for messages table
+-- ============================================================
+alter publication supabase_realtime add table public.messages;
+alter publication supabase_realtime add table public.conversations;

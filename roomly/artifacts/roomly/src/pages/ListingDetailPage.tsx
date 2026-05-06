@@ -1,0 +1,155 @@
+import { useEffect, useState } from "react";
+import { Link, useParams } from "wouter";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { DetailGallery } from "@/components/listings/DetailGallery";
+import { FavoriteButton } from "@/components/listings/FavoriteButton";
+import { ContactButton } from "@/components/listings/ContactButton";
+import { OwnerBadges } from "@/components/listings/OwnerBadges";
+import { ReportListingButton } from "@/components/listings/ReportListingButton";
+import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
+import { LISTING_TYPE_LABELS } from "@/lib/constants";
+import type { Listing, Profile } from "@/types/database";
+
+export function ListingDetailPage() {
+  const params = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [owner, setOwner] = useState<Profile | null>(null);
+  const [favorited, setFavorited] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!supabase) { setLoading(false); return; }
+      const { data: l } = await supabase.from("listings").select("*").eq("id", params.id).maybeSingle();
+      if (!l) { setNotFound(true); setLoading(false); return; }
+      setListing(l as Listing);
+      const [{ data: ownerProfile }, { data: fav }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", (l as Listing).user_id).maybeSingle(),
+        user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id).eq("listing_id", params.id).maybeSingle() : { data: null },
+      ]);
+      setOwner(ownerProfile as Profile | null);
+      setFavorited(!!fav);
+      setLoading(false);
+    }
+    fetchData();
+  }, [params.id, user]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-5">
+            <div className="aspect-[4/3] animate-pulse rounded-2xl bg-stone-200" />
+            <div className="h-8 w-2/3 animate-pulse rounded-full bg-stone-200" />
+            <div className="h-4 w-1/3 animate-pulse rounded-full bg-stone-200" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-40 animate-pulse rounded-2xl bg-stone-200" />
+            <div className="h-24 animate-pulse rounded-2xl bg-stone-200" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound || !listing) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-24 text-center">
+        <p className="text-6xl font-black text-stone-200">404</p>
+        <h1 className="mt-4 text-xl font-semibold text-stone-900">Advertentie niet gevonden</h1>
+        <p className="mt-2 text-sm text-stone-500">De advertentie die je zoekt bestaat niet of is verwijderd.</p>
+        <Link href="/kamers" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Terug naar overzicht</Link>
+      </div>
+    );
+  }
+
+  const isOwner = user?.id === listing.user_id;
+  const isLoggedIn = !!user;
+  const typeLabel = LISTING_TYPE_LABELS[listing.type];
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 pb-32 pt-8 sm:px-6 lg:px-8 lg:pb-8">
+      <nav className="mb-4 flex items-center gap-2 text-sm text-stone-500">
+        <Link href="/kamers" className="hover:text-rose-600">Woningen</Link>
+        <span>›</span>
+        <span className="truncate text-stone-700">{listing.title}</span>
+      </nav>
+      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        <div className="space-y-6">
+          <div className="relative">
+            <DetailGallery images={listing.images} title={listing.title} />
+            <FavoriteButton listingId={listing.id} initialFavorited={favorited} variant="detail" />
+          </div>
+
+          <div>
+            <div className="flex flex-wrap gap-2">
+              <span className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-700">{typeLabel}</span>
+              {listing.availability_date && (
+                <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Beschikbaar per {new Date(listing.availability_date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}
+                </span>
+              )}
+            </div>
+            <h1 className="mt-3 text-2xl font-bold leading-snug text-stone-900 sm:text-3xl">{listing.title}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
+              <span className="flex items-center gap-1.5">
+                <svg className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                {listing.location}
+              </span>
+              <span className="text-stone-300">·</span>
+              <span>Geplaatst op {new Date(listing.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}</span>
+            </div>
+            <div className="mt-4 text-3xl font-black text-stone-900">
+              €{Number(listing.price).toFixed(0)}<span className="ml-1 text-base font-normal text-stone-400">/ maand</span>
+            </div>
+          </div>
+
+          <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-stone-900 prose-p:text-stone-600 prose-p:leading-relaxed">
+            <h3>Beschrijving</h3>
+            {listing.description.split("\n").filter(Boolean).map((par, i) => (
+              <p key={i}>{par}</p>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-2" id="reageer">
+            {!isOwner && <ContactButton listingId={listing.id} />}
+            {isOwner && (
+              <Link href={`/kamers/${listing.id}/bewerken`} className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 px-5 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Advertentie bewerken
+              </Link>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-stone-100 pt-3">
+            <ReportListingButton listingId={listing.id} isLoggedIn={isLoggedIn} />
+          </div>
+        </div>
+
+        <div className="space-y-4 lg:sticky lg:top-24 lg:h-fit">
+          <OwnerBadges profile={owner} memberSince={owner?.created_at ?? listing.created_at} />
+          {!isOwner && (
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+              <p className="text-sm font-semibold text-stone-900">Snel reageren</p>
+              <p className="mt-1 text-xs text-stone-500">Klik hieronder om direct een bericht te sturen.</p>
+              <div className="mt-4">
+                <ContactButton listingId={listing.id} />
+              </div>
+            </div>
+          )}
+          {isOwner && (
+            <Link href={`/kamers/${listing.id}/bewerken`} className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              Bewerk mijn advertentie
+            </Link>
+          )}
+        </div>
+      </div>
+      <StickyApplyCTA price={listing.price} listingId={listing.id} canApply={isLoggedIn && !isOwner} isOwner={isOwner} isLoggedIn={isLoggedIn} />
+    </div>
+  );
+}

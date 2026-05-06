@@ -1,0 +1,38 @@
+You are continuing development on the Roomly project (Dutch-language, Vite + React + Supabase). 
+First, discard any local changes and pull the absolute latest code from the main branch of 
+https://github.com/ekoc34/roomly. This is our single source of truth.
+
+We are now operating under a "Freemium" model: core messaging is and will remain completely free 
+and unlimited. We are only laying the groundwork for future premium features. 
+Execute the following 3 tasks in order, one at a time, and commit after each.
+
+TASK 1: Ensure Unlimited Free Messaging
+- Review the complete messaging flow: ChatComposer, MessagesPage, ConversationPage.
+- Confirm there are absolutely no message limits, quotas, or paywalls in the current code.
+- If any restriction exists, remove it cleanly.
+- After review, commit with message: "Feat: Confirm and clean up unlimited free messaging".
+
+TASK 2: Disable Document/Attachment Sharing in Chat
+- We do NOT want users to upload or share any files within the chat for security reasons 
+  (no salary slips, IDs, contracts, images, etc.).
+- If there's any file upload button or attachment feature inside the chat component, remove it 
+  completely and ensure the chat UI is text-only.
+- Do NOT touch the existing image upload feature for creating/editing listings. 
+  Only chat attachments should be removed.
+- After this, commit with message: "Feat: Remove chat attachments for secure text-only messaging".
+
+TASK 3: Add a Simple Placeholder for Future Premium & Verified Badges
+- You need to add a new column named `verification_badge` (text, nullable) to the `profiles` 
+  table in Supabase. Provide me with the exact SQL command I need to run in the Supabase SQL Editor.
+- In the UI, on the user's Profile page, check if `profile.verification_badge` has a value. 
+  If it does, display it cleanly. If it's null, show nothing.
+- For now, no user earns a badge automatically. This is just a database and UI placeholder so 
+  we can easily add "Verified User" or "Premium" badges later.
+- After implementing the UI changes, commit with message: "Feat: Add profile badge placeholder UI and DB migration".
+
+CRITICAL RULES:
+- Keep all user-facing text in Dutch.
+- Use the existing Supabase client already configured in the project.
+- Do not break any existing feature (listings, map, favorites, search, etc.).
+- Be mindful of credit usage: make surgical edits, not large refactors.
+- For each commit, push to GitHub main branch. If push is restricted, tell me the exact commands.
