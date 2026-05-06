@@ -1,9 +1,8 @@
 {
-  "framework": "vite",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/((?!assets/).*)",
+      "destination": "/dist/public/index.html"
     }
   ]
 }
