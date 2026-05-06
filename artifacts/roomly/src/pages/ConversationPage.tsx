@@ -29,7 +29,7 @@ function ConversationSkeleton() {
 
 export function ConversationPage() {
   const params = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [listing, setListing] = useState<Listing | null>(null);
   const [other, setOther] = useState<Profile | null>(null);
@@ -52,7 +52,13 @@ export function ConversationPage() {
   }, [params.id, user]);
 
   useEffect(() => {
+    // Wait for auth to resolve before querying — avoids RLS rejecting an unauthenticated request
+    if (authLoading) return;
     if (!supabase) { setLoading(false); return; }
+
+    // Reset state so a re-run (e.g. after auth resolves) shows the skeleton, not a stale error
+    setLoading(true);
+    setConversation(null);
 
     async function fetchAll() {
       const { data: conv } = await supabase!
@@ -74,7 +80,7 @@ export function ConversationPage() {
 
     fetchAll();
 
-    // Cleanup any existing channel
+    // Cleanup any existing channel before subscribing
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -102,7 +108,7 @@ export function ConversationPage() {
         channelRef.current = null;
       }
     };
-  }, [params.id, user, fetchMessages]);
+  }, [params.id, user, authLoading, fetchMessages]);
 
   if (loading) return <ConversationSkeleton />;
 
