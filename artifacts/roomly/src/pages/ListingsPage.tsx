@@ -34,7 +34,7 @@ export function ListingsPage() {
 
       let query = supabase.from("listings").select("*");
 
-      if (q) query = query.ilike("title", `%${q}%`);
+      if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
       if (type) query = query.eq("type", type);
       if (district) query = query.ilike("location", `%${district}%`);
       if (minPrice > 0) query = query.gte("price", minPrice);
@@ -100,7 +100,9 @@ export function ListingsPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-100">
               <svg className="h-7 w-7 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
-            <h3 className="mt-4 text-base font-semibold text-stone-800">Geen woningen gevonden</h3>
+            <h3 className="mt-4 text-base font-semibold text-stone-800">
+              {q ? `Geen resultaten gevonden voor "${q}"` : "Geen woningen gevonden"}
+            </h3>
             <p className="mt-2 text-sm text-stone-500">Probeer andere filters of zoekterm.</p>
           </div>
         ) : (

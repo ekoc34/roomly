@@ -1,0 +1,37 @@
+We need to fix and add the following features in the Roomly app. Do all tasks IN ORDER and commit after each.
+
+TASK 1 — Remove "Stuur bericht" button completely
+- Open ListingDetailPage.tsx.
+- Find ALL instances of ContactButton or "Stuur bericht" text.
+- Remove every single one. There should be NO "Stuur bericht" button left anywhere on the listing detail page.
+- The ONLY contact method should be "Reageer op deze woning" (ApplicationForm).
+- Commit with message: "Remove Stuur bericht button from listing detail page".
+
+TASK 2 — Add Full-Text Search to Listings Page
+- Open ListingsPage.tsx and ListingFilters.tsx.
+- Add a search input field (if not already present) labeled "Zoeken in advertenties" at the top of the listings page or inside the filters section.
+- When the user types, filter listings from Supabase using `.or()` that searches across title, description, and location columns simultaneously.
+- Example Supabase query logic:
+  supabase.from("listings").select("*").or(`title.ilike.%${query}%,description.ilike.%${query}%,location.ilike.%${query}%`)
+- The search must work together with existing filters (price, district, pets, rooms, etc.).
+- Sync the search term with the URL parameter `q`.
+- Show a message like "Geen resultaten gevonden voor '[query]'" when no listings match.
+- Commit with message: "Add full-text search to listings page".
+
+TASK 3 — Verify and Fix Application-to-Conversation Flow
+- Trace the ENTIRE application flow:
+  1. Tenant clicks "Reageer op deze woning" on ListingDetailPage, fills form, submits.
+  2. Application is saved to `applications` table.
+  3. Landlord sees the application in Dashboard → Mijn verhuur → Aanvragen.
+  4. Landlord clicks "Accepteren".
+  5. A conversation is AUTOMATICALLY created between tenant and landlord in the `conversations` table.
+  6. BOTH users see the conversation appear in their "Berichten" page.
+  7. The conversation dialog can continue there normally.
+- If any step in this flow is broken or missing, fix it NOW.
+- Ensure the tenant CANNOT send a second message until the landlord replies (spam prevention).
+- Ensure the tenant CANNOT submit a second application to the same listing (duplicate prevention).
+- Commit with message: "Fix application-to-conversation flow end-to-end".
+
+TASK 4 — Final Push
+- After all three tasks are complete, push everything to GitHub main branch.
+- Provide a summary of what was changed and where I can test each feature on the live site.

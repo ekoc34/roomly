@@ -4,7 +4,6 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { DetailGallery } from "@/components/listings/DetailGallery";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
-import { ContactButton } from "@/components/listings/ContactButton";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
 import { ReportListingButton } from "@/components/listings/ReportListingButton";
 import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
@@ -166,7 +165,6 @@ export function ListingDetailPage() {
                 Inloggen om te reageren
               </a>
             )}
-            {!isOwner && <ContactButton listingId={listing.id} />}
             {isOwner && (
               <Link href={`/kamers/${listing.id}/bewerken`} className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 px-5 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
