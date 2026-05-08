@@ -9,6 +9,7 @@ import { ReportListingButton } from "@/components/listings/ReportListingButton";
 import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
 import { ApplicationForm } from "@/components/listings/ApplicationForm";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
+import { SimilarLandlords } from "@/components/listings/SimilarLandlords";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { Listing, Profile } from "@/types/database";
 
@@ -218,6 +219,13 @@ export function ListingDetailPage() {
           )}
         </div>
       </div>
+
+      <SimilarLandlords
+        location={listing.location}
+        excludeUserId={listing.user_id}
+        viewerUserId={user?.id}
+      />
+
       <StickyApplyCTA price={listing.price} listingId={listing.id} canApply={isLoggedIn && !isOwner} isOwner={isOwner} isLoggedIn={isLoggedIn} />
     </div>
   );

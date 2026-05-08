@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
+import {
+  getActiveStatus,
+  getResponseRateBadge,
+  computeResponseStats,
+  type AppStat,
+} from "@/lib/landlordUtils";
 
 type OtherApp = {
   id: string;
   status: string;
   listings: { title: string; user_id: string } | null;
-};
-
-type AppStat = {
-  status: string;
-  created_at: string;
-  updated_at: string;
 };
 
 type Props = {
@@ -39,70 +39,13 @@ function maskPhone(phone: string): string {
   return phone.slice(0, 4) + "*** ***";
 }
 
-type BadgeStyle = {
-  label: string;
-  cls: string;
-  dot: string;
-};
-
-function getActiveStatus(lastActiveAt: string | null | undefined): BadgeStyle | null {
-  if (!lastActiveAt) return null;
-  const diffMs = Date.now() - new Date(lastActiveAt).getTime();
-  const diffMin = diffMs / 60000;
-  const diffHour = diffMs / 3600000;
-  const diffDay = diffMs / 86400000;
-
-  if (diffMin <= 15) {
-    return { label: "Nu actief", cls: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" };
-  }
-  if (diffHour <= 1) {
-    return { label: "Actief vandaag", cls: "border-emerald-200 bg-emerald-50 text-emerald-600", dot: "bg-emerald-400" };
-  }
-  if (diffDay <= 1) {
-    return { label: "Actief deze week", cls: "border-stone-200 bg-stone-50 text-stone-600", dot: "bg-stone-400" };
-  }
-  if (diffDay <= 7) {
-    return { label: "Actief in de afgelopen week", cls: "border-stone-200 bg-stone-50 text-stone-500", dot: "bg-stone-300" };
-  }
-  return { label: "Langer dan een week niet actief", cls: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" };
-}
-
-function getResponseRateBadge(rate: number): BadgeStyle {
-  if (rate >= 90) {
-    return { label: `Responspercentage: ${rate}%`, cls: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" };
-  }
-  if (rate >= 70) {
-    return { label: `Responspercentage: ${rate}%`, cls: "border-blue-200 bg-blue-50 text-blue-700", dot: "bg-blue-500" };
-  }
-  if (rate >= 50) {
-    return { label: `Responspercentage: ${rate}%`, cls: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" };
-  }
-  return { label: `Responspercentage: ${rate}%`, cls: "border-rose-200 bg-rose-50 text-rose-700", dot: "bg-rose-500" };
-}
-
 function formatAvgResponseTime(hours: number): string {
   if (hours < 24) {
     const h = Math.round(hours);
-    return `Gemiddelde reactietijd: ${h} ${h === 1 ? "uur" : "uur"}`;
+    return `Gemiddelde reactietijd: ${h} uur`;
   }
   const days = Math.round(hours / 24);
   return `Gemiddelde reactietijd: ${days} ${days === 1 ? "dag" : "dagen"}`;
-}
-
-function computeStats(stats: AppStat[]): { rate: number; avgHours: number | null } | null {
-  if (stats.length === 0) return null;
-  const responded = stats.filter((a) => a.status === "accepted" || a.status === "rejected");
-  const rate = Math.round((responded.length / stats.length) * 100);
-
-  let avgHours: number | null = null;
-  if (responded.length > 0) {
-    const totalMs = responded.reduce((sum, a) => {
-      return sum + (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime());
-    }, 0);
-    avgHours = totalMs / responded.length / 3600000;
-  }
-
-  return { rate, avgHours };
 }
 
 export function ApplicantProfilePanel({
@@ -123,7 +66,10 @@ export function ApplicantProfilePanel({
   const [appStats, setAppStats] = useState<{ rate: number; avgHours: number | null } | null>(null);
 
   useEffect(() => {
-    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); setHasConversation(false); setAppStats(null); return; }
+    if (!profileId || !supabase) {
+      setProfile(null); setOtherApps([]); setHasConversation(false); setAppStats(null);
+      return;
+    }
     setLoading(true);
     setEmailRevealed(false);
     setHasConversation(false);
@@ -148,7 +94,11 @@ export function ApplicantProfilePanel({
         setProfile(p as Profile | null);
         setListingsCount(count ?? 0);
         setHasConversation((convCount ?? 0) > 0);
-        setAppStats(computeStats((stats as AppStat[] | null) ?? []));
+        const computed = computeResponseStats(
+          (stats as AppStat[] | null) ?? [],
+          profileId
+        );
+        setAppStats(computed);
         setLoading(false);
       });
     } else {
@@ -195,7 +145,8 @@ export function ApplicantProfilePanel({
   const canSeePhone = hasConversation && (profile?.show_phone === true);
 
   const activeStatus = isLandlord ? getActiveStatus(profile?.last_active_at) : null;
-  const responseRateBadge = isLandlord && appStats ? getResponseRateBadge(appStats.rate) : null;
+  const responseRateBadge =
+    isLandlord && appStats ? getResponseRateBadge(appStats.rate) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" aria-modal="true">
@@ -252,12 +203,12 @@ export function ApplicantProfilePanel({
                   )}
                 </div>
 
-                {/* Response rate + avg time badges */}
+                {/* Response rate + avg time */}
                 {responseRateBadge && (
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${responseRateBadge.cls}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${responseRateBadge.dot}`} />
-                      {responseRateBadge.label}
+                      Responspercentage: {responseRateBadge.label}
                     </span>
                     {appStats?.avgHours != null && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[10px] font-medium text-stone-500">
