@@ -1,6 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "sonner";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -8,23 +8,26 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
+import { PageLoader } from "@/components/PageLoader";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
-import { ListingDetailPage } from "@/pages/ListingDetailPage";
 import { NewListingPage } from "@/pages/NewListingPage";
 import { EditListingPage } from "@/pages/EditListingPage";
 import { FavoritesPage } from "@/pages/FavoritesPage";
 import { MessagesPage } from "@/pages/MessagesPage";
 import { ConversationPage } from "@/pages/ConversationPage";
-import { DashboardPage } from "@/pages/DashboardPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { WelcomePage } from "@/pages/WelcomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
-import { MapPage } from "@/pages/MapPage";
+
+// Lazy load heavy pages
+const ListingDetailPage = lazy(() => import("@/pages/ListingDetailPage"));
+const MapPage = lazy(() => import("@/pages/MapPage"));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage"));
 
 function NotFound() {
   return (
@@ -60,12 +63,24 @@ function Router() {
       <Route path="/kamers" component={() => <AnimatedRoute component={ListingsPage} />} />
       <Route path="/kamers/nieuw" component={() => <AnimatedRoute component={NewListingPage} />} />
       <Route path="/kamers/:id/bewerken" component={() => <AnimatedRoute component={EditListingPage} />} />
-      <Route path="/kamers/:id" component={() => <AnimatedRoute component={ListingDetailPage} />} />
-      <Route path="/kaart" component={() => <AnimatedRoute component={MapPage} />} />
+      <Route path="/kamers/:id" component={() => (
+        <Suspense fallback={<PageLoader />}>
+          <AnimatedRoute component={ListingDetailPage} />
+        </Suspense>
+      )} />
+      <Route path="/kaart" component={() => (
+        <Suspense fallback={<PageLoader />}>
+          <AnimatedRoute component={MapPage} />
+        </Suspense>
+      )} />
       <Route path="/favorieten" component={() => <AnimatedRoute component={FavoritesPage} />} />
       <Route path="/berichten" component={() => <AnimatedRoute component={MessagesPage} />} />
       <Route path="/berichten/:id" component={() => <AnimatedRoute component={ConversationPage} />} />
-      <Route path="/dashboard" component={() => <AnimatedRoute component={DashboardPage} />} />
+      <Route path="/dashboard" component={() => (
+        <Suspense fallback={<PageLoader />}>
+          <AnimatedRoute component={DashboardPage} />
+        </Suspense>
+      )} />
       <Route path="/profiel" component={() => <AnimatedRoute component={ProfilePage} />} />
       <Route path="/welkom" component={() => <AnimatedRoute component={WelcomePage} />} />
       <Route path="/inloggen" component={() => <AnimatedRoute component={LoginPage} />} />
