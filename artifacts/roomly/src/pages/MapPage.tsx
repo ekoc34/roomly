@@ -13,6 +13,30 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Custom cluster icon
+const createClusterIcon = (count: number) => {
+  const size = Math.min(40 + Math.log(count) * 10, 60);
+  return L.divIcon({
+    className: "custom-cluster-icon",
+    html: `<div style="
+      background-color: #f43f5e;
+      border-radius: 50%;
+      width: ${size}px;
+      height: ${size}px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: ${Math.max(12, size / 3)}px;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    ">${count}</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+};
+
 const CITY_COORDS: Record<string, [number, number]> = {
   amsterdam: [52.3676, 4.9041],
   rotterdam: [51.9225, 4.4792],
@@ -70,7 +94,9 @@ export function MapPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
+  const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
   const geocodingRef = useRef(false);
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
@@ -85,7 +111,7 @@ export function MapPage() {
     const pets = params.get("pets") ?? "";
     const smoking = params.get("smoking") ?? "";
     const gender = params.get("gender") ?? "";
-    const minRooms = params.get("min_rooms") ?? "";
+    const rooms = params.get("rooms") ?? "";
     const minSurface = params.get("min_surface") ?? "";
 
     let query = supabase.from("listings").select("*");
@@ -98,7 +124,7 @@ export function MapPage() {
     if (pets === "1") query = query.eq("pets_allowed", true);
     if (smoking === "1") query = query.eq("smoking_allowed", true);
     if (gender) query = query.eq("gender_preference", gender);
-    if (minRooms) query = query.gte("rooms", Number(minRooms));
+    if (rooms) query = query.gte("rooms", Number(rooms));
     if (minSurface) query = query.gte("surface_area", Number(minSurface));
 
     query
@@ -140,6 +166,36 @@ export function MapPage() {
     })
     .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
 
+  // Simple clustering: group markers within 0.01 degrees (~1km)
+  const clusterRadius = 0.01;
+  const clusters: Array<{ center: [number, number]; listings: Listing[] }> = [];
+  const clustered = new Set<string>();
+
+  for (const item of mappable) {
+    if (clustered.has(item.listing.id)) continue;
+
+    const nearby = mappable.filter((other) => {
+      if (clustered.has(other.listing.id)) return false;
+      const dist = Math.sqrt(
+        Math.pow(item.coords[0] - other.coords[0], 2) +
+        Math.pow(item.coords[1] - other.coords[1], 2)
+      );
+      return dist < clusterRadius;
+    });
+
+    if (nearby.length > 1) {
+      // Create cluster
+      const centerLat = nearby.reduce((sum, n) => sum + n.coords[0], 0) / nearby.length;
+      const centerLng = nearby.reduce((sum, n) => sum + n.coords[1], 0) / nearby.length;
+      clusters.push({ center: [centerLat, centerLng], listings: nearby.map((n) => n.listing) });
+      nearby.forEach((n) => clustered.add(n.listing.id));
+    } else {
+      // Single marker
+      clusters.push({ center: item.coords, listings: [item.listing] });
+      clustered.add(item.listing.id);
+    }
+  }
+
   const listHref = searchString ? `/kamers?${searchString}` : "/kamers";
 
   return (
@@ -158,7 +214,7 @@ export function MapPage() {
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
           </svg>
-          Lijstweergave
+          Bekijk als lijst
         </Link>
       </div>
 
@@ -176,37 +232,59 @@ export function MapPage() {
             zoom={8}
             style={{ height: "100%", width: "100%" }}
             className="z-0"
+            ref={mapRef}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {mappable.map(({ listing, coords: c }) => (
-              <Marker key={listing.id} position={c}>
-                <Popup maxWidth={240} className="leaflet-popup-roomly">
-                  <div className="min-w-[180px]">
-                    {listing.images[0] && (
-                      <img
-                        src={listing.images[0]}
-                        alt={listing.title}
-                        className="mb-2 h-24 w-full rounded-lg object-cover"
-                      />
-                    )}
-                    <p className="text-sm font-semibold leading-snug text-stone-900 line-clamp-2">
-                      {listing.title}
-                    </p>
-                    <p className="mt-0.5 text-xs text-stone-500">{listing.location}</p>
-                    <p className="mt-1 text-base font-black text-rose-600">
-                      €{Number(listing.price).toFixed(0)}<span className="text-xs font-normal text-stone-400"> /mnd</span>
-                    </p>
-                    <Link
-                      href={`/kamers/${listing.id}`}
-                      className="mt-2 block w-full rounded-lg bg-rose-500 py-1.5 text-center text-xs font-semibold text-white hover:bg-rose-600"
-                    >
-                      Bekijk advertentie →
-                    </Link>
-                  </div>
-                </Popup>
+            {clusters.map((cluster, idx) => (
+              <Marker
+                key={idx}
+                position={cluster.center}
+                icon={cluster.listings.length > 1 ? createClusterIcon(cluster.listings.length) : undefined}
+                eventHandlers={{
+                  click: () => {
+                    if (cluster.listings.length > 1 && mapRef.current) {
+                      const bounds = cluster.listings
+                        .map((l) => {
+                          const c = guessCoords(l.location) ?? coords.get(l.id);
+                          return c ? L.latLng(c[0], c[1]) : null;
+                        })
+                        .filter((b): b is L.LatLng => b !== null);
+                      if (bounds.length > 0) {
+                        mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+                      }
+                    }
+                  },
+                }}
+              >
+                {cluster.listings.length === 1 && (
+                  <Popup maxWidth={240} className="leaflet-popup-roomly">
+                    <div className="min-w-[180px]">
+                      {cluster.listings[0].images[0] && (
+                        <img
+                          src={cluster.listings[0].images[0]}
+                          alt={cluster.listings[0].title}
+                          className="mb-2 h-24 w-full rounded-lg object-cover"
+                        />
+                      )}
+                      <p className="text-sm font-semibold leading-snug text-stone-900 line-clamp-2">
+                        {cluster.listings[0].title}
+                      </p>
+                      <p className="mt-0.5 text-xs text-stone-500">{cluster.listings[0].location}</p>
+                      <p className="mt-1 text-base font-black text-rose-600">
+                        €{Number(cluster.listings[0].price).toFixed(0)}<span className="text-xs font-normal text-stone-400"> /mnd</span>
+                      </p>
+                      <Link
+                        href={`/kamers/${cluster.listings[0].id}`}
+                        className="mt-2 block w-full rounded-lg bg-rose-500 py-1.5 text-center text-xs font-semibold text-white hover:bg-rose-600"
+                      >
+                        Bekijk advertentie →
+                      </Link>
+                    </div>
+                  </Popup>
+                )}
               </Marker>
             ))}
           </MapContainer>

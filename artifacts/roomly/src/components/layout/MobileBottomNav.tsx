@@ -7,6 +7,7 @@ export function MobileBottomNav() {
 
   const isHome      = path === "/";
   const isKamers    = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
+  const isKaart     = path === "/kaart";
   const isFavs      = path.startsWith("/favorieten");
   const isBerichten = path.startsWith("/berichten");
   const isDashboard = path === "/dashboard" || path === "/profiel";
@@ -43,6 +44,20 @@ export function MobileBottomNav() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           Zoeken
+        </Link>
+
+        {/* Kaart */}
+        <Link
+          href="/kaart"
+          data-testid="bottom-nav-map"
+          className={`flex min-w-[3rem] flex-col items-center gap-0.5 rounded-xl px-2 py-2 text-[11px] font-medium transition ${
+            isKaart ? "text-rose-600" : "text-stone-400 hover:text-stone-700"
+          }`}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isKaart ? 2.5 : 2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+          Kaart
         </Link>
 
         {/* Favorieten */}

@@ -27,6 +27,9 @@ export function Header() {
           <Link href="/kamers" data-testid="header-kamers-link" className="transition hover:text-rose-600">
             Woningen
           </Link>
+          <Link href="/kaart" data-testid="header-kaart-link" className="transition hover:text-rose-600">
+            Kaart
+          </Link>
           <CitySelector />
           {user ? (
             <>
