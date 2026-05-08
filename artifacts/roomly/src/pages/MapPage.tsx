@@ -2,19 +2,22 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/types/database";
 
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
+// Fix Leaflet default icon issue
+if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
+  delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  });
+}
 
 // Custom cluster icon
 const createClusterIcon = (count: number) => {
+  if (typeof L === 'undefined' || !L.divIcon) return undefined;
   const size = Math.min(40 + Math.log(count) * 10, 60);
   return L.divIcon({
     className: "custom-cluster-icon",
@@ -245,7 +248,7 @@ export function MapPage() {
                 icon={cluster.listings.length > 1 ? createClusterIcon(cluster.listings.length) : undefined}
                 eventHandlers={{
                   click: () => {
-                    if (cluster.listings.length > 1 && mapRef.current) {
+                    if (cluster.listings.length > 1 && mapRef.current && typeof L !== 'undefined' && L.latLng) {
                       const bounds = cluster.listings
                         .map((l) => {
                           const c = guessCoords(l.location) ?? coords.get(l.id);
