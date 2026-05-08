@@ -3,6 +3,8 @@ import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useSelectedCity } from "@/contexts/SelectedCityContext";
 
+type NeighborhoodEntry = { name: string; count: number };
+
 function extractNeighborhood(location: string, city: string): string | null {
   const parts = location.split(",").map((s) => s.trim());
   if (parts.length >= 2 && parts[0].toLowerCase() === city.toLowerCase()) {
@@ -22,7 +24,7 @@ const NEIGHBORHOOD_COLORS = [
 
 export function NeighborhoodSection() {
   const { selectedCity } = useSelectedCity();
-  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
+  const [neighborhoods, setNeighborhoods] = useState<NeighborhoodEntry[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -41,23 +43,26 @@ export function NeighborhoodSection() {
       .from("listings")
       .select("location")
       .ilike("location", `${selectedCity},%`)
-      .limit(100)
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
           setLoading(false);
           return;
         }
-        const hoods = Array.from(
-          new Set(
-            (data ?? [])
-              .map((r: { location: string }) =>
-                extractNeighborhood(r.location, selectedCity)
-              )
-              .filter((h): h is string => !!h && h.length > 0)
-          )
-        ).sort();
-        setNeighborhoods(hoods);
+
+        const countMap = new Map<string, number>();
+        for (const row of data ?? []) {
+          const hood = extractNeighborhood((row as { location: string }).location, selectedCity);
+          if (hood && hood.length > 0) {
+            countMap.set(hood, (countMap.get(hood) ?? 0) + 1);
+          }
+        }
+
+        const entries: NeighborhoodEntry[] = Array.from(countMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        setNeighborhoods(entries);
         setLoading(false);
       })
       .catch(() => {
@@ -95,7 +100,7 @@ export function NeighborhoodSection() {
           {[1, 2, 3, 4, 5].map((n) => (
             <div
               key={n}
-              className="h-9 w-24 animate-pulse rounded-full bg-stone-200"
+              className="h-9 w-28 animate-pulse rounded-full bg-stone-200"
             />
           ))}
         </div>
@@ -114,11 +119,11 @@ export function NeighborhoodSection() {
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {neighborhoods.map((hood, i) => (
+          {neighborhoods.map(({ name, count }, i) => (
             <Link
-              key={hood}
-              href={`/kamers?q=${encodeURIComponent(hood)}`}
-              data-testid={`neighborhood-${hood}`}
+              key={name}
+              href={`/kamers?q=${encodeURIComponent(name)}`}
+              data-testid={`neighborhood-${name}`}
               className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition hover:scale-105 active:scale-95 ${
                 NEIGHBORHOOD_COLORS[i % NEIGHBORHOOD_COLORS.length]
               }`}
@@ -141,7 +146,8 @@ export function NeighborhoodSection() {
                   d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              {hood}
+              {name}
+              <span className="ml-0.5 opacity-60">· {count}</span>
             </Link>
           ))}
         </div>
