@@ -7,6 +7,7 @@ import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
+import { useLastActive } from "@/hooks/useLastActive";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -62,6 +63,11 @@ function AnimatedRoute({ component: Component }: { component: React.ComponentTyp
   );
 }
 
+function ActivityTracker() {
+  useLastActive();
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -91,6 +97,7 @@ export default function App() {
     <SelectedCityProvider>
       <div className="flex min-h-screen flex-col bg-stone-50">
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <ActivityTracker />
           <Header />
           <main className="flex-1">
             <Router />

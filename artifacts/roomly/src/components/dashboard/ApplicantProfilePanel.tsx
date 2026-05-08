@@ -33,6 +33,34 @@ function maskPhone(phone: string): string {
   return phone.slice(0, 4) + "*** ***";
 }
 
+type ActiveStatus = {
+  label: string;
+  cls: string;
+  dot: string;
+};
+
+function getActiveStatus(lastActiveAt: string | null | undefined): ActiveStatus | null {
+  if (!lastActiveAt) return null;
+  const diffMs = Date.now() - new Date(lastActiveAt).getTime();
+  const diffMin = diffMs / 60000;
+  const diffHour = diffMs / 3600000;
+  const diffDay = diffMs / 86400000;
+
+  if (diffMin <= 15) {
+    return { label: "Nu actief", cls: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" };
+  }
+  if (diffHour <= 1) {
+    return { label: "Actief vandaag", cls: "border-emerald-200 bg-emerald-50 text-emerald-600", dot: "bg-emerald-400" };
+  }
+  if (diffDay <= 1) {
+    return { label: "Actief deze week", cls: "border-stone-200 bg-stone-50 text-stone-600", dot: "bg-stone-400" };
+  }
+  if (diffDay <= 7) {
+    return { label: "Actief in de afgelopen week", cls: "border-stone-200 bg-stone-50 text-stone-500", dot: "bg-stone-300" };
+  }
+  return { label: "Langer dan een week niet actief", cls: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" };
+}
+
 export function ApplicantProfilePanel({
   profileId,
   onClose,
@@ -117,6 +145,9 @@ export function ApplicantProfilePanel({
   const canSeeEmail = hasConversation && (profile?.show_email === true);
   const canSeePhone = hasConversation && (profile?.show_phone === true);
 
+  // Last active badge (landlord mode only)
+  const activeStatus = isLandlord ? getActiveStatus(profile?.last_active_at) : null;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end" aria-modal="true">
       <div
@@ -161,7 +192,15 @@ export function ApplicantProfilePanel({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-base font-bold text-stone-900">{profile?.name ?? "Onbekend"}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-base font-bold text-stone-900">{profile?.name ?? "Onbekend"}</p>
+                  {activeStatus && (
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${activeStatus.cls}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${activeStatus.dot}`} />
+                      {activeStatus.label}
+                    </span>
+                  )}
+                </div>
                 <p className="mt-0.5 text-xs text-stone-400 capitalize">
                   {isLandlord ? "Verhuurder" : (profile?.user_type?.replace("_", " ") ?? "Huurder")}
                 </p>

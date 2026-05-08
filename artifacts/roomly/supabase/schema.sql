@@ -438,6 +438,12 @@ returns boolean language sql security definer as $$
   );
 $$;
 
+-- ============================================================
+-- MIGRATION: Last active tracking
+-- ============================================================
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW();
+
 -- NOTE: Supabase does not support column-level security natively.
 -- Email and phone privacy is enforced at the frontend layer:
 --   - ProfilePage only renders the authenticated user's own profile.
