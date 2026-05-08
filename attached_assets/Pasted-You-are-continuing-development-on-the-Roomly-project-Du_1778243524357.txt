@@ -1,0 +1,60 @@
+You are continuing development on the Roomly project (Dutch-language, Vite + React + Supabase). 
+First, pull the latest code from the main branch of https://github.com/ekoc34/roomly.
+
+We will add a formal application/reaction system that allows tenants to send a structured 
+response to a listing, which the landlord can review in their "Mijn verhuur" panel.
+
+TASK: Add a Listing Application System
+
+1. DATABASE MIGRATION
+   - Add an `applications` table to Supabase:
+     CREATE TABLE IF NOT EXISTS public.applications (
+       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+       listing_id UUID NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+       applicant_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+       message TEXT NOT NULL,
+       budget NUMERIC(10,2),
+       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','rejected')),
+       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+     );
+   - Enable RLS on the table.
+   - Applicants can INSERT their own applications.
+   - Landlords can SELECT applications for their own listings.
+   - Give me the exact SQL to run in Supabase SQL Editor.
+
+2. APPLICATION FORM ON LISTING DETAIL PAGE
+   - On ListingDetailPage.tsx, add an "Reageer op deze woning" (React to this listing) button.
+   - Clicking opens a modal or expands a form with:
+     - A textarea for a short message (required, max 500 chars).
+     - An optional budget field (numeric, in euros).
+     - A submit button.
+   - On submit, INSERT into the `applications` table via Supabase.
+   - Show a success toast: "Je reactie is verstuurd!" 
+   - Show error toast on failure: "Er ging iets mis, probeer opnieuw."
+
+3. LANDLORD DASHBOARD INTEGRATION
+   - In the "Mijn verhuur" tab of DashboardPage.tsx, add an "Aanvragen" (Applications) section.
+   - Fetch applications for the landlord's listings from Supabase.
+   - Display each application as a card showing:
+     - Applicant name (from profiles)
+     - Listing title
+     - Message preview (first 100 chars)
+     - Budget (if provided)
+     - Status badge (pending/geaccepteerd/afgewezen)
+     - Timestamp
+   - Allow the landlord to accept or reject an application with two buttons.
+   - On accept/reject, UPDATE the application status in Supabase.
+   - Show a confirmation toast after the action.
+
+4. APPLICATION COUNT BADGE
+   - Add a badge to the "Mijn verhuur" tab showing the number of pending applications.
+   - Fetch the count via Supabase: supabase.from("applications").select("id", { count: "exact", head: true }).eq("status", "pending")
+
+CRITICAL RULES:
+- Keep all user-facing text in Dutch.
+- Use the existing Supabase client already configured in the project.
+- Use TailwindCSS v4 for styling, match the current design language (rounded-2xl, rose-500 accent, stone colors).
+- Do not break any existing feature (listings, map, favorites, search, messaging, etc.).
+- Use the existing Sonner toast library for all success/error messages.
+- After implementing, commit with message: "Feat: Add listing application system for tenants and landlords"
+- Push to GitHub main branch. If push is restricted, tell me the exact commands.

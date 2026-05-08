@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
-import type { Listing, Profile } from "@/types/database";
+import type { Listing, Profile, ApplicationWithDetails } from "@/types/database";
 
 type Tab = "zoektocht" | "verhuur";
 
@@ -15,12 +16,14 @@ export function DashboardPage() {
   const [tenantConvsCount, setTenantConvsCount] = useState(0);
   const [landlordConvsCount, setLandlordConvsCount] = useState(0);
   const [applicationsCount, setApplicationsCount] = useState(0);
+  const [receivedApplications, setReceivedApplications] = useState<ApplicationWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
 
   useEffect(() => {
     if (authLoading) return;
     if (!user || !supabase) { setLoading(false); return; }
+
     async function fetchData() {
       const [
         { data: p },
@@ -35,18 +38,44 @@ export function DashboardPage() {
         supabase!.from("favorites").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
         supabase!.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", user!.id),
         supabase!.from("conversations").select("*", { count: "exact", head: true }).eq("landlord_id", user!.id),
-        supabase!.from("applications").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase!.from("applications").select("*", { count: "exact", head: true }).eq("applicant_id", user!.id),
       ]);
       setProfile(p as Profile | null);
-      setMyListings((ls as Listing[] | null) ?? []);
       setFavoritesCount(favCount ?? 0);
       setTenantConvsCount(tenantConvCount ?? 0);
       setLandlordConvsCount(landlordConvCount ?? 0);
       setApplicationsCount(appCount ?? 0);
+
+      const listings = (ls as Listing[] | null) ?? [];
+      setMyListings(listings);
+
+      if (listings.length > 0) {
+        const listingIds = listings.map((l) => l.id);
+        const { data: apps } = await supabase!
+          .from("applications")
+          .select("*, profiles:applicant_id(name, email, avatar_url), listings:listing_id(title)")
+          .in("listing_id", listingIds)
+          .order("created_at", { ascending: false });
+        setReceivedApplications((apps as ApplicationWithDetails[] | null) ?? []);
+      }
+
       setLoading(false);
     }
     fetchData();
   }, [user, authLoading]);
+
+  async function handleApplicationStatus(appId: string, status: "accepted" | "rejected") {
+    if (!supabase) return;
+    const { error } = await supabase.from("applications").update({ status }).eq("id", appId);
+    if (error) {
+      toast.error("Er ging iets mis, probeer opnieuw.");
+      return;
+    }
+    setReceivedApplications((prev) =>
+      prev.map((a) => (a.id === appId ? { ...a, status } : a))
+    );
+    toast.success(status === "accepted" ? "Aanvraag geaccepteerd." : "Aanvraag afgewezen.");
+  }
 
   if (!authLoading && !user) {
     return (
@@ -58,6 +87,7 @@ export function DashboardPage() {
   }
 
   const initial = (profile?.name ?? profile?.email ?? user?.email ?? "?").slice(0, 1).toUpperCase();
+  const pendingCount = receivedApplications.filter((a) => a.status === "pending").length;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -111,8 +141,10 @@ export function DashboardPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
           </svg>
           Mijn verhuur
-          {myListings.length > 0 && (
-            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-600">{myListings.length}</span>
+          {!loading && (myListings.length > 0 || pendingCount > 0) && (
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${pendingCount > 0 ? "bg-rose-500 text-white" : "bg-rose-100 text-rose-600"}`}>
+              {pendingCount > 0 ? pendingCount : myListings.length}
+            </span>
           )}
         </button>
       </div>
@@ -189,7 +221,7 @@ export function DashboardPage() {
       )}
 
       {activeTab === "verhuur" && (
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-8">
           <div className="grid gap-4 sm:grid-cols-3">
             {[
               {
@@ -213,17 +245,17 @@ export function DashboardPage() {
                 ),
               },
               {
-                label: "Nieuwe advertentie",
-                value: "+",
-                href: "/kamers/nieuw",
+                label: "Openstaande aanvragen",
+                value: loading ? "…" : pendingCount,
+                href: "#aanvragen",
                 icon: (
-                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                   </svg>
                 ),
               },
             ].map((stat) => (
-              <Link
+              <a
                 key={stat.label}
                 href={stat.href}
                 className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -235,8 +267,96 @@ export function DashboardPage() {
                   <p className="text-xs font-medium text-stone-500">{stat.label}</p>
                   <p className="text-2xl font-black text-stone-900">{stat.value}</p>
                 </div>
-              </Link>
+              </a>
             ))}
+          </div>
+
+          <div id="aanvragen">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-stone-900">
+                Aanvragen
+                {pendingCount > 0 && (
+                  <span className="ml-2 rounded-full bg-rose-500 px-2.5 py-0.5 text-xs font-semibold text-white">{pendingCount} nieuw</span>
+                )}
+              </h2>
+            </div>
+            {loading ? (
+              <div className="space-y-3">
+                {[1, 2].map((n) => (
+                  <div key={n} className="h-28 animate-pulse rounded-2xl bg-stone-200" />
+                ))}
+              </div>
+            ) : receivedApplications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-12 text-center shadow-sm">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-50">
+                  <svg className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+                <p className="mt-3 text-sm font-medium text-stone-700">Nog geen aanvragen ontvangen</p>
+                <p className="mt-1 text-xs text-stone-400">Aanvragen van geïnteresseerde huurders verschijnen hier.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {receivedApplications.map((app) => {
+                  const name = app.profiles?.name ?? app.profiles?.email ?? "Onbekend";
+                  const initial = name.slice(0, 1).toUpperCase();
+                  const statusMap = {
+                    pending: { label: "In behandeling", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+                    accepted: { label: "Geaccepteerd", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                    rejected: { label: "Afgewezen", cls: "bg-stone-100 text-stone-500 border-stone-200" },
+                  };
+                  const badge = statusMap[app.status as keyof typeof statusMap] ?? statusMap.pending;
+                  return (
+                    <div key={app.id} className="flex flex-col gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-start">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+                        {app.profiles?.avatar_url ? (
+                          <img src={app.profiles.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-stone-500">{initial}</span>
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold text-stone-900">{name}</p>
+                          <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${badge.cls}`}>{badge.label}</span>
+                        </div>
+                        {app.listings?.title && (
+                          <p className="text-xs text-stone-500">
+                            <span className="font-medium text-stone-600">Advertentie:</span> {app.listings.title}
+                          </p>
+                        )}
+                        <p className="text-sm text-stone-600">{app.message.slice(0, 100)}{app.message.length > 100 ? "…" : ""}</p>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
+                          {app.budget != null && (
+                            <span className="font-medium text-stone-600">Budget: €{Number(app.budget).toFixed(0)}</span>
+                          )}
+                          <span>{new Date(app.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })}</span>
+                        </div>
+                      </div>
+                      {app.status === "pending" && (
+                        <div className="flex shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApplicationStatus(app.id, "accepted")}
+                            className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 active:scale-95"
+                          >
+                            Accepteren
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleApplicationStatus(app.id, "rejected")}
+                            className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-95"
+                          >
+                            Afwijzen
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div id="listings">

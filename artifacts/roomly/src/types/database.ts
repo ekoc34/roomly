@@ -48,12 +48,16 @@ export type Listing = {
 export type Application = {
   id: string;
   listing_id: string;
-  user_id: string;
+  applicant_id: string;
   message: string;
   budget: number | null;
-  availability_text: string;
   status: ApplicationStatus;
   created_at: string;
+};
+
+export type ApplicationWithDetails = Application & {
+  profiles: { name: string | null; email: string | null; avatar_url: string | null } | null;
+  listings: { title: string } | null;
 };
 
 export type Favorite = {

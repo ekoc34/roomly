@@ -8,6 +8,7 @@ import { ContactButton } from "@/components/listings/ContactButton";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
 import { ReportListingButton } from "@/components/listings/ReportListingButton";
 import { StickyApplyCTA } from "@/components/listings/StickyApplyCTA";
+import { ApplicationForm } from "@/components/listings/ApplicationForm";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { Listing, Profile } from "@/types/database";
 
@@ -115,7 +116,14 @@ export function ListingDetailPage() {
             ))}
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-2" id="reageer">
+          <div className="flex flex-col gap-4 pt-2" id="reageer">
+            {!isOwner && isLoggedIn && <ApplicationForm listingId={listing.id} />}
+            {!isOwner && !isLoggedIn && (
+              <a href={`/inloggen?next=/kamers/${listing.id}`} className="inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" /></svg>
+                Inloggen om te reageren
+              </a>
+            )}
             {!isOwner && <ContactButton listingId={listing.id} />}
             {isOwner && (
               <Link href={`/kamers/${listing.id}/bewerken`} className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 px-5 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95">
