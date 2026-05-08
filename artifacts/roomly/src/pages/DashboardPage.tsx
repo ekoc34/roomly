@@ -17,6 +17,7 @@ type MyApplication = {
   budget: number | null;
   status: string;
   created_at: string;
+  landlord_reply: string | null;
   listings: { id: string; title: string } | null;
 };
 
@@ -34,6 +35,7 @@ export function DashboardPage() {
   const [tenantConversations, setTenantConversations] = useState<ConvSummary[]>([]);
   const [landlordConversations, setLandlordConversations] = useState<ConvSummary[]>([]);
   const [savedSearchesCount, setSavedSearchesCount] = useState(0);
+  const [inlineReply, setInlineReply] = useState<{ appId: string; action: "accepted" | "rejected"; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
@@ -97,9 +99,12 @@ export function DashboardPage() {
     fetchData();
   }, [user, authLoading]);
 
-  async function handleApplicationStatus(appId: string, status: "accepted" | "rejected") {
+  async function handleApplicationStatus(appId: string, status: "accepted" | "rejected", replyText?: string) {
     if (!supabase || !user) return;
-    const { error } = await supabase.from("applications").update({ status }).eq("id", appId);
+    const { error } = await supabase
+      .from("applications")
+      .update({ status, landlord_reply: replyText?.trim() || null })
+      .eq("id", appId);
     if (error) {
       toast.error("Er ging iets mis, probeer opnieuw.");
       return;
@@ -108,7 +113,8 @@ export function DashboardPage() {
     const app = receivedApplications.find((a) => a.id === appId);
     let convId: string | null = null;
 
-    if (status === "accepted" && app) {
+    // Always create/find a conversation on accept; also create one on reject if a reply message was given
+    if (app && (status === "accepted" || (status === "rejected" && replyText?.trim()))) {
       const { data: existing } = await supabase
         .from("conversations")
         .select("id, listing_id, tenant_id")
@@ -133,18 +139,31 @@ export function DashboardPage() {
           setLandlordConversations((prev) => [...prev, created as ConvSummary]);
         }
       }
+
+      // Insert the landlord's reply as the first message in the conversation
+      if (replyText?.trim() && convId) {
+        await supabase.from("messages").insert({
+          conversation_id: convId,
+          sender_id: user.id,
+          body: replyText.trim(),
+        });
+      }
     }
 
     if (app) {
+      const listingTitle = app.listings?.title ?? "een woning";
+      const replySnippet = replyText?.trim()
+        ? `\n\nBericht van verhuurder:\n"${replyText.trim()}"`
+        : "";
       const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: app.applicant_id,
         type: status === "accepted" ? "application_accepted" : "application_rejected",
         title: status === "accepted" ? "Aanvraag geaccepteerd!" : "Aanvraag afgewezen",
         body:
           status === "accepted"
-            ? `Je aanvraag voor "${app.listings?.title ?? "een woning"}" is geaccepteerd. Je kunt nu het gesprek bekijken.`
-            : `Je aanvraag voor "${app.listings?.title ?? "een woning"}" is helaas niet doorgegaan.`,
-        related_id: status === "accepted" ? convId : null,
+            ? `Je aanvraag voor "${listingTitle}" is geaccepteerd. Je kunt nu het gesprek bekijken.${replySnippet}`
+            : `Je aanvraag voor "${listingTitle}" is helaas niet doorgegaan.${replySnippet}`,
+        related_id: convId ?? null,
         read: false,
       });
       if (notifErr) {
@@ -152,6 +171,7 @@ export function DashboardPage() {
       }
     }
 
+    setInlineReply(null);
     setReceivedApplications((prev) =>
       prev.map((a) => (a.id === appId ? { ...a, status } : a))
     );
@@ -314,6 +334,12 @@ export function DashboardPage() {
                             {app.budget != null && <span className="ml-2">· Budget: €{Number(app.budget).toFixed(0)}</span>}
                           </p>
                           <p className="mt-1.5 text-xs text-stone-500 line-clamp-1">{app.message}</p>
+                          {app.landlord_reply && (
+                            <div className="mt-2 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-400">Bericht van verhuurder</p>
+                              <p className="mt-0.5 text-xs text-stone-700">{app.landlord_reply}</p>
+                            </div>
+                          )}
                         </div>
                         {app.status === "accepted" && conv && (
                           <Link
@@ -460,7 +486,7 @@ export function DashboardPage() {
                             <span>{new Date(app.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })}</span>
                           </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
+                        <div className="flex shrink-0 flex-col gap-2">
                           {app.status === "accepted" && conv && (
                             <Link
                               href={`/berichten/${conv.id}`}
@@ -469,23 +495,60 @@ export function DashboardPage() {
                               Gesprek →
                             </Link>
                           )}
-                          {app.status === "pending" && (
-                            <>
+                          {app.status === "pending" && inlineReply?.appId !== app.id && (
+                            <div className="flex flex-wrap gap-2">
                               <button
                                 type="button"
-                                onClick={() => handleApplicationStatus(app.id, "accepted")}
+                                onClick={() => setInlineReply({ appId: app.id, action: "accepted", text: "" })}
                                 className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 active:scale-95"
                               >
                                 Accepteren
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleApplicationStatus(app.id, "rejected")}
+                                onClick={() => setInlineReply({ appId: app.id, action: "rejected", text: "" })}
                                 className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-95"
                               >
                                 Afwijzen
                               </button>
-                            </>
+                            </div>
+                          )}
+                          {app.status === "pending" && inlineReply?.appId === app.id && (
+                            <div className="w-full min-w-[220px] rounded-2xl border border-stone-200 bg-stone-50 p-3 space-y-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">
+                                Optioneel: stuur een bericht met je beslissing
+                              </p>
+                              <textarea
+                                rows={3}
+                                maxLength={300}
+                                placeholder="Schrijf een bericht..."
+                                value={inlineReply.text}
+                                onChange={(e) => setInlineReply((r) => r ? { ...r, text: e.target.value } : r)}
+                                className="w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleApplicationStatus(app.id, inlineReply.action, inlineReply.text)}
+                                  className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-white transition active:scale-95 ${
+                                    inlineReply.action === "accepted"
+                                      ? "bg-emerald-500 hover:bg-emerald-600"
+                                      : "bg-stone-500 hover:bg-stone-600"
+                                  }`}
+                                >
+                                  {inlineReply.action === "accepted"
+                                    ? (inlineReply.text.trim() ? "Accepteren en bericht versturen" : "Accepteren")
+                                    : (inlineReply.text.trim() ? "Afwijzen en bericht versturen" : "Afwijzen")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setInlineReply(null)}
+                                  className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100"
+                                >
+                                  Annuleren
+                                </button>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>

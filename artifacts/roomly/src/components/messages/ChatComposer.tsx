@@ -6,11 +6,12 @@ import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 
 type Props = {
   conversationId: string;
+  recipientId?: string;
   onSent?: () => void;
   isLocked?: boolean;
 };
 
-export function ChatComposer({ conversationId, onSent, isLocked = false }: Props) {
+export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
@@ -38,8 +39,24 @@ export function ChatComposer({ conversationId, onSent, isLocked = false }: Props
     if (body.length > MAX_MESSAGE_LENGTH) { toast.error("Bericht is te lang."); return; }
     startTransition(async () => {
       if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
-      const { error: err } = await supabase.from("messages").insert({ conversation_id: conversationId, sender_id: user.id, body });
+      const { error: err } = await supabase
+        .from("messages")
+        .insert({ conversation_id: conversationId, sender_id: user.id, body });
       if (err) { toast.error("Versturen mislukt. Probeer opnieuw."); return; }
+
+      // Notify the other party
+      if (recipientId && recipientId !== user.id) {
+        const preview = body.length > 50 ? body.slice(0, 50) + "…" : body;
+        await supabase.from("notifications").insert({
+          user_id: recipientId,
+          type: "new_message",
+          title: "Nieuw bericht",
+          body: preview,
+          related_id: conversationId,
+          read: false,
+        });
+      }
+
       formRef.current?.reset();
       setRows(1);
       onSent?.();

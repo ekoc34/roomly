@@ -199,7 +199,12 @@ export function ConversationPage() {
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
-            <ChatComposer conversationId={conversation.id} onSent={fetchMessages} isLocked={isLocked} />
+            <ChatComposer
+            conversationId={conversation.id}
+            recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
+            onSent={fetchMessages}
+            isLocked={isLocked}
+          />
           </div>
         );
       })()}

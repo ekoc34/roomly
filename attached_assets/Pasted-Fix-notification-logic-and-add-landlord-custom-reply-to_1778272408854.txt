@@ -1,0 +1,38 @@
+Fix notification logic and add landlord custom reply to applications. Do tasks IN ORDER and commit after each.
+
+TASK 1 — Fix Notification Bell Logic
+Currently, when a tenant sends a message, it appears in the landlord's profile but NOT in the notification bell. Only the landlord's replies appear in the tenant's bell. Fix this so BOTH parties receive notifications for new messages.
+
+1. Open the messaging flow: ChatComposer.tsx, MessagesPage.tsx, or wherever messages are inserted.
+2. After a message is successfully inserted into the `messages` table, check if a notification should be sent:
+   - If the sender is the TENANT, insert a notification for the LANDLORD with type 'new_message'.
+   - If the sender is the LANDLORD, insert a notification for the TENANT with type 'new_message'.
+3. The notification title should be "Nieuw bericht" and the body should show a preview of the message (first 50 characters).
+4. Set related_id to the conversation_id so clicking the notification navigates to /berichten/[conversation_id].
+5. Test: Tenant sends message → Landlord sees bell badge. Landlord replies → Tenant sees bell badge.
+6. Commit with message: "Fix notification bell for bidirectional message alerts".
+
+TASK 2 — Add Landlord Custom Reply When Accepting/Rejecting Applications
+Currently the landlord can only click "Accepteren" or "Afwijzen" without adding a personal message. Add a custom reply option.
+
+1. Add a `landlord_reply` column to the `applications` table. Add this SQL to schema.sql:
+   ALTER TABLE public.applications ADD COLUMN IF NOT EXISTS landlord_reply TEXT DEFAULT NULL;
+
+2. In DashboardPage.tsx (the "Aanvragen" section), modify the accept/reject flow:
+   - When the landlord clicks "Accepteren" or "Afwijzen", show a small inline textarea (max 300 chars) for an optional personal message.
+   - Label it: "Optioneel: stuur een bericht met je beslissing" with a placeholder like "Schrijf een bericht..."
+   - The accept/reject button should read "Accepteren en bericht versturen" or "Afwijzen en bericht versturen" when a message is typed.
+   - If no message is typed, the buttons work as before.
+
+3. When the landlord submits:
+   - Save the landlord_reply to the applications table.
+   - Automatically create a conversation (if not already created by acceptance).
+   - Insert the landlord's custom message as the FIRST message in that conversation.
+   - Send a notification to the tenant with type 'application_accepted' or 'application_rejected', including the landlord's reply in the body.
+   - The tenant clicks the notification and goes directly to /berichten/[conversation_id].
+
+4. In the tenant's "Mijn zoektocht" tab, show the landlord's reply text below the application status.
+
+5. All user-facing text in Dutch.
+6. Commit with message: "Add landlord custom reply when accepting/rejecting applications".
+7. Push everything to GitHub main branch.

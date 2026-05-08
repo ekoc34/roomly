@@ -482,6 +482,12 @@ ALTER TABLE public.notifications
   ADD CONSTRAINT notifications_type_check
   CHECK (type IN ('new_application','application_accepted','application_rejected','new_message','new_matching_listing'));
 
+-- ============================================================
+-- MIGRATION: landlord_reply on applications
+-- ============================================================
+ALTER TABLE public.applications
+  ADD COLUMN IF NOT EXISTS landlord_reply TEXT DEFAULT NULL;
+
 -- NOTE: Supabase does not support column-level security natively.
 -- Email and phone privacy is enforced at the frontend layer:
 --   - ProfilePage only renders the authenticated user's own profile.
