@@ -1,0 +1,41 @@
+Fix two privacy-related bugs in the Roomly app.
+
+BUG 1 — Privacy settings should default to OFF for new users
+The "Privacyinstellingen" section on the profile page has two toggles:
+- "E-mailadres zichtbaar voor anderen"
+- "Telefoonnummer zichtbaar voor anderen"
+
+These must be OFF by default for new registrations.
+
+1. Check ProfileForm.tsx (or wherever the profile edit form is).
+2. Ensure that when a profile is first created, `show_email` and `show_phone` 
+   are explicitly set to `false` if they are null or undefined.
+3. Check the `handle_new_user()` function in the schema. 
+   If it doesn't set show_email and show_phone to false, add them.
+4. In the toggle component on ProfilePage, ensure the checked state 
+   correctly reads from `profile.show_email` and `profile.show_phone` 
+   and defaults to false when the value is null.
+
+BUG 2 — Privacy toggles have no effect on visibility
+Even when a user enables these toggles, their email and phone are STILL hidden 
+from other users who should see them.
+
+1. Open ApplicantProfilePanel.tsx.
+2. Find where email and phone visibility is decided.
+3. The logic must check ALL of these conditions before showing contact info:
+   - The profile owner's `show_email` is TRUE (for email visibility)
+   - The profile owner's `show_phone` is TRUE (for phone visibility)
+   - AND the viewer is in an active conversation with the profile owner 
+     (use the existing `can_view_contact_info` function or check the conversations table)
+4. If ANY condition is not met, hide the contact info with the masked format.
+5. Apply the same logic to the landlord profile panel (mode="landlord") 
+   so tenants see the landlord's contact info only if the landlord enabled it.
+
+DATABASE CHECK:
+Run this SQL in Supabase SQL Editor to verify the columns exist with correct defaults:
+  ALTER TABLE public.profiles 
+  ADD COLUMN IF NOT EXISTS show_email BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS show_phone BOOLEAN NOT NULL DEFAULT FALSE;
+
+After fixing both bugs, commit with message: "Fix privacy settings default state and visibility logic" 
+and push to GitHub.
