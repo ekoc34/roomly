@@ -2,25 +2,42 @@ import { useState, useTransition } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function LoginPage() {
   const [, navigate] = useLocation();
   const searchStr = useSearch();
   const nextParam = new URLSearchParams(searchStr).get("next") ?? "/dashboard";
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setEmailError(null);
+    setPasswordError(null);
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email") ?? "").trim().toLowerCase();
     const password = String(fd.get("password") ?? "");
-    if (!email || !password) { setError("Vul je e-mail en wachtwoord in."); return; }
+    
+    let hasError = false;
+    if (!email) { setEmailError("Vul je e-mailadres in."); hasError = true; }
+    if (!password) { setPasswordError("Vul je wachtwoord in."); hasError = true; }
+    if (hasError) return;
+    
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) { setError(err.message === "Invalid login credentials" ? "Onjuist e-mailadres of wachtwoord." : err.message); return; }
+      if (err) { 
+        if (err.message === "Invalid login credentials") {
+          setPasswordError("Onjuist e-mailadres of wachtwoord.");
+        } else {
+          setError(err.message);
+        }
+        return; 
+      }
       navigate(nextParam);
     });
   };
@@ -46,12 +63,26 @@ export function LoginPage() {
         <form onSubmit={onSubmit} className="mt-6 space-y-4" data-testid="login-form">
           <div>
             <label htmlFor="email" className="text-xs font-medium text-stone-700">E-mailadres</label>
-            <input id="email" name="email" type="email" required autoComplete="email" data-testid="login-email" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" placeholder="jij@example.nl" />
+            <input 
+              id="email" 
+              name="email" 
+              type="email" 
+              required 
+              autoComplete="email" 
+              data-testid="login-email" 
+              className={`mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200 ${emailError ? "border-red-300 focus:border-red-500 focus:ring-red-200" : ""}`}
+              placeholder="jij@example.nl" 
+            />
+            {emailError && <p className="mt-1 text-xs text-red-600">{emailError}</p>}
           </div>
-          <div>
-            <label htmlFor="password" className="text-xs font-medium text-stone-700">Wachtwoord</label>
-            <input id="password" name="password" type="password" required autoComplete="current-password" data-testid="login-password" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" placeholder="••••••••" />
-          </div>
+          <PasswordInput
+            id="password"
+            name="password"
+            label="Wachtwoord"
+            required
+            placeholder="••••••••"
+            error={passwordError}
+          />
           {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
           <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="login-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
             {isPending ? "Inloggen…" : "Inloggen"}

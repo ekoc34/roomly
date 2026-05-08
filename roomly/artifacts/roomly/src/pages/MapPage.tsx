@@ -108,7 +108,7 @@ export function MapPage() {
         <title>Kaartweergave — Roomly</title>
         <meta name="description" content="Ontdek beschikbare woningen op de kaart in heel Nederland." />
       </Helmet>
-      <div className="flex h-[calc(100vh-4rem)] flex-col">
+      <div className="flex h-[calc(100vh-4rem)] flex-col md:h-[calc(100vh-4rem)]">
         <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 sm:px-6">
         <div>
           <h1 className="text-base font-semibold text-stone-900">Kaartoverzicht</h1>
@@ -123,7 +123,7 @@ export function MapPage() {
         </div>
         <Link
           href={`/kamers${searchString ? `?${searchString}` : ""}`}
-          className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
+          className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 min-h-[44px]"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -140,12 +140,14 @@ export function MapPage() {
           </div>
         </div>
       ) : (
-        <div className="flex-1">
+        <div className="flex-1 touch-manipulation">
           <MapContainer
             center={[52.3, 5.3]}
             zoom={8}
             style={{ height: "100%", width: "100%" }}
             className="z-0"
+            touchZoom={true}
+            scrollWheelZoom={false}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -171,7 +173,7 @@ export function MapPage() {
                     </p>
                     <Link
                       href={`/kamers/${listing.id}`}
-                      className="mt-2 block w-full rounded-lg bg-rose-500 py-1.5 text-center text-xs font-semibold text-white hover:bg-rose-600"
+                      className="mt-2 block w-full rounded-lg bg-rose-500 py-2 text-center text-xs font-semibold text-white hover:bg-rose-600 min-h-[44px] flex items-center justify-center"
                     >
                       Bekijk advertentie →
                     </Link>
