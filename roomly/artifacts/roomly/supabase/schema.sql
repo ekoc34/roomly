@@ -305,6 +305,38 @@ create policy "Users can delete their own avatar"
   );
 
 -- ============================================================
+-- STORAGE: listings bucket
+-- ============================================================
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('listings', 'listings', true, 10485760, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+
+create policy "Listing images are publicly accessible"
+  on storage.objects for select
+  using (bucket_id = 'listings');
+
+create policy "Authenticated users can upload listing images"
+  on storage.objects for insert
+  with check (
+    bucket_id = 'listings'
+    and auth.uid() is not null
+  );
+
+create policy "Authenticated users can update listing images"
+  on storage.objects for update
+  with check (
+    bucket_id = 'listings'
+    and auth.uid() is not null
+  );
+
+create policy "Authenticated users can delete listing images"
+  on storage.objects for delete
+  with check (
+    bucket_id = 'listings'
+    and auth.uid() is not null
+  );
+
+-- ============================================================
 -- REALTIME: enable for messages table
 -- ============================================================
 alter publication supabase_realtime add table public.messages;
