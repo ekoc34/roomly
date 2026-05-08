@@ -30,11 +30,13 @@ create table if not exists public.profiles (
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.profiles (id, email, email_auto_verified)
+  insert into public.profiles (id, email, email_auto_verified, show_email, show_phone)
   values (
     new.id,
     new.email,
-    new.email like '%@%.edu' or new.email like '%@%.ac.nl' or new.email like '%@student.%'
+    new.email like '%@%.edu' or new.email like '%@%.ac.nl' or new.email like '%@student.%',
+    false,
+    false
   )
   on conflict (id) do nothing;
   return new;

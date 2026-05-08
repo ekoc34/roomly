@@ -80,6 +80,7 @@ export function ListingDetailPage() {
         <ApplicantProfilePanel
           profileId={listing.user_id}
           mode="landlord"
+          viewerUserId={user?.id}
           onClose={() => setShowLandlordPanel(false)}
         />
       )}

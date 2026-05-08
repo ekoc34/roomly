@@ -12,6 +12,7 @@ type Props = {
   profileId: string | null;
   onClose: () => void;
   mode?: "applicant" | "landlord";
+  viewerUserId?: string;
   viewerLandlordId?: string;
   applicationId?: string;
 };
@@ -28,10 +29,15 @@ function maskEmail(email: string): string {
   return `${prefix}***@***`;
 }
 
+function maskPhone(phone: string): string {
+  return phone.slice(0, 4) + "*** ***";
+}
+
 export function ApplicantProfilePanel({
   profileId,
   onClose,
   mode = "applicant",
+  viewerUserId,
   viewerLandlordId,
   applicationId,
 }: Props) {
@@ -41,19 +47,29 @@ export function ApplicantProfilePanel({
   const [loading, setLoading] = useState(false);
   const [emailRevealed, setEmailRevealed] = useState(false);
   const [revealing, setRevealing] = useState(false);
+  const [hasConversation, setHasConversation] = useState(false);
 
   useEffect(() => {
-    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); return; }
+    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); setHasConversation(false); return; }
     setLoading(true);
     setEmailRevealed(false);
+    setHasConversation(false);
 
     if (mode === "landlord") {
+      const viewerId = viewerUserId;
       Promise.all([
         supabase.from("profiles").select("*").eq("id", profileId).maybeSingle(),
         supabase.from("listings").select("*", { count: "exact", head: true }).eq("user_id", profileId),
-      ]).then(([{ data: p }, { count }]) => {
+        viewerId
+          ? supabase
+              .from("conversations")
+              .select("id", { count: "exact", head: true })
+              .or(`and(tenant_id.eq.${viewerId},landlord_id.eq.${profileId}),and(landlord_id.eq.${viewerId},tenant_id.eq.${profileId})`)
+          : Promise.resolve({ count: 0 }),
+      ]).then(([{ data: p }, { count }, { count: convCount }]) => {
         setProfile(p as Profile | null);
         setListingsCount(count ?? 0);
+        setHasConversation((convCount ?? 0) > 0);
         setLoading(false);
       });
     } else {
@@ -72,10 +88,12 @@ export function ApplicantProfilePanel({
           ? allApps.filter((a) => (a.listings as { user_id: string } | null)?.user_id === viewerLandlordId)
           : allApps;
         setOtherApps(filtered);
+        // For applicant mode, landlord is always in a "conversation context" (they have an application)
+        setHasConversation(true);
         setLoading(false);
       });
     }
-  }, [profileId, mode, viewerLandlordId]);
+  }, [profileId, mode, viewerUserId, viewerLandlordId]);
 
   const handleRevealEmail = async () => {
     setRevealing(true);
@@ -94,6 +112,10 @@ export function ApplicantProfilePanel({
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
   const isLandlord = mode === "landlord";
   const panelTitle = isLandlord ? "Verhuurder profiel" : "Aanvrager profiel";
+
+  // Determine contact visibility
+  const canSeeEmail = hasConversation && (profile?.show_email === true);
+  const canSeePhone = hasConversation && (profile?.show_phone === true);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" aria-modal="true">
@@ -144,10 +166,17 @@ export function ApplicantProfilePanel({
                   {isLandlord ? "Verhuurder" : (profile?.user_type?.replace("_", " ") ?? "Huurder")}
                 </p>
 
+                {/* Email visibility */}
                 {profile?.email && (
                   <div className="mt-1.5">
-                    {isLandlord ? (
-                      <p className="text-xs italic text-stone-400">E-mail verborgen voor privacy.</p>
+                    {!canSeeEmail ? (
+                      <p className="text-xs italic text-stone-400">
+                        {isLandlord
+                          ? "E-mail verborgen voor privacy."
+                          : "Aanvrager heeft e-mailadres verborgen."}
+                      </p>
+                    ) : isLandlord ? (
+                      <p className="break-all text-sm text-stone-700">{profile.email}</p>
                     ) : emailRevealed ? (
                       <p className="break-all text-sm text-stone-700">{profile.email}</p>
                     ) : (
@@ -162,6 +191,17 @@ export function ApplicantProfilePanel({
                           {revealing ? "…" : "Toon e-mailadres"}
                         </button>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Phone visibility */}
+                {profile?.phone && (
+                  <div className="mt-1">
+                    {!canSeePhone ? (
+                      <p className="text-xs italic text-stone-400">Telefoonnummer verborgen voor privacy.</p>
+                    ) : (
+                      <p className="text-sm text-stone-700">{profile.phone}</p>
                     )}
                   </div>
                 )}
