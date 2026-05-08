@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -66,8 +67,13 @@ export function ListingsPage() {
   const q = params.get("q") ?? "";
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+    <>
+      <Helmet>
+        <title>Woningen te huur — Roomly</title>
+        <meta name="description" content="Bekijk alle beschikbare kamers en woningen. Filter op prijs, locatie en type." />
+      </Helmet>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">
             {q ? `Resultaten voor "${q}"` : "Alle woningen"}
@@ -105,5 +111,6 @@ export function ListingsPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

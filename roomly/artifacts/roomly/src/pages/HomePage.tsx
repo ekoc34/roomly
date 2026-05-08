@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { HeroSearch } from "@/components/home/HeroSearch";
@@ -35,9 +36,14 @@ function HomePageContent() {
   }, [user]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-      <HeroSearch />
-      {!loading && listings.length === 0 && !user && <OnboardingBanner />}
+    <>
+      <Helmet>
+        <title>Roomly — Vind je thuis in Nederland</title>
+        <meta name="description" content="Betaalbare kamers, appartementen en woningen huren in Amsterdam, Rotterdam, Utrecht en meer." />
+      </Helmet>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <HeroSearch />
+        {!loading && listings.length === 0 && !user && <OnboardingBanner />}
 
       {/* Neighborhood section — appears when a city is selected */}
       <NeighborhoodSection />
@@ -52,6 +58,7 @@ function HomePageContent() {
 
       <WhyRoomly />
     </div>
+    </>
   );
 }
 

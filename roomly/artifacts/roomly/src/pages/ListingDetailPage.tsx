@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { DetailGallery } from "@/components/listings/DetailGallery";
@@ -71,13 +72,18 @@ export function ListingDetailPage() {
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-32 pt-8 sm:px-6 lg:px-8 lg:pb-8">
-      <nav className="mb-4 flex items-center gap-2 text-sm text-stone-500">
-        <Link href="/kamers" className="hover:text-rose-600">Woningen</Link>
-        <span>›</span>
-        <span className="truncate text-stone-700">{listing.title}</span>
-      </nav>
-      <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+    <>
+      <Helmet>
+        <title>{listing.title} — Roomly</title>
+        <meta name="description" content={`${listing.title} in ${listing.location} voor €${Number(listing.price).toFixed(0)}/maand.`} />
+      </Helmet>
+      <div className="mx-auto max-w-5xl px-4 pb-32 pt-8 sm:px-6 lg:px-8 lg:pb-8">
+        <nav className="mb-4 flex items-center gap-2 text-sm text-stone-500">
+          <Link href="/kamers" className="hover:text-rose-600">Woningen</Link>
+          <span>›</span>
+          <span className="truncate text-stone-700">{listing.title}</span>
+        </nav>
+        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
         <div className="space-y-6">
           <div className="relative">
             <DetailGallery images={listing.images} title={listing.title} />
@@ -151,5 +157,6 @@ export function ListingDetailPage() {
       </div>
       <StickyApplyCTA price={listing.price} listingId={listing.id} canApply={isLoggedIn && !isOwner} isOwner={isOwner} isLoggedIn={isLoggedIn} />
     </div>
+    </>
   );
 }

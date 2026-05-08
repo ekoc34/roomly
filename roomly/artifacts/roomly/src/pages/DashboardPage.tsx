@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -39,8 +40,13 @@ export function DashboardPage() {
   const initial = (profile?.name ?? profile?.email ?? user?.email ?? "?").slice(0, 1).toUpperCase();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+    <>
+      <Helmet>
+        <title>Dashboard — Roomly</title>
+        <meta name="description" content="Beheer je profiel, woningen en berichten." />
+      </Helmet>
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 shadow-sm">
             {profile?.avatar_url ? (
@@ -113,5 +119,6 @@ export function DashboardPage() {
         )}
       </div>
     </div>
+    </>
   );
 }

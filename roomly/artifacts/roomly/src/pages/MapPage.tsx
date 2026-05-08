@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -102,8 +103,13 @@ export function MapPage() {
   })();
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 sm:px-6">
+    <>
+      <Helmet>
+        <title>Kaartweergave — Roomly</title>
+        <meta name="description" content="Ontdek beschikbare woningen op de kaart in heel Nederland." />
+      </Helmet>
+      <div className="flex h-[calc(100vh-4rem)] flex-col">
+        <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 sm:px-6">
         <div>
           <h1 className="text-base font-semibold text-stone-900">Kaartoverzicht</h1>
           <p className="text-xs text-stone-500">
@@ -177,5 +183,6 @@ export function MapPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

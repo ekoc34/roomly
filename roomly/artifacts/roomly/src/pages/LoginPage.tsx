@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
 import { Link, useLocation, useSearch } from "wouter";
+import { Helmet } from "react-helmet-async";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export function LoginPage() {
@@ -25,8 +26,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
-      <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
+    <>
+      <Helmet>
+        <title>Inloggen — Roomly</title>
+        <meta name="description" content="Log in op je Roomly account en beheer je woningen en berichten." />
+      </Helmet>
+      <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
+        <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
         <div className="text-center">
           <p className="text-3xl font-black text-rose-600">Roomly</p>
           <h1 className="mt-2 text-xl font-bold text-stone-900">Welkom terug</h1>
@@ -60,5 +66,6 @@ export function LoginPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }
