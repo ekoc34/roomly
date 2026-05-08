@@ -11,6 +11,7 @@ import type { Listing } from "@/types/database";
 export function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [verificationMap, setVerificationMap] = useState<Map<string, string | null>>(new Map());
   const [loading, setLoading] = useState(true);
   const searchString = useSearch();
   const { user } = useAuth();
@@ -56,8 +57,23 @@ export function ListingsPage() {
         user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [] },
       ]);
 
-      setListings((ls as Listing[] | null) ?? []);
+      const fetchedListings = (ls as Listing[] | null) ?? [];
+      setListings(fetchedListings);
       setFavoriteIds(((favs ?? []) as { listing_id: string }[]).map((f) => f.listing_id));
+
+      const ownerIds = [...new Set(fetchedListings.map((l) => l.user_id))];
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, verification_badge")
+          .in("id", ownerIds);
+        const map = new Map<string, string | null>();
+        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null }[]) {
+          map.set(p.id, p.verification_badge ?? null);
+        }
+        setVerificationMap(map);
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -108,7 +124,7 @@ export function ListingsPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} />
+              <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationMap.get(l.user_id) ?? null} />
             ))}
           </div>
         )}

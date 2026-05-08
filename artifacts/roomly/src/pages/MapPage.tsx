@@ -1,12 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/types/database";
 
-// Fix Leaflet default icon issue
-if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
+if (typeof L !== "undefined" && L.Icon && L.Icon.Default) {
   delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
@@ -14,31 +13,6 @@ if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   });
 }
-
-// Custom cluster icon
-const createClusterIcon = (count: number) => {
-  if (typeof L === 'undefined' || !L.divIcon) return undefined;
-  const size = Math.min(40 + Math.log(count) * 10, 60);
-  return L.divIcon({
-    className: "custom-cluster-icon",
-    html: `<div style="
-      background-color: #f43f5e;
-      border-radius: 50%;
-      width: ${size}px;
-      height: ${size}px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: ${Math.max(12, size / 3)}px;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    ">${count}</div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-};
 
 const CITY_COORDS: Record<string, [number, number]> = {
   amsterdam: [52.3676, 4.9041],
@@ -52,13 +26,13 @@ const CITY_COORDS: Record<string, [number, number]> = {
   almere: [52.3508, 5.2647],
   breda: [51.5719, 4.7683],
   nijmegen: [51.8426, 5.8546],
-  leiden: [52.1601, 4.4970],
+  leiden: [52.1601, 4.497],
   delft: [51.9999, 4.3631],
   haarlem: [52.3874, 4.6462],
-  maastricht: [50.8514, 5.6910],
+  maastricht: [50.8514, 5.691],
   arnhem: [51.9851, 5.8987],
   enschede: [52.2215, 6.8937],
-  zwolle: [52.5168, 6.0830],
+  zwolle: [52.5168, 6.083],
   amersfoort: [52.1561, 5.3878],
   "den bosch": [51.6978, 5.3037],
   "'s-hertogenbosch": [51.6978, 5.3037],
@@ -92,14 +66,22 @@ async function geocodeNominatim(location: string): Promise<[number, number] | nu
   }
 }
 
+function FitBoundsController({ positions }: { positions: [number, number][] | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!positions || positions.length === 0) return;
+    map.fitBounds(positions, { padding: [50, 50], maxZoom: 14 });
+  }, [map, positions]);
+  return null;
+}
+
 export function MapPage() {
   const searchString = useSearch();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
-  const [selectedCluster, setSelectedCluster] = useState<number | null>(null);
-  const geocodingRef = useRef(false);
-  const mapRef = useRef<L.Map | null>(null);
+  const [fitTarget, setFitTarget] = useState<[number, number][] | null>(null);
+  const geocodingActive = { current: false };
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
@@ -119,7 +101,7 @@ export function MapPage() {
 
     let query = supabase.from("listings").select("*");
 
-    if (q) query = query.ilike("title", `%${q}%`);
+    if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
     if (type) query = query.eq("type", type);
     if (district) query = query.ilike("location", `%${district}%`);
     if (minPrice > 0) query = query.gte("price", minPrice);
@@ -140,11 +122,11 @@ export function MapPage() {
   }, [searchString]);
 
   useEffect(() => {
-    if (!listings.length || geocodingRef.current) return;
+    if (!listings.length || geocodingActive.current) return;
     const needsGeocoding = listings.filter((l) => !guessCoords(l.location));
     if (!needsGeocoding.length) return;
 
-    geocodingRef.current = true;
+    geocodingActive.current = true;
     Promise.all(
       needsGeocoding.map(async (l) => {
         const c = await geocodeNominatim(l.location);
@@ -158,7 +140,7 @@ export function MapPage() {
         }
         return next;
       });
-      geocodingRef.current = false;
+      geocodingActive.current = false;
     });
   }, [listings]);
 
@@ -169,14 +151,12 @@ export function MapPage() {
     })
     .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
 
-  // Simple clustering: group markers within 0.01 degrees (~1km)
   const clusterRadius = 0.01;
   const clusters: Array<{ center: [number, number]; listings: Listing[] }> = [];
   const clustered = new Set<string>();
 
   for (const item of mappable) {
     if (clustered.has(item.listing.id)) continue;
-
     const nearby = mappable.filter((other) => {
       if (clustered.has(other.listing.id)) return false;
       const dist = Math.sqrt(
@@ -185,15 +165,12 @@ export function MapPage() {
       );
       return dist < clusterRadius;
     });
-
     if (nearby.length > 1) {
-      // Create cluster
       const centerLat = nearby.reduce((sum, n) => sum + n.coords[0], 0) / nearby.length;
       const centerLng = nearby.reduce((sum, n) => sum + n.coords[1], 0) / nearby.length;
       clusters.push({ center: [centerLat, centerLng], listings: nearby.map((n) => n.listing) });
       nearby.forEach((n) => clustered.add(n.listing.id));
     } else {
-      // Single marker
       clusters.push({ center: item.coords, listings: [item.listing] });
       clustered.add(item.listing.id);
     }
@@ -235,34 +212,28 @@ export function MapPage() {
             zoom={8}
             style={{ height: "100%", width: "100%" }}
             className="z-0"
-            ref={mapRef}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <FitBoundsController positions={fitTarget} />
             {clusters.map((cluster, idx) => (
               <Marker
                 key={idx}
                 position={cluster.center}
-                icon={cluster.listings.length > 1 ? createClusterIcon(cluster.listings.length) : undefined}
                 eventHandlers={{
                   click: () => {
-                    if (cluster.listings.length > 1 && mapRef.current && typeof L !== 'undefined' && L.latLng) {
+                    if (cluster.listings.length > 1) {
                       const bounds = cluster.listings
-                        .map((l) => {
-                          const c = guessCoords(l.location) ?? coords.get(l.id);
-                          return c ? L.latLng(c[0], c[1]) : null;
-                        })
-                        .filter((b): b is L.LatLng => b !== null);
-                      if (bounds.length > 0) {
-                        mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-                      }
+                        .map((l) => guessCoords(l.location) ?? coords.get(l.id))
+                        .filter((b): b is [number, number] => b !== null);
+                      if (bounds.length > 0) setFitTarget(bounds);
                     }
                   },
                 }}
               >
-                {cluster.listings.length === 1 && (
+                {cluster.listings.length === 1 ? (
                   <Popup maxWidth={240} className="leaflet-popup-roomly">
                     <div className="min-w-[180px]">
                       {cluster.listings[0].images[0] && (
@@ -286,6 +257,11 @@ export function MapPage() {
                         Bekijk advertentie →
                       </Link>
                     </div>
+                  </Popup>
+                ) : (
+                  <Popup maxWidth={240}>
+                    <p className="text-sm font-semibold text-stone-900">{cluster.listings.length} woningen op deze locatie</p>
+                    <p className="mt-1 text-xs text-stone-500">Klik op de marker om in te zoomen.</p>
                   </Popup>
                 )}
               </Marker>

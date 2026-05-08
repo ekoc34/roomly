@@ -70,6 +70,7 @@ export function ListingDetailPage() {
   const isLoggedIn = !!user;
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
   const isLandlordVerified = !!(owner?.phone_verified || owner?.email_auto_verified || owner?.student_verified || owner?.verification_badge);
+  const verificationBadgeLabel = owner?.verification_badge || (isLandlordVerified ? "Geverifieerde verhuurder" : null);
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-32 pt-8 sm:px-6 lg:px-8 lg:pb-8">
@@ -184,12 +185,12 @@ export function ListingDetailPage() {
               <span className="text-sm font-semibold text-stone-900">
                 {owner.name || "Roomly gebruiker"}
               </span>
-              {isLandlordVerified && (
+              {verificationBadgeLabel && (
                 <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  Geverifieerde verhuurder
+                  {verificationBadgeLabel}
                 </span>
               )}
             </div>
