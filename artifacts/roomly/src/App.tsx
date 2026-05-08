@@ -26,6 +26,7 @@ const ListingDetailPage = lazy(() => import("@/pages/ListingDetailPage").then((m
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
 const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.MapPage })));
+const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m) => ({ default: m.SavedSearchesPage })));
 
 function PageLoader() {
   return (
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/berichten" component={() => <AnimatedRoute component={MessagesPage} />} />
       <Route path="/berichten/:id" component={() => <AnimatedRoute component={ConversationPage} />} />
       <Route path="/dashboard" component={() => <AnimatedRoute component={DashboardPage} />} />
+      <Route path="/opgeslagen-zoekopdrachten" component={() => <AnimatedRoute component={SavedSearchesPage} />} />
       <Route path="/profiel" component={() => <AnimatedRoute component={ProfilePage} />} />
       <Route path="/welkom" component={() => <AnimatedRoute component={WelcomePage} />} />
       <Route path="/inloggen" component={() => <AnimatedRoute component={LoginPage} />} />

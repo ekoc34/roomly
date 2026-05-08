@@ -95,7 +95,19 @@ export type NotificationType =
   | "new_application"
   | "application_accepted"
   | "application_rejected"
-  | "new_message";
+  | "new_message"
+  | "new_matching_listing";
+
+export type SavedSearch = {
+  id: string;
+  user_id: string;
+  name: string;
+  filters: Record<string, string>;
+  notify: boolean;
+  last_matched_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export type Notification = {
   id: string;

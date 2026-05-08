@@ -5,12 +5,85 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
-import type { ListingType } from "@/types/database";
+import type { ListingType, SavedSearch } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
 const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
 const labelClass = "text-xs font-medium text-stone-700";
+
+type NewListing = {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  location: string;
+  type: string;
+  pets_allowed: boolean;
+  smoking_allowed: boolean;
+  gender_preference: string | null;
+  rooms: number | null;
+  surface_area: number | null;
+};
+
+function listingMatchesFilters(listing: NewListing, filters: Record<string, string>): boolean {
+  const q = filters.q ?? "";
+  const filterType = filters.type ?? "";
+  const district = filters.district ?? "";
+  const minPrice = Number(filters.min ?? 0);
+  const maxPrice = Number(filters.max ?? 10000);
+  const pets = filters.pets ?? "";
+  const smoking = filters.smoking ?? "";
+  const gender = filters.gender ?? "";
+  const rooms = filters.rooms ?? "";
+  const minSurface = filters.min_surface ?? "";
+
+  if (q && !`${listing.title} ${listing.description} ${listing.location}`.toLowerCase().includes(q.toLowerCase())) return false;
+  if (filterType && listing.type !== filterType) return false;
+  if (district && !listing.location.toLowerCase().includes(district.toLowerCase())) return false;
+  if (minPrice > 0 && listing.price < minPrice) return false;
+  if (maxPrice < 10000 && listing.price > maxPrice) return false;
+  if (pets === "1" && !listing.pets_allowed) return false;
+  if (smoking === "1" && !listing.smoking_allowed) return false;
+  if (gender && listing.gender_preference !== gender) return false;
+  if (rooms && (listing.rooms == null || listing.rooms < Number(rooms))) return false;
+  if (minSurface && (listing.surface_area == null || listing.surface_area < Number(minSurface))) return false;
+  return true;
+}
+
+async function notifyMatchingSavedSearches(listing: NewListing, ownerId: string) {
+  if (!supabase) return;
+  const { data: savedSearches } = await supabase
+    .from("saved_searches")
+    .select("*")
+    .eq("notify", true)
+    .neq("user_id", ownerId);
+
+  const matches = ((savedSearches as SavedSearch[] | null) ?? []).filter((s) =>
+    listingMatchesFilters(listing, s.filters as Record<string, string>)
+  );
+
+  if (matches.length === 0) return;
+
+  const now = new Date().toISOString();
+  await Promise.all(
+    matches.map(async (s) => {
+      await Promise.all([
+        supabase!.from("notifications").insert({
+          user_id: s.user_id,
+          type: "new_matching_listing",
+          title: "Nieuwe woning gevonden!",
+          body: `Een nieuwe woning matcht met je opgeslagen zoekopdracht "${s.name}".`,
+          related_id: listing.id,
+        }),
+        supabase!
+          .from("saved_searches")
+          .update({ last_matched_at: now })
+          .eq("id", s.id),
+      ]);
+    })
+  );
+}
 
 export function NewListingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -65,8 +138,16 @@ export function NewListingPage() {
         setError("Advertentie kon niet worden geplaatst. Probeer opnieuw.");
         return;
       }
+      const listingId = (data as { id: string }).id;
       toast.success("Advertentie geplaatst!");
-      navigate(`/kamers/${data.id}`);
+
+      // Fire-and-forget: notify tenants with matching saved searches
+      notifyMatchingSavedSearches(
+        { id: listingId, title, description, price, location, type, pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area },
+        user.id
+      );
+
+      navigate(`/kamers/${listingId}`);
     });
   };
 

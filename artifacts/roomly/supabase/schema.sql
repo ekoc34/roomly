@@ -444,6 +444,44 @@ $$;
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT NOW();
 
+-- ============================================================
+-- SAVED SEARCHES
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.saved_searches (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id       UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name          TEXT NOT NULL DEFAULT 'Mijn zoekopdracht',
+  filters       JSONB NOT NULL DEFAULT '{}',
+  notify        BOOLEAN NOT NULL DEFAULT TRUE,
+  last_matched_at TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS saved_searches_user_id_idx ON public.saved_searches(user_id);
+CREATE INDEX IF NOT EXISTS saved_searches_notify_idx  ON public.saved_searches(notify) WHERE notify = TRUE;
+
+ALTER TABLE public.saved_searches ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own saved searches"
+  ON public.saved_searches FOR ALL
+  USING (auth.uid() = user_id);
+
+DROP TRIGGER IF EXISTS saved_searches_updated_at ON public.saved_searches;
+CREATE TRIGGER saved_searches_updated_at
+  BEFORE UPDATE ON public.saved_searches
+  FOR EACH ROW EXECUTE PROCEDURE public.set_updated_at();
+
+-- ============================================================
+-- MIGRATION: extend notifications type check to include new_matching_listing
+-- Run in Supabase SQL Editor if the notifications table already exists
+-- ============================================================
+ALTER TABLE public.notifications
+  DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE public.notifications
+  ADD CONSTRAINT notifications_type_check
+  CHECK (type IN ('new_application','application_accepted','application_rejected','new_message','new_matching_listing'));
+
 -- NOTE: Supabase does not support column-level security natively.
 -- Email and phone privacy is enforced at the frontend layer:
 --   - ProfilePage only renders the authenticated user's own profile.

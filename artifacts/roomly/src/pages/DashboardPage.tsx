@@ -33,6 +33,7 @@ export function DashboardPage() {
   const [receivedApplications, setReceivedApplications] = useState<ApplicationWithDetails[]>([]);
   const [tenantConversations, setTenantConversations] = useState<ConvSummary[]>([]);
   const [landlordConversations, setLandlordConversations] = useState<ConvSummary[]>([]);
+  const [savedSearchesCount, setSavedSearchesCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export function DashboardPage() {
         { count: landlordConvCount },
         { data: myApps },
         { data: tenantConvData },
+        { count: savedCount },
       ] = await Promise.all([
         supabase!.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
         supabase!.from("listings").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
@@ -59,12 +61,14 @@ export function DashboardPage() {
         supabase!.from("conversations").select("*", { count: "exact", head: true }).eq("landlord_id", user!.id),
         supabase!.from("applications").select("*, listings:listing_id(id, title)").eq("applicant_id", user!.id).order("created_at", { ascending: false }),
         supabase!.from("conversations").select("id, listing_id, tenant_id").eq("tenant_id", user!.id),
+        supabase!.from("saved_searches").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
       ]);
 
       setProfile(p as Profile | null);
       setFavoritesCount(favCount ?? 0);
       setTenantConvsCount(tenantConvCount ?? 0);
       setLandlordConvsCount(landlordConvCount ?? 0);
+      setSavedSearchesCount(savedCount ?? 0);
       setMyApplications((myApps as MyApplication[] | null) ?? []);
       setTenantConversations((tenantConvData as ConvSummary[] | null) ?? []);
 
@@ -241,7 +245,7 @@ export function DashboardPage() {
 
         {activeTab === "zoektocht" && (
           <div className="mt-6 space-y-8">
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               {[
                 {
                   label: "Opgeslagen woningen",
@@ -260,6 +264,12 @@ export function DashboardPage() {
                   value: loading ? "…" : myApplications.length,
                   href: "#aanvragen",
                   icon: <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                },
+                {
+                  label: "Opgeslagen zoekopdrachten",
+                  value: loading ? "…" : savedSearchesCount,
+                  href: "/opgeslagen-zoekopdrachten",
+                  icon: <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
                 },
               ].map((stat) => (
                 <a key={stat.label} href={stat.href} className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
