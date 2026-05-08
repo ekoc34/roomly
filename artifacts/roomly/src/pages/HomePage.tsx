@@ -19,8 +19,10 @@ function HomePageContent() {
     async function fetchData() {
       if (!supabase) { setLoading(false); return; }
       try {
+        let query = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
+        if (user) query = query.neq("user_id", user.id);
         const [{ data: ls }, { data: favs }] = await Promise.all([
-          supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(6),
+          query,
           user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [] },
         ]);
         setListings((ls as Listing[] | null) ?? []);

@@ -1,0 +1,42 @@
+You are continuing development on the Roomly project (Dutch-language, Vite + React + Supabase). 
+First, pull the latest code from the main branch of https://github.com/ekoc34/roomly.
+
+We will implement three UX improvements. Execute them in order, one at a time, and commit after each.
+
+TASK 1 — Listing Card Information Hierarchy
+Improve the listing card component so users can see key property details at a glance.
+- Locate the listing card component (likely in src/components/listings/).
+- Ensure the card clearly shows: price, location, number of rooms, surface area (m²), and property type.
+- Use a clean visual hierarchy: price prominent, location below, rooms and m² as small badges/pills.
+- Keep all existing functionality (favorites, navigation) untouched.
+- After implementing, commit with message: "Feat: Improve listing card information hierarchy".
+
+TASK 2 — Separate Tenant & Landlord Dashboard Panels
+Create clear separated panels for users managing different roles.
+- Users can be both tenant (huurder) and landlord (verhuurder). Give them separate panels.
+- In the user Dashboard (/dashboard), create two clearly labeled sections:
+  "Mijn zoektocht" (for tenants: saved listings, applications, favorites)
+  "Mijn verhuur" (for landlords: my listings, received messages, applications)
+- Fetch relevant data from Supabase for each panel.
+- Use tabs or visually separated cards with clear icons.
+- All text in Dutch.
+- After implementing, commit with message: "Feat: Separate tenant and landlord dashboard panels".
+
+TASK 3 — Homepage Featured Listings Showcase
+Add a "Populaire woningen" section to the homepage to build trust and engagement.
+- Add a new section on the homepage (HomePage.tsx) below the existing hero and Stadsdelen sections.
+- Title: "Populaire woningen" or "Uitgelichte woningen".
+- Show 4-6 listing cards in a responsive grid (2 columns on mobile, 4 on desktop).
+- Fetch listings from Supabase ordered by some engagement metric:
+  - If a "views" or "favorites_count" column exists, order by that.
+  - Otherwise, order by created_at DESC as a fallback (newest first).
+- Exclude listings from the currently logged-in user.
+- Handle empty state gracefully: if no listings, show "Nog geen uitgelichte woningen."
+- After implementing, commit with message: "Feat: Add homepage featured listings showcase".
+
+CRITICAL RULES:
+- Keep all user-facing text in Dutch.
+- Use the existing Supabase client already configured in the project.
+- Do not break any existing feature (listings, map, favorites, search, messaging, etc.).
+- Use TailwindCSS v4 for styling, match the current design language (rounded-2xl, rose-500 accent, stone colors).
+- After each task, push to GitHub main branch. If push is restricted, tell me the exact commands.

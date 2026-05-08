@@ -5,22 +5,44 @@ import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
 import type { Listing, Profile } from "@/types/database";
 
+type Tab = "zoektocht" | "verhuur";
+
 export function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myListings, setMyListings] = useState<Listing[]>([]);
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [tenantConvsCount, setTenantConvsCount] = useState(0);
+  const [landlordConvsCount, setLandlordConvsCount] = useState(0);
+  const [applicationsCount, setApplicationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
 
   useEffect(() => {
     if (authLoading) return;
     if (!user || !supabase) { setLoading(false); return; }
     async function fetchData() {
-      const [{ data: p }, { data: ls }] = await Promise.all([
+      const [
+        { data: p },
+        { data: ls },
+        { count: favCount },
+        { count: tenantConvCount },
+        { count: landlordConvCount },
+        { count: appCount },
+      ] = await Promise.all([
         supabase!.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
         supabase!.from("listings").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        supabase!.from("favorites").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase!.from("conversations").select("*", { count: "exact", head: true }).eq("tenant_id", user!.id),
+        supabase!.from("conversations").select("*", { count: "exact", head: true }).eq("landlord_id", user!.id),
+        supabase!.from("applications").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
       ]);
       setProfile(p as Profile | null);
       setMyListings((ls as Listing[] | null) ?? []);
+      setFavoritesCount(favCount ?? 0);
+      setTenantConvsCount(tenantConvCount ?? 0);
+      setLandlordConvsCount(landlordConvCount ?? 0);
+      setApplicationsCount(appCount ?? 0);
       setLoading(false);
     }
     fetchData();
@@ -63,54 +85,197 @@ export function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        {[
-          { label: "Mijn advertenties", value: myListings.length, href: "#listings", color: "rose" },
-          { label: "Berichten", value: "→", href: "/berichten", color: "blue" },
-          { label: "Favorieten", value: "→", href: "/favorieten", color: "stone" },
-        ].map((stat) => (
-          <Link key={stat.label} href={stat.href} className="flex flex-col gap-2 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs font-medium text-stone-500">{stat.label}</p>
-            <p className="text-2xl font-black text-stone-900">{stat.value}</p>
-          </Link>
-        ))}
+      <div className="mt-8 flex gap-2 border-b border-stone-200">
+        <button
+          onClick={() => setActiveTab("zoektocht")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition -mb-px ${
+            activeTab === "zoektocht"
+              ? "border-rose-500 text-rose-600"
+              : "border-transparent text-stone-500 hover:text-stone-700"
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Mijn zoektocht
+        </button>
+        <button
+          onClick={() => setActiveTab("verhuur")}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition -mb-px ${
+            activeTab === "verhuur"
+              ? "border-rose-500 text-rose-600"
+              : "border-transparent text-stone-500 hover:text-stone-700"
+          }`}
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Mijn verhuur
+          {myListings.length > 0 && (
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-600">{myListings.length}</span>
+          )}
+        </button>
       </div>
 
-      <div id="listings" className="mt-8">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-bold text-stone-900">Mijn advertenties</h2>
-          <Link href="/kamers/nieuw" className="text-sm font-medium text-rose-600 hover:underline">+ Nieuwe advertentie</Link>
-        </div>
-        {loading ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2].map((n) => (
-              <div key={n} className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
-                <div className="aspect-[4/3] animate-pulse bg-stone-200" />
-                <div className="flex flex-1 flex-col gap-3 p-4">
-                  <div className="h-4 w-3/4 animate-pulse rounded-full bg-stone-200" />
-                  <div className="h-3 w-1/2 animate-pulse rounded-full bg-stone-200" />
-                  <div className="mt-auto h-5 w-1/3 animate-pulse rounded-full bg-stone-200" />
+      {activeTab === "zoektocht" && (
+        <div className="mt-6 space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                label: "Opgeslagen woningen",
+                value: loading ? "…" : favoritesCount,
+                href: "/favorieten",
+                icon: (
+                  <svg className="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Gesprekken als huurder",
+                value: loading ? "…" : tenantConvsCount,
+                href: "/berichten",
+                icon: (
+                  <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Reacties geplaatst",
+                value: loading ? "…" : applicationsCount,
+                href: "/berichten",
+                icon: (
+                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+              },
+            ].map((stat) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                  {stat.icon}
                 </div>
-              </div>
+                <div>
+                  <p className="text-xs font-medium text-stone-500">{stat.label}</p>
+                  <p className="text-2xl font-black text-stone-900">{stat.value}</p>
+                </div>
+              </Link>
             ))}
           </div>
-        ) : myListings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
-              <svg className="h-6 w-6 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+
+          <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+            <h2 className="text-base font-semibold text-stone-900">Snel navigeren</h2>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link href="/kamers" className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                Zoek woningen
+              </Link>
+              <Link href="/favorieten" className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                Mijn favorieten
+              </Link>
+              <Link href="/berichten" className="inline-flex items-center gap-2 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                Mijn berichten
+              </Link>
             </div>
-            <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen advertenties</h3>
-            <p className="mt-2 max-w-sm text-sm text-stone-500">Plaats je eerste advertentie en bereik duizenden huurders.</p>
-            <Link href="/kamers/nieuw" className="mt-6 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Advertentie plaatsen</Link>
           </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {myListings.map((l) => (
-              <ListingCard key={l.id} listing={l} isFavorited={false} />
+        </div>
+      )}
+
+      {activeTab === "verhuur" && (
+        <div className="mt-6 space-y-6">
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              {
+                label: "Actieve advertenties",
+                value: loading ? "…" : myListings.length,
+                href: "#listings",
+                icon: (
+                  <svg className="h-5 w-5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Gesprekken als verhuurder",
+                value: loading ? "…" : landlordConvsCount,
+                href: "/berichten",
+                icon: (
+                  <svg className="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                ),
+              },
+              {
+                label: "Nieuwe advertentie",
+                value: "+",
+                href: "/kamers/nieuw",
+                icon: (
+                  <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                ),
+              },
+            ].map((stat) => (
+              <Link
+                key={stat.label}
+                href={stat.href}
+                className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                  {stat.icon}
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-stone-500">{stat.label}</p>
+                  <p className="text-2xl font-black text-stone-900">{stat.value}</p>
+                </div>
+              </Link>
             ))}
           </div>
-        )}
-      </div>
+
+          <div id="listings">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-lg font-bold text-stone-900">Mijn advertenties</h2>
+              <Link href="/kamers/nieuw" className="text-sm font-medium text-rose-600 hover:underline">+ Nieuwe advertentie</Link>
+            </div>
+            {loading ? (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {[1, 2].map((n) => (
+                  <div key={n} className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
+                    <div className="aspect-[4/3] animate-pulse bg-stone-200" />
+                    <div className="flex flex-1 flex-col gap-3 p-4">
+                      <div className="h-4 w-3/4 animate-pulse rounded-full bg-stone-200" />
+                      <div className="h-3 w-1/2 animate-pulse rounded-full bg-stone-200" />
+                      <div className="mt-auto h-5 w-1/3 animate-pulse rounded-full bg-stone-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : myListings.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
+                  <svg className="h-6 w-6 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                </div>
+                <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen advertenties</h3>
+                <p className="mt-2 max-w-sm text-sm text-stone-500">Plaats je eerste advertentie en bereik duizenden huurders.</p>
+                <Link href="/kamers/nieuw" className="mt-6 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Advertentie plaatsen</Link>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {myListings.map((l) => (
+                  <ListingCard key={l.id} listing={l} isFavorited={false} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

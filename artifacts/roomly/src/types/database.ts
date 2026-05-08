@@ -39,6 +39,8 @@ export type Listing = {
   type: ListingType;
   images: string[];
   availability_date: string | null;
+  rooms: number | null;
+  surface_area: number | null;
   created_at: string;
   updated_at: string;
 };
