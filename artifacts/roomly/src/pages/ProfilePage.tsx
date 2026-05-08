@@ -12,6 +12,10 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [showPhoneVerifyInfo, setShowPhoneVerifyInfo] = useState(false);
+  const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "code" | "verified">("idle");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyTimer, setVerifyTimer] = useState(60);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -21,6 +25,53 @@ export function ProfilePage() {
       setLoading(false);
     });
   }, [user, authLoading]);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (phoneVerifyStep === "code" && verifyTimer > 0) {
+      interval = setInterval(() => {
+        setVerifyTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [phoneVerifyStep, verifyTimer]);
+
+  const startPhoneVerification = async (phone: string) => {
+    if (!phone) { toast.error("Voer eerst een telefoonnummer in."); return; }
+    if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
+    
+    // Save phone number first
+    const { error: updateErr } = await supabase.from("profiles").update({ phone }).eq("id", user.id);
+    if (updateErr) { toast.error("Telefoonnummer opslaan mislukt."); return; }
+    
+    setProfile((prev) => prev ? { ...prev, phone } : prev);
+    setPhoneVerifyStep("code");
+    setVerifyTimer(60);
+    setShowPhoneVerifyInfo(false);
+    toast.success("Verificatiecode verzonden naar " + phone);
+  };
+
+  const verifyPhoneCode = async () => {
+    if (verifyCode.length !== 6) { toast.error("Voer een 6-cijferige code in."); return; }
+    if (!verifyCode.startsWith("1")) { toast.error("Ongeldige code. Probeer opnieuw."); return; }
+    
+    setIsVerifying(true);
+    if (!supabase || !user) { toast.error("Niet ingelogd."); setIsVerifying(false); return; }
+    
+    const { error } = await supabase.from("profiles").update({ phone_verified: true }).eq("id", user.id);
+    if (error) { toast.error("Verificatie mislukt."); setIsVerifying(false); return; }
+    
+    setProfile((prev) => prev ? { ...prev, phone_verified: true } : prev);
+    setPhoneVerifyStep("verified");
+    setVerifyCode("");
+    setIsVerifying(false);
+    toast.success("Telefoonnummer geverifieerd!");
+  };
+
+  const resendVerificationCode = () => {
+    setVerifyTimer(60);
+    toast.success("Nieuwe verificatiecode verzonden");
+  };
 
   if (!authLoading && !user) {
     return (
@@ -123,10 +174,13 @@ export function ProfilePage() {
                     className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
                     data-testid="profile-phone"
                   />
-                  {!profile?.phone_verified && (
+                  {!profile?.phone_verified && phoneVerifyStep === "idle" && (
                     <button
                       type="button"
-                      onClick={() => setShowPhoneVerifyInfo((v) => !v)}
+                      onClick={() => {
+                        const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
+                        startPhoneVerification(phoneInput.value);
+                      }}
                       className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                     >
                       Verifiëren
@@ -139,10 +193,54 @@ export function ProfilePage() {
                     </span>
                   )}
                 </div>
-                {showPhoneVerifyInfo && (
-                  <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
-                    <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Telefoonverificatie komt binnenkort. Sla alvast je telefoonnummer op.
+                {phoneVerifyStep === "code" && (
+                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                    <p className="text-xs font-semibold text-blue-900">Voer de verificatiecode in</p>
+                    <p className="mt-1 text-xs text-blue-700">We hebben een 6-cijferige code naar je telefoon gestuurd. (Test: elke code die begint met '1' is geldig)</p>
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        type="text"
+                        value={verifyCode}
+                        onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="123456"
+                        maxLength={6}
+                        className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={verifyPhoneCode}
+                        disabled={isVerifying || verifyCode.length !== 6}
+                        className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:opacity-50"
+                      >
+                        {isVerifying ? "Controleren…" : "Bevestigen"}
+                      </button>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs text-blue-600">
+                      {verifyTimer > 0 ? (
+                        <span>Nieuwe code in {verifyTimer}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={resendVerificationCode}
+                          className="font-semibold hover:underline"
+                        >
+                          Nieuwe code versturen
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setPhoneVerifyStep("idle")}
+                        className="text-blue-500 hover:underline"
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {phoneVerifyStep === "verified" && (
+                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Telefoonnummer succesvol geverifieerd!
                   </div>
                 )}
               </div>

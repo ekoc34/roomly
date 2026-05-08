@@ -75,7 +75,7 @@ export function DashboardPage() {
         const [{ data: apps }, { data: landlordConvData }] = await Promise.all([
           supabase!
             .from("applications")
-            .select("*, profiles:applicant_id(name, email, avatar_url), listings:listing_id(title)")
+            .select("*, profiles:applicant_id(name, email, avatar_url, phone_verified, email_auto_verified, student_verified, verification_badge), listings:listing_id(title)")
             .in("listing_id", listingIds)
             .order("created_at", { ascending: false }),
           supabase!
@@ -401,6 +401,7 @@ export function DashboardPage() {
                     const name = app.profiles?.name ?? app.profiles?.email ?? "Onbekend";
                     const avatarInitial = name.slice(0, 1).toUpperCase();
                     const badge = statusMap[app.status as keyof typeof statusMap] ?? statusMap.pending;
+                    const isApplicantVerified = !!(app.profiles?.phone_verified || app.profiles?.email_auto_verified || app.profiles?.student_verified || app.profiles?.verification_badge);
                     const conv = landlordConversations.find(
                       (c) => c.listing_id === app.listing_id && c.tenant_id === app.applicant_id
                     );
@@ -422,6 +423,14 @@ export function DashboardPage() {
                             >
                               {name}
                             </button>
+                            {isApplicantVerified && (
+                              <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Geverifieerd
+                              </span>
+                            )}
                             <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${badge.cls}`}>{badge.label}</span>
                           </div>
                           {app.listings?.title && (
