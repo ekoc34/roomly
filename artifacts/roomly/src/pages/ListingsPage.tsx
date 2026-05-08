@@ -28,7 +28,7 @@ export function ListingsPage() {
       const pets = params.get("pets") ?? "";
       const smoking = params.get("smoking") ?? "";
       const gender = params.get("gender") ?? "";
-      const minRooms = params.get("min_rooms") ?? "";
+      const rooms = params.get("rooms") ?? "";
       const minSurface = params.get("min_surface") ?? "";
 
       let query = supabase.from("listings").select("*");
@@ -41,7 +41,7 @@ export function ListingsPage() {
       if (pets === "1") query = query.eq("pets_allowed", true);
       if (smoking === "1") query = query.eq("smoking_allowed", true);
       if (gender) query = query.eq("gender_preference", gender);
-      if (minRooms) query = query.gte("rooms", Number(minRooms));
+      if (rooms) query = query.gte("rooms", Number(rooms));
       if (minSurface) query = query.gte("surface_area", Number(minSurface));
 
       if (sort === "cheapest") {

@@ -12,9 +12,16 @@ const SORT_OPTIONS = [
 
 const GENDER_OPTIONS = [
   { value: "", label: "Geen voorkeur" },
-  { value: "man", label: "Man" },
-  { value: "vrouw", label: "Vrouw" },
+  { value: "man", label: "Alleen mannen" },
+  { value: "vrouw", label: "Alleen vrouwen" },
   { value: "gemengd", label: "Gemengd" },
+];
+
+const ROOMS_OPTIONS = [
+  { value: "1", label: "1+" },
+  { value: "2", label: "2+" },
+  { value: "3", label: "3+" },
+  { value: "4", label: "4+" },
 ];
 
 export function ListingFilters() {
@@ -37,10 +44,10 @@ export function ListingFilters() {
   const pets = searchParams.get("pets") ?? "";
   const smoking = searchParams.get("smoking") ?? "";
   const gender = searchParams.get("gender") ?? "";
-  const minRooms = searchParams.get("min_rooms") ?? "";
+  const rooms = searchParams.get("rooms") ?? "";
   const minSurface = searchParams.get("min_surface") ?? "";
 
-  const advancedCount = [pets, smoking, gender, minRooms, minSurface].filter(Boolean).length;
+  const advancedCount = [pets, smoking, gender, rooms, minSurface].filter(Boolean).length;
 
   const activeCount = [
     searchParams.get("min"),
@@ -51,7 +58,7 @@ export function ListingFilters() {
     pets,
     smoking,
     gender,
-    minRooms,
+    rooms,
     minSurface,
   ].filter(Boolean).length;
 
@@ -206,16 +213,17 @@ export function ListingFilters() {
         {advancedOpen && (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <label className="text-xs font-medium text-stone-700">Min. kamers</label>
-              <input
-                type="number"
-                min={1}
-                max={20}
-                value={minRooms}
-                onChange={(e) => push({ min_rooms: e.target.value })}
-                placeholder="Bijv. 2"
-                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-              />
+              <label className="text-xs font-medium text-stone-700">Minimaal aantal kamers</label>
+              <select
+                value={rooms}
+                onChange={(e) => push({ rooms: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              >
+                <option value="">Alle</option>
+                {ROOMS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
             </div>
 
             <div>
