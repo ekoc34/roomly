@@ -8,8 +8,7 @@ export function Footer() {
           <div className="sm:col-span-1">
             <p className="text-xl font-bold text-rose-600">Roomly</p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
-              Woningen vinden in Nederland — eerlijk, duidelijk en snel.
-              Voor studenten, professionals, expats en families.
+              Woningen vinden in Nederland — eerlijk, duidelijk en snel. Voor studenten, professionals, expats en families, uitsluitend binnen Nederland.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
