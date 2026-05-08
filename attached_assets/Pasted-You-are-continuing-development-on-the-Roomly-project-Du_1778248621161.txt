@@ -1,0 +1,34 @@
+You are continuing development on the Roomly project (Dutch-language, Vite + React + Supabase). 
+First, pull the latest code from the main branch of https://github.com/ekoc34/roomly.
+
+We have three feature areas to improve. For each one, FIRST check if the feature already exists in the codebase. If it already works correctly, skip it and move to the next. Only implement what is missing or broken.
+
+TASK 1: Advanced Search & Filtering System
+- Check if ListingFilters.tsx already has filters for: pet-friendly (huisdieren toegestaan), smoking allowed (roken toegestaan), gender preference (gender voorkeur), minimum rooms, minimum surface area.
+- If any of these are missing, add them as new filter options in a collapsible "Geavanceerd zoeken" section.
+- Filters must sync with URL parameters so filtered results can be shared.
+- Fetch matching listings from Supabase using `.ilike()` or `.eq()` as appropriate.
+- Keep the existing price slider, district, and type filters untouched.
+
+TASK 2: Phone Verification & Trust Badges
+- Check if a phone verification flow already exists (phone number input, SMS code verification).
+- If not, add a phone number field to the profile/edit page with a "Telefoonnummer verifiëren" button.
+- The verification flow: user enters phone number → Supabase sends SMS via Twilio (or similar) → user enters code → phone_verified flag set to TRUE in profiles table.
+- If Twilio/SMS is not configured, add a placeholder that shows "Telefoonverificatie komt binnenkort" and still saves the phone number.
+- Check if trust badges are shown on listing cards and profile pages (verified phone, verified email, verified student). If missing, add small badge icons next to the user's name on their listings and profile.
+- Already existing: verification_badge column in profiles table. Use this column to display "Geverifieerde verhuurder" badge when the user has any verification.
+
+TASK 3: Interactive Map Integration
+- Check if a map view already exists at /kaart route with Leaflet.
+- If it exists, ensure it shows all listings as markers/pins that update when filters change.
+- If a listing has no coordinates, attempt to geocode the location string using a free geocoding API (e.g., Nominatim) and store lat/lng in the listings table.
+- Add a "Bekijk op kaart" button on the listings page that switches between list view and map view.
+- Clicking a map pin opens a popup with: listing image, title, price, and a link to the detail page.
+- If the map already has all these features, skip this task entirely.
+
+CRITICAL RULES:
+- Keep all user-facing text in Dutch.
+- Use the existing Supabase client. Do not create a new one.
+- Use TailwindCSS v4, match the current design language (rounded-2xl, rose-500 accent, stone colors).
+- Do not break any existing feature.
+- After each task that makes changes, commit with a clear message and push to GitHub.
