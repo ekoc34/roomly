@@ -1,0 +1,38 @@
+We are adding two new features to the Roomly app: a real-time notification system and an applicant profile preview panel.
+
+TASK 1: Real-time Notification Bell in Header
+- Add a bell icon to the header (src/components/layout/Header.tsx).
+- The bell must show a red badge with the count of unread notifications.
+- Fetch notifications from a new Supabase table. Create this table first:
+  CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    type TEXT NOT NULL CHECK (type IN ('new_application','application_accepted','application_rejected','new_message')),
+    title TEXT NOT NULL,
+    body TEXT,
+    related_id UUID,
+    read BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+- Enable RLS: users can only see their own notifications.
+- Subscribe to real-time inserts on the notifications table using Supabase Realtime.
+- When the bell is clicked, open a dropdown listing the last 10 notifications.
+- Each notification shows: title, body preview, time ago, and a colored dot if unread.
+- Clicking a notification marks it as read and navigates to the relevant page.
+- Mark all as read button at the bottom of the dropdown.
+
+TASK 2: Trigger Notifications Automatically
+- When a tenant submits an application, insert a notification for the landlord: type = 'new_application'.
+- When a landlord accepts/rejects an application, insert a notification for the tenant: type = 'application_accepted' or 'application_rejected'.
+- These inserts must happen in the same Supabase calls that update the application status.
+
+TASK 3: Applicant Profile Preview in "Aanvragen" Panel
+- In the landlord's "Mijn verhuur" dashboard, when the landlord clicks an applicant's name in the "Aanvragen" section, a slide-out panel or modal must open.
+- The panel shows:
+  - Applicant's avatar and name
+  - Bio (from profiles table)
+  - Verification badges (verification_badge from profiles)
+  - A list of other listings the applicant has applied to (fetch from applications table, show listing title + status)
+- The panel must have a close button and must not break the existing accept/reject buttons.
+
+After implementing both tasks, test the full flow and push to GitHub.

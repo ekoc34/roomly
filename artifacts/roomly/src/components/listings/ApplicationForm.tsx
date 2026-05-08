@@ -15,21 +15,23 @@ export function ApplicationForm({ listingId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState<boolean | null>(null);
+  const [listingOwnerId, setListingOwnerId] = useState<string | null>(null);
+  const [listingTitle, setListingTitle] = useState<string>("");
 
   useEffect(() => {
     if (!user || !supabase) { setAlreadyApplied(false); return; }
-    supabase
-      .from("applications")
-      .select("id", { count: "exact", head: true })
-      .eq("listing_id", listingId)
-      .eq("applicant_id", user.id)
-      .then(({ count }) => setAlreadyApplied((count ?? 0) > 0));
+    Promise.all([
+      supabase.from("applications").select("id", { count: "exact", head: true }).eq("listing_id", listingId).eq("applicant_id", user.id),
+      supabase.from("listings").select("user_id, title").eq("id", listingId).maybeSingle(),
+    ]).then(([{ count }, { data: listing }]) => {
+      setAlreadyApplied((count ?? 0) > 0);
+      setListingOwnerId((listing as { user_id: string } | null)?.user_id ?? null);
+      setListingTitle((listing as { title: string } | null)?.title ?? "");
+    });
   }, [listingId, user]);
 
   if (alreadyApplied === null) {
-    return (
-      <div className="h-11 w-48 animate-pulse rounded-2xl bg-stone-200" />
-    );
+    return <div className="h-11 w-48 animate-pulse rounded-2xl bg-stone-200" />;
   }
 
   if (alreadyApplied) {
@@ -91,6 +93,18 @@ export function ApplicationForm({ listingId }: Props) {
         status: "pending",
       });
       if (error) throw error;
+
+      if (listingOwnerId) {
+        await supabase.from("notifications").insert({
+          user_id: listingOwnerId,
+          type: "new_application",
+          title: "Nieuwe aanvraag ontvangen",
+          body: `Je hebt een nieuwe reactie op "${listingTitle || "een woning"}". Bekijk de aanvraag in je dashboard.`,
+          related_id: listingId,
+          read: false,
+        });
+      }
+
       setSubmitted(true);
       setAlreadyApplied(true);
       toast.success("Je reactie is verstuurd!");

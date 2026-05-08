@@ -84,6 +84,23 @@ export type Message = {
   created_at: string;
 };
 
+export type NotificationType =
+  | "new_application"
+  | "application_accepted"
+  | "application_rejected"
+  | "new_message";
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  body: string | null;
+  related_id: string | null;
+  read: boolean;
+  created_at: string;
+};
+
 export type ReportCategory =
   | "scam"
   | "spam"

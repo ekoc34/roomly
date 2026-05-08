@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { CitySelector } from "@/components/search/CitySelector";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 
 export function Header() {
   const { user } = useAuth();
@@ -22,7 +23,7 @@ export function Header() {
           Roomly
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-stone-600 md:flex">
+        <nav className="hidden items-center gap-4 text-sm font-medium text-stone-600 md:flex">
           <Link href="/kamers" data-testid="header-kamers-link" className="transition hover:text-rose-600">
             Woningen
           </Link>
@@ -46,6 +47,7 @@ export function Header() {
               <Link href="/dashboard" className="transition hover:text-rose-600">
                 Dashboard
               </Link>
+              <NotificationBell />
               <Link
                 href="/kamers/nieuw"
                 data-testid="header-new-listing-link"
@@ -81,13 +83,16 @@ export function Header() {
         <div className="flex items-center gap-2 md:hidden">
           <CitySelector />
           {user ? (
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700"
-            >
-              Uitloggen
-            </button>
+            <>
+              <NotificationBell />
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700"
+              >
+                Uitloggen
+              </button>
+            </>
           ) : (
             <Link
               href="/registreren"
