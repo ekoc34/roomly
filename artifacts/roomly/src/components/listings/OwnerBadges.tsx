@@ -9,6 +9,8 @@ export function OwnerBadges({ profile, memberSince }: Props) {
   const joinMonth = new Date(memberSince).toLocaleDateString("nl-NL", { month: "long", year: "numeric" });
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
 
+  const isVerified = !!(profile?.phone_verified || profile?.email_auto_verified || profile?.student_verified || profile?.verification_badge);
+
   return (
     <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm" data-testid="owner-badges">
       <h2 className="text-sm font-semibold text-stone-900">Over de plaatser</h2>
@@ -21,7 +23,16 @@ export function OwnerBadges({ profile, memberSince }: Props) {
           )}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Roomly gebruiker"}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Roomly gebruiker"}</p>
+            {isVerified && (
+              <span title="Geverifieerde verhuurder">
+                <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-stone-500">Lid sinds {joinMonth}</p>
         </div>
       </div>
@@ -43,6 +54,12 @@ export function OwnerBadges({ profile, memberSince }: Props) {
           <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
             Telefoon geverifieerd
+          </span>
+        )}
+        {profile?.verification_badge && (
+          <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+            {profile.verification_badge}
           </span>
         )}
       </div>

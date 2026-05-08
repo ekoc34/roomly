@@ -10,10 +10,18 @@ const SORT_OPTIONS = [
   { value: "cheapest", label: "Goedkoopste eerst" },
 ] as const;
 
+const GENDER_OPTIONS = [
+  { value: "", label: "Geen voorkeur" },
+  { value: "man", label: "Man" },
+  { value: "vrouw", label: "Vrouw" },
+  { value: "gemengd", label: "Gemengd" },
+];
+
 export function ListingFilters() {
   const searchString = useSearch();
   const [, navigate] = useLocation();
   const [pending, startTransition] = useTransition();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const searchParams = new URLSearchParams(searchString);
 
@@ -26,12 +34,25 @@ export function ListingFilters() {
   const type = searchParams.get("type") ?? "";
   const sort = searchParams.get("sort") ?? "newest";
 
+  const pets = searchParams.get("pets") ?? "";
+  const smoking = searchParams.get("smoking") ?? "";
+  const gender = searchParams.get("gender") ?? "";
+  const minRooms = searchParams.get("min_rooms") ?? "";
+  const minSurface = searchParams.get("min_surface") ?? "";
+
+  const advancedCount = [pets, smoking, gender, minRooms, minSurface].filter(Boolean).length;
+
   const activeCount = [
     searchParams.get("min"),
     searchParams.get("max"),
     district,
     type,
     searchParams.get("q"),
+    pets,
+    smoking,
+    gender,
+    minRooms,
+    minSurface,
   ].filter(Boolean).length;
 
   const push = useCallback((updates: Record<string, string>) => {
@@ -155,6 +176,99 @@ export function ListingFilters() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mt-4 border-t border-stone-100 pt-4">
+        <button
+          type="button"
+          onClick={() => setAdvancedOpen((o) => !o)}
+          className="flex w-full items-center justify-between text-xs font-semibold text-stone-700 hover:text-rose-600"
+        >
+          <span className="flex items-center gap-1.5">
+            Geavanceerd zoeken
+            {advancedCount > 0 && (
+              <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                {advancedCount}
+              </span>
+            )}
+          </span>
+          <svg
+            className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2.5}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {advancedOpen && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label className="text-xs font-medium text-stone-700">Min. kamers</label>
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={minRooms}
+                onChange={(e) => push({ min_rooms: e.target.value })}
+                placeholder="Bijv. 2"
+                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-stone-700">Min. oppervlakte (m²)</label>
+              <input
+                type="number"
+                min={1}
+                max={500}
+                value={minSurface}
+                onChange={(e) => push({ min_surface: e.target.value })}
+                placeholder="Bijv. 20"
+                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-stone-700">Gender voorkeur</label>
+              <select
+                value={gender}
+                onChange={(e) => push({ gender: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              >
+                {GENDER_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={pets === "1"}
+                  onChange={(e) => push({ pets: e.target.checked ? "1" : "" })}
+                  className="h-4 w-4 rounded accent-rose-500"
+                />
+                <span className="text-xs font-medium">Huisdieren toegestaan</span>
+              </label>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={smoking === "1"}
+                  onChange={(e) => push({ smoking: e.target.checked ? "1" : "" })}
+                  className="h-4 w-4 rounded accent-rose-500"
+                />
+                <span className="text-xs font-medium">Roken toegestaan</span>
+              </label>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

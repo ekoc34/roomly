@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearch } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -46,26 +46,101 @@ function guessCoords(location: string): [number, number] | null {
   return null;
 }
 
+const geocodeCache = new Map<string, [number, number] | null>();
+
+async function geocodeNominatim(location: string): Promise<[number, number] | null> {
+  if (geocodeCache.has(location)) return geocodeCache.get(location) ?? null;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&countrycodes=nl&format=json&limit=1`;
+    const res = await fetch(url, { headers: { "Accept-Language": "nl" } });
+    if (!res.ok) { geocodeCache.set(location, null); return null; }
+    const data = await res.json();
+    if (!data.length) { geocodeCache.set(location, null); return null; }
+    const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    geocodeCache.set(location, coords);
+    return coords;
+  } catch {
+    geocodeCache.set(location, null);
+    return null;
+  }
+}
+
 export function MapPage() {
+  const searchString = useSearch();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
+  const geocodingRef = useRef(false);
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
-    supabase
-      .from("listings")
-      .select("*")
+    setLoading(true);
+
+    const params = new URLSearchParams(searchString);
+    const q = params.get("q") ?? "";
+    const type = params.get("type") ?? "";
+    const district = params.get("district") ?? "";
+    const minPrice = Number(params.get("min") ?? 0);
+    const maxPrice = Number(params.get("max") ?? 10000);
+    const pets = params.get("pets") ?? "";
+    const smoking = params.get("smoking") ?? "";
+    const gender = params.get("gender") ?? "";
+    const minRooms = params.get("min_rooms") ?? "";
+    const minSurface = params.get("min_surface") ?? "";
+
+    let query = supabase.from("listings").select("*");
+
+    if (q) query = query.ilike("title", `%${q}%`);
+    if (type) query = query.eq("type", type);
+    if (district) query = query.ilike("location", `%${district}%`);
+    if (minPrice > 0) query = query.gte("price", minPrice);
+    if (maxPrice < 10000) query = query.lte("price", maxPrice);
+    if (pets === "1") query = query.eq("pets_allowed", true);
+    if (smoking === "1") query = query.eq("smoking_allowed", true);
+    if (gender) query = query.eq("gender_preference", gender);
+    if (minRooms) query = query.gte("rooms", Number(minRooms));
+    if (minSurface) query = query.gte("surface_area", Number(minSurface));
+
+    query
       .order("created_at", { ascending: false })
       .limit(200)
       .then(({ data }) => {
         setListings((data ?? []) as Listing[]);
         setLoading(false);
       });
-  }, []);
+  }, [searchString]);
+
+  useEffect(() => {
+    if (!listings.length || geocodingRef.current) return;
+    const needsGeocoding = listings.filter((l) => !guessCoords(l.location));
+    if (!needsGeocoding.length) return;
+
+    geocodingRef.current = true;
+    Promise.all(
+      needsGeocoding.map(async (l) => {
+        const c = await geocodeNominatim(l.location);
+        return { id: l.id, coords: c };
+      })
+    ).then((results) => {
+      setCoords((prev) => {
+        const next = new Map(prev);
+        for (const { id, coords: c } of results) {
+          if (c) next.set(id, c);
+        }
+        return next;
+      });
+      geocodingRef.current = false;
+    });
+  }, [listings]);
 
   const mappable = listings
-    .map((l) => ({ listing: l, coords: guessCoords(l.location) }))
+    .map((l) => {
+      const c = guessCoords(l.location) ?? coords.get(l.id) ?? null;
+      return { listing: l, coords: c };
+    })
     .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
+
+  const listHref = searchString ? `/kamers?${searchString}` : "/kamers";
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
@@ -77,7 +152,7 @@ export function MapPage() {
           </p>
         </div>
         <Link
-          href="/kamers"
+          href={listHref}
           className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -106,8 +181,8 @@ export function MapPage() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            {mappable.map(({ listing, coords }) => (
-              <Marker key={listing.id} position={coords}>
+            {mappable.map(({ listing, coords: c }) => (
+              <Marker key={listing.id} position={c}>
                 <Popup maxWidth={240} className="leaflet-popup-roomly">
                   <div className="min-w-[180px]">
                     {listing.images[0] && (

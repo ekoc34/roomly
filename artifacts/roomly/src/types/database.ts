@@ -41,6 +41,9 @@ export type Listing = {
   availability_date: string | null;
   rooms: number | null;
   surface_area: number | null;
+  pets_allowed: boolean | null;
+  smoking_allowed: boolean | null;
+  gender_preference: "vrouw" | "man" | "gemengd" | null;
   created_at: string;
   updated_at: string;
 };

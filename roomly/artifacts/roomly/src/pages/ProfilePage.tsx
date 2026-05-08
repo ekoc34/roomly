@@ -112,20 +112,53 @@ export function ProfilePage() {
               </div>
               <div>
                 <label htmlFor="prof-phone" className="text-xs font-medium text-stone-700">Telefoonnummer</label>
-                <input
-                  id="prof-phone"
-                  name="phone"
-                  type="tel"
-                  defaultValue={profile?.phone ?? ""}
-                  placeholder="+31 6 12345678"
-                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                  data-testid="profile-phone"
-                />
+                <div className="mt-1.5 flex gap-2">
+                  <input
+                    id="prof-phone"
+                    name="phone"
+                    type="tel"
+                    defaultValue={profile?.phone ?? ""}
+                    placeholder="+31 6 12345678"
+                    className="min-w-0 flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                    data-testid="profile-phone"
+                  />
+                  {profile?.phone_verified ? (
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Geverifieerd
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Telefoonverificatie komt binnenkort beschikbaar"
+                      onClick={() => toast.info("Telefoonverificatie komt binnenkort beschikbaar.")}
+                      className="flex shrink-0 items-center gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      Telefoonnummer verifiëren
+                    </button>
+                  )}
+                </div>
+                {!profile?.phone_verified && (
+                  <p className="mt-1.5 text-[11px] text-stone-400">
+                    Telefoonverificatie komt binnenkort beschikbaar.
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
                 <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Verificatiestatus</p>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  {(profile?.phone_verified || profile?.email_auto_verified || profile?.student_verified) && (
+                    <span className="flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Geverifieerde verhuurder
+                    </span>
+                  )}
                   <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${profile?.email_auto_verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-stone-200 bg-white text-stone-500"}`}>
                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                     {profile?.email_auto_verified ? "Student e-mail geverifieerd" : "E-mail niet geverifieerd"}

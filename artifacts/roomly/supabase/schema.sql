@@ -309,3 +309,17 @@ create policy "Users can delete their own avatar"
 -- ============================================================
 alter publication supabase_realtime add table public.messages;
 alter publication supabase_realtime add table public.conversations;
+
+-- ============================================================
+-- MIGRATION: Advanced listing attributes + profile badges
+-- Run this block in the Supabase SQL Editor after initial setup
+-- ============================================================
+alter table public.listings
+  add column if not exists pets_allowed      boolean default null,
+  add column if not exists smoking_allowed   boolean default null,
+  add column if not exists gender_preference text check (gender_preference in ('vrouw','man','gemengd')) default null,
+  add column if not exists rooms             integer default null,
+  add column if not exists surface_area      integer default null;
+
+alter table public.profiles
+  add column if not exists verification_badge text default null;

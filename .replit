@@ -11,6 +11,24 @@ env = { "CI" = "true" }
 [workflows]
 runButton = "Project"
 
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Roomly Dev"
+
+[[workflows.workflow]]
+name = "Roomly Dev"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/roomly run dev"
+waitForPort = 23714
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true

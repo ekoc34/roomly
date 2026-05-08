@@ -25,6 +25,11 @@ export function ListingsPage() {
       const minPrice = Number(params.get("min") ?? 0);
       const maxPrice = Number(params.get("max") ?? 10000);
       const sort = params.get("sort") ?? "newest";
+      const pets = params.get("pets") ?? "";
+      const smoking = params.get("smoking") ?? "";
+      const gender = params.get("gender") ?? "";
+      const minRooms = params.get("min_rooms") ?? "";
+      const minSurface = params.get("min_surface") ?? "";
 
       let query = supabase.from("listings").select("*");
 
@@ -33,6 +38,11 @@ export function ListingsPage() {
       if (district) query = query.ilike("location", `%${district}%`);
       if (minPrice > 0) query = query.gte("price", minPrice);
       if (maxPrice < 10000) query = query.lte("price", maxPrice);
+      if (pets === "1") query = query.eq("pets_allowed", true);
+      if (smoking === "1") query = query.eq("smoking_allowed", true);
+      if (gender) query = query.eq("gender_preference", gender);
+      if (minRooms) query = query.gte("rooms", Number(minRooms));
+      if (minSurface) query = query.gte("surface_area", Number(minSurface));
 
       if (sort === "cheapest") {
         query = query.order("price", { ascending: true });
@@ -65,13 +75,13 @@ export function ListingsPage() {
           <p className="text-sm text-stone-500">{loading ? "Laden…" : `${listings.length} woning${listings.length !== 1 ? "en" : ""} gevonden`}</p>
         </div>
         <Link
-          href="/kaart"
+          href={`/kaart${searchString ? `?${searchString}` : ""}`}
           className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>
-          Kaartweergave
+          Bekijk op kaart
         </Link>
       </div>
       <ListingFilters />

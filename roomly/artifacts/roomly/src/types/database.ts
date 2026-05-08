@@ -40,6 +40,11 @@ export type Listing = {
   availability_date: string | null;
   created_at: string;
   updated_at: string;
+  pets_allowed: boolean | null;
+  smoking_allowed: boolean | null;
+  gender_preference: string | null;
+  rooms: number | null;
+  surface_area: number | null;
 };
 
 export type Application = {

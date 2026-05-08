@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -49,23 +49,57 @@ function guessCoords(location: string): [number, number] | null {
 export function MapPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchString = useSearch();
 
   useEffect(() => {
-    if (!supabase) { setLoading(false); return; }
-    supabase
-      .from("listings")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        setListings((data ?? []) as Listing[]);
-        setLoading(false);
-      });
-  }, []);
+    async function fetchData() {
+      setLoading(true);
+      if (!supabase) { setLoading(false); return; }
+
+      const params = new URLSearchParams(searchString);
+      const q = params.get("q") ?? "";
+      const type = params.get("type") ?? "";
+      const district = params.get("district") ?? "";
+      const minPrice = Number(params.get("min") ?? 0);
+      const maxPrice = Number(params.get("max") ?? 10000);
+      const pets = params.get("pets") ?? "";
+      const smoking = params.get("smoking") ?? "";
+      const gender = params.get("gender") ?? "";
+      const minRooms = params.get("min_rooms") ?? "";
+      const minSurface = params.get("min_surface") ?? "";
+
+      let query = supabase.from("listings").select("*").limit(200);
+
+      if (q) query = query.ilike("title", `%${q}%`);
+      if (type) query = query.eq("type", type);
+      if (district) query = query.ilike("location", `%${district}%`);
+      if (minPrice > 0) query = query.gte("price", minPrice);
+      if (maxPrice < 10000) query = query.lte("price", maxPrice);
+      if (pets === "1") query = query.eq("pets_allowed", true);
+      if (smoking === "1") query = query.eq("smoking_allowed", true);
+      if (gender) query = query.eq("gender_preference", gender);
+      if (minRooms) query = query.gte("rooms", Number(minRooms));
+      if (minSurface) query = query.gte("surface_area", Number(minSurface));
+
+      query = query.order("created_at", { ascending: false });
+
+      const { data } = await query;
+      setListings((data ?? []) as Listing[]);
+      setLoading(false);
+    }
+    fetchData();
+  }, [searchString]);
 
   const mappable = listings
     .map((l) => ({ listing: l, coords: guessCoords(l.location) }))
     .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
+
+  const activeFilterCount = (() => {
+    const p = new URLSearchParams(searchString);
+    return [p.get("min"), p.get("max"), p.get("district"), p.get("type"), p.get("q"),
+      p.get("pets"), p.get("smoking"), p.get("gender"), p.get("min_rooms"), p.get("min_surface")]
+      .filter(Boolean).length;
+  })();
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
@@ -74,10 +108,15 @@ export function MapPage() {
           <h1 className="text-base font-semibold text-stone-900">Kaartoverzicht</h1>
           <p className="text-xs text-stone-500">
             {loading ? "Laden…" : `${mappable.length} van ${listings.length} woningen zichtbaar op kaart`}
+            {activeFilterCount > 0 && (
+              <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                {activeFilterCount} filter{activeFilterCount !== 1 ? "s" : ""} actief
+              </span>
+            )}
           </p>
         </div>
         <Link
-          href="/kamers"
+          href={`/kamers${searchString ? `?${searchString}` : ""}`}
           className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

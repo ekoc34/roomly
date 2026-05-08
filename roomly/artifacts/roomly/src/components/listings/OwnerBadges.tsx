@@ -8,20 +8,38 @@ type Props = {
 export function OwnerBadges({ profile, memberSince }: Props) {
   const joinMonth = new Date(memberSince).toLocaleDateString("nl-NL", { month: "long", year: "numeric" });
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
+  const isVerified = !!(profile?.phone_verified || profile?.email_auto_verified || profile?.student_verified);
 
   return (
     <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm" data-testid="owner-badges">
       <h2 className="text-sm font-semibold text-stone-900">Over de plaatser</h2>
       <div className="mt-4 flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="text-base font-semibold text-stone-500">{initial}</span>
           )}
+          {isVerified && (
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white bg-emerald-500">
+              <svg className="h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+          )}
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Roomly gebruiker"}</p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Roomly gebruiker"}</p>
+            {isVerified && (
+              <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Geverifieerde verhuurder
+              </span>
+            )}
+          </div>
           <p className="text-xs text-stone-500">Lid sinds {joinMonth}</p>
         </div>
       </div>
