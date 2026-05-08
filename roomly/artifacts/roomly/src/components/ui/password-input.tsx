@@ -37,7 +37,7 @@ export function PasswordInput({
           minLength={minLength}
           autoComplete={autoComplete}
           placeholder={placeholder}
-          className={`w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200 ${
+          className={`w-full rounded-xl border-4 border-red-500 bg-white px-4 py-2.5 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200 ${
             error ? "border-red-300 focus:border-red-500 focus:ring-red-200" : ""
           }`}
         />
