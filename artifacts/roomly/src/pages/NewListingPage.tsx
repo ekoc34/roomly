@@ -9,12 +9,17 @@ import type { ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
+const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
+const labelClass = "text-xs font-medium text-stone-700";
+
 export function NewListingPage() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [petsAllowed, setPetsAllowed] = useState(false);
+  const [smokingAllowed, setSmokingAllowed] = useState(false);
 
   if (!authLoading && !user) {
     return (
@@ -35,6 +40,12 @@ export function NewListingPage() {
     const location = String(fd.get("location") ?? "").trim();
     const type = String(fd.get("type") ?? "room_for_rent") as ListingType;
     const availability_date = String(fd.get("availability_date") ?? "").trim() || null;
+    const roomsRaw = String(fd.get("rooms") ?? "").trim();
+    const rooms = roomsRaw !== "" ? Number(roomsRaw) : null;
+    const surfaceRaw = String(fd.get("surface_area") ?? "").trim();
+    const surface_area = surfaceRaw !== "" ? Number(surfaceRaw) : null;
+    const genderRaw = String(fd.get("gender_preference") ?? "");
+    const gender_preference = genderRaw === "" ? null : genderRaw as "man" | "vrouw" | "gemengd";
 
     if (!title || !description || !location || price <= 0) {
       setError("Vul alle verplichte velden in (titel, beschrijving, locatie, prijs).");
@@ -44,7 +55,10 @@ export function NewListingPage() {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
       const { data, error: err } = await supabase
         .from("listings")
-        .insert({ title, description, price, location, type, availability_date, images, user_id: user.id })
+        .insert({
+          title, description, price, location, type, availability_date, images, user_id: user.id,
+          pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
+        })
         .select("id")
         .single();
       if (err || !data) {
@@ -68,33 +82,86 @@ export function NewListingPage() {
       <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
         <form onSubmit={onSubmit} className="space-y-5" data-testid="new-listing-form">
           <div>
-            <label htmlFor="nl-title" className="text-xs font-medium text-stone-700">Titel *</label>
-            <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-title" />
+            <label htmlFor="nl-title" className={labelClass}>Titel *</label>
+            <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className={inputClass} data-testid="new-listing-title" />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="nl-type" className="text-xs font-medium text-stone-700">Type</label>
+              <label htmlFor="nl-type" className={labelClass}>Type</label>
               <select id="nl-type" name="type" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-type">
                 {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="nl-price" className="text-xs font-medium text-stone-700">Prijs per maand (€) *</label>
-              <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-price" />
+              <label htmlFor="nl-price" className={labelClass}>Prijs per maand (€) *</label>
+              <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className={inputClass} data-testid="new-listing-price" />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="nl-location" className="text-xs font-medium text-stone-700">Locatie *</label>
-              <input id="nl-location" name="location" type="text" required placeholder="Amsterdam, Jordaan" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-location" />
+              <label htmlFor="nl-location" className={labelClass}>Locatie *</label>
+              <input id="nl-location" name="location" type="text" required placeholder="Amsterdam, Jordaan" className={inputClass} data-testid="new-listing-location" />
             </div>
             <div>
-              <label htmlFor="nl-avail" className="text-xs font-medium text-stone-700">Beschikbaar per</label>
-              <input id="nl-avail" name="availability_date" type="date" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-avail" />
+              <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
+              <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
             </div>
           </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="nl-rooms" className={labelClass}>Aantal kamers</label>
+              <input id="nl-rooms" name="rooms" type="number" min={0} step={1} placeholder="bijv. 3" className={inputClass} />
+            </div>
+            <div>
+              <label htmlFor="nl-surface" className={labelClass}>Woonoppervlakte</label>
+              <div className="relative mt-1.5">
+                <input id="nl-surface" name="surface_area" type="number" min={0} step={1} placeholder="bijv. 20" className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
+              </div>
+            </div>
+          </div>
+
           <div>
-            <label htmlFor="nl-desc" className="text-xs font-medium text-stone-700">Beschrijving *</label>
+            <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
+            <select id="nl-gender" name="gender_preference" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
+              <option value="">Geen voorkeur</option>
+              <option value="man">Alleen mannen</option>
+              <option value="vrouw">Alleen vrouwen</option>
+              <option value="gemengd">Gemengd</option>
+            </select>
+          </div>
+
+          <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Huisregels</p>
+            <label className="flex cursor-pointer items-center justify-between">
+              <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={petsAllowed}
+                onClick={() => setPetsAllowed((v) => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </label>
+            <label className="flex cursor-pointer items-center justify-between">
+              <span className="text-sm text-stone-700">Roken toegestaan</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={smokingAllowed}
+                onClick={() => setSmokingAllowed((v) => !v)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+              >
+                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </label>
+          </div>
+
+          <div>
+            <label htmlFor="nl-desc" className={labelClass}>Beschrijving *</label>
             <textarea id="nl-desc" name="description" required rows={6} maxLength={4000} placeholder="Omschrijf de woning, huurder, voorzieningen en buurt…" className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-description" />
           </div>
           <ListingImageUpload value={images} onChange={setImages} />

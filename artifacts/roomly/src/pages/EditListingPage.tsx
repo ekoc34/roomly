@@ -9,6 +9,9 @@ import type { Listing, ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
+const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
+const labelClass = "text-xs font-medium text-stone-700";
+
 export function EditListingPage() {
   const params = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +22,8 @@ export function EditListingPage() {
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const [petsAllowed, setPetsAllowed] = useState(false);
+  const [smokingAllowed, setSmokingAllowed] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -26,8 +31,11 @@ export function EditListingPage() {
     async function fetchListing() {
       const { data } = await supabase!.from("listings").select("*").eq("id", params.id).maybeSingle();
       if (!data) { setNotFound(true); setLoading(false); return; }
-      setListing(data as Listing);
-      setImages((data as Listing).images ?? []);
+      const l = data as Listing;
+      setListing(l);
+      setImages(l.images ?? []);
+      setPetsAllowed(l.pets_allowed ?? false);
+      setSmokingAllowed(l.smoking_allowed ?? false);
       setLoading(false);
     }
     fetchListing();
@@ -53,12 +61,21 @@ export function EditListingPage() {
     const location = String(fd.get("location") ?? "").trim();
     const type = String(fd.get("type") ?? "room_for_rent") as ListingType;
     const availability_date = String(fd.get("availability_date") ?? "").trim() || null;
+    const roomsRaw = String(fd.get("rooms") ?? "").trim();
+    const rooms = roomsRaw !== "" ? Number(roomsRaw) : null;
+    const surfaceRaw = String(fd.get("surface_area") ?? "").trim();
+    const surface_area = surfaceRaw !== "" ? Number(surfaceRaw) : null;
+    const genderRaw = String(fd.get("gender_preference") ?? "");
+    const gender_preference = genderRaw === "" ? null : genderRaw as "man" | "vrouw" | "gemengd";
     if (!title || !description || !location || price <= 0) { setError("Vul alle verplichte velden in."); return; }
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
       const { error: err } = await supabase
         .from("listings")
-        .update({ title, description, price, location, type, availability_date, images })
+        .update({
+          title, description, price, location, type, availability_date, images,
+          pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
+        })
         .eq("id", params.id)
         .eq("user_id", user.id);
       if (err) { setError("Opslaan mislukt."); return; }
@@ -105,33 +122,86 @@ export function EditListingPage() {
         ) : listing && (
           <form onSubmit={onSubmit} className="space-y-5" data-testid="edit-listing-form">
             <div>
-              <label htmlFor="el-title" className="text-xs font-medium text-stone-700">Titel *</label>
-              <input id="el-title" name="title" type="text" required maxLength={72} defaultValue={listing.title} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="edit-listing-title" />
+              <label htmlFor="el-title" className={labelClass}>Titel *</label>
+              <input id="el-title" name="title" type="text" required maxLength={72} defaultValue={listing.title} className={inputClass} data-testid="edit-listing-title" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="el-type" className="text-xs font-medium text-stone-700">Type</label>
+                <label htmlFor="el-type" className={labelClass}>Type</label>
                 <select id="el-type" name="type" defaultValue={listing.type} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
                   {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="el-price" className="text-xs font-medium text-stone-700">Prijs per maand (€) *</label>
-                <input id="el-price" name="price" type="number" required min={1} step={1} defaultValue={listing.price} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="edit-listing-price" />
+                <label htmlFor="el-price" className={labelClass}>Prijs per maand (€) *</label>
+                <input id="el-price" name="price" type="number" required min={1} step={1} defaultValue={listing.price} className={inputClass} data-testid="edit-listing-price" />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="el-location" className="text-xs font-medium text-stone-700">Locatie *</label>
-                <input id="el-location" name="location" type="text" required defaultValue={listing.location} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                <label htmlFor="el-location" className={labelClass}>Locatie *</label>
+                <input id="el-location" name="location" type="text" required defaultValue={listing.location} className={inputClass} />
               </div>
               <div>
-                <label htmlFor="el-avail" className="text-xs font-medium text-stone-700">Beschikbaar per</label>
-                <input id="el-avail" name="availability_date" type="date" defaultValue={listing.availability_date ?? ""} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                <label htmlFor="el-avail" className={labelClass}>Beschikbaar per</label>
+                <input id="el-avail" name="availability_date" type="date" defaultValue={listing.availability_date ?? ""} className={inputClass} />
               </div>
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="el-rooms" className={labelClass}>Aantal kamers</label>
+                <input id="el-rooms" name="rooms" type="number" min={0} step={1} defaultValue={listing.rooms ?? ""} placeholder="bijv. 3" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="el-surface" className={labelClass}>Woonoppervlakte</label>
+                <div className="relative mt-1.5">
+                  <input id="el-surface" name="surface_area" type="number" min={0} step={1} defaultValue={listing.surface_area ?? ""} placeholder="bijv. 20" className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label htmlFor="el-desc" className="text-xs font-medium text-stone-700">Beschrijving *</label>
+              <label htmlFor="el-gender" className={labelClass}>Gender voorkeur</label>
+              <select id="el-gender" name="gender_preference" defaultValue={listing.gender_preference ?? ""} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
+                <option value="">Geen voorkeur</option>
+                <option value="man">Alleen mannen</option>
+                <option value="vrouw">Alleen vrouwen</option>
+                <option value="gemengd">Gemengd</option>
+              </select>
+            </div>
+
+            <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Huisregels</p>
+              <label className="flex cursor-pointer items-center justify-between">
+                <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={petsAllowed}
+                  onClick={() => setPetsAllowed((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </label>
+              <label className="flex cursor-pointer items-center justify-between">
+                <span className="text-sm text-stone-700">Roken toegestaan</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smokingAllowed}
+                  onClick={() => setSmokingAllowed((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </label>
+            </div>
+
+            <div>
+              <label htmlFor="el-desc" className={labelClass}>Beschrijving *</label>
               <textarea id="el-desc" name="description" required rows={6} maxLength={4000} defaultValue={listing.description} className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
             </div>
             <ListingImageUpload value={images} onChange={setImages} />

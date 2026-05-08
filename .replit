@@ -30,7 +30,7 @@ args = "PORT=23714 BASE_PATH=/ pnpm --filter @workspace/roomly run dev"
 waitForPort = 23714
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]

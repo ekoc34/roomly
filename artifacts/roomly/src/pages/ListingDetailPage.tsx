@@ -109,6 +109,47 @@ export function ListingDetailPage() {
             </div>
           </div>
 
+          {(listing.rooms != null || listing.surface_area != null || listing.gender_preference || listing.pets_allowed != null || listing.smoking_allowed != null) && (
+            <div className="grid grid-cols-2 gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4 sm:grid-cols-3">
+              {listing.rooms != null && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-stone-400">Kamers</span>
+                  <span className="text-sm font-semibold text-stone-800">{listing.rooms}</span>
+                </div>
+              )}
+              {listing.surface_area != null && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-stone-400">Oppervlakte</span>
+                  <span className="text-sm font-semibold text-stone-800">{listing.surface_area} m²</span>
+                </div>
+              )}
+              {listing.gender_preference && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-stone-400">Gender voorkeur</span>
+                  <span className="text-sm font-semibold text-stone-800">
+                    {listing.gender_preference === "man" ? "Alleen mannen" : listing.gender_preference === "vrouw" ? "Alleen vrouwen" : "Gemengd"}
+                  </span>
+                </div>
+              )}
+              {listing.pets_allowed != null && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-stone-400">Huisdieren</span>
+                  <span className={`text-sm font-semibold ${listing.pets_allowed ? "text-emerald-700" : "text-stone-500"}`}>
+                    {listing.pets_allowed ? "Toegestaan" : "Niet toegestaan"}
+                  </span>
+                </div>
+              )}
+              {listing.smoking_allowed != null && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs text-stone-400">Roken</span>
+                  <span className={`text-sm font-semibold ${listing.smoking_allowed ? "text-emerald-700" : "text-stone-500"}`}>
+                    {listing.smoking_allowed ? "Toegestaan" : "Niet toegestaan"}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-stone-900 prose-p:text-stone-600 prose-p:leading-relaxed">
             <h3>Beschrijving</h3>
             {listing.description.split("\n").filter(Boolean).map((par, i) => (
