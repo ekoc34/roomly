@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useSearch } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,6 +70,10 @@ export function ListingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      <Helmet>
+        <title>{q ? `"${q}" — Woningen` : "Alle woningen"} — Roomly</title>
+        <meta name="description" content="Doorzoek honderden kamers en woningen in Nederland. Filter op prijs, type, stad en meer." />
+      </Helmet>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">

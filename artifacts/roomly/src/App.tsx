@@ -1,6 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { Toaster } from "sonner";
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
@@ -10,20 +10,29 @@ import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
-import { ListingDetailPage } from "@/pages/ListingDetailPage";
 import { NewListingPage } from "@/pages/NewListingPage";
 import { EditListingPage } from "@/pages/EditListingPage";
 import { FavoritesPage } from "@/pages/FavoritesPage";
 import { MessagesPage } from "@/pages/MessagesPage";
 import { ConversationPage } from "@/pages/ConversationPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { ProfilePage } from "@/pages/ProfilePage";
 import { WelcomePage } from "@/pages/WelcomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
-import { MapPage } from "@/pages/MapPage";
+
+const ListingDetailPage = lazy(() => import("@/pages/ListingDetailPage").then((m) => ({ default: m.ListingDetailPage })));
+const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
+const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.MapPage })));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center">
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500" />
+    </div>
+  );
+}
 
 function NotFound() {
   return (
@@ -41,12 +50,13 @@ function NotFound() {
 function AnimatedRoute({ component: Component }: { component: React.ComponentType }) {
   const [path] = useLocation();
   const keyRef = useRef(path);
-  // Update key only on genuine navigation (not re-renders)
   useEffect(() => { keyRef.current = path; }, [path]);
   return (
     <PageTransition key={path}>
       <ErrorBoundary>
-        <Component />
+        <Suspense fallback={<PageLoader />}>
+          <Component />
+        </Suspense>
       </ErrorBoundary>
     </PageTransition>
   );

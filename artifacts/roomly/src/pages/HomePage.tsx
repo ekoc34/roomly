@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { HeroSearch } from "@/components/home/HeroSearch";
@@ -58,5 +59,13 @@ function HomePageContent() {
 }
 
 export function HomePage() {
-  return <HomePageContent />;
+  return (
+    <>
+      <Helmet>
+        <title>Roomly — Vind jouw kamer of woning in Nederland</title>
+        <meta name="description" content="Vind kamers, appartementen en woningen in heel Nederland. Zoek op stad, prijs en type woning op Roomly." />
+      </Helmet>
+      <HomePageContent />
+    </>
+  );
 }

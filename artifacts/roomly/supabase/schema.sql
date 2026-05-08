@@ -150,6 +150,86 @@ create trigger messages_update_conversation
   for each row execute procedure public.update_conversation_last_message();
 
 -- ============================================================
+-- APPLICATIONS
+-- ============================================================
+create table if not exists public.applications (
+  id           uuid primary key default uuid_generate_v4(),
+  listing_id   uuid not null references public.listings(id) on delete cascade,
+  applicant_id uuid not null references public.profiles(id) on delete cascade,
+  message      text not null check (char_length(message) between 1 and 500),
+  budget       numeric(10,2) default null,
+  status       text not null default 'pending' check (status in ('pending','accepted','rejected')),
+  created_at   timestamptz not null default now(),
+  unique (listing_id, applicant_id)
+);
+
+create index if not exists applications_listing_id_idx   on public.applications(listing_id);
+create index if not exists applications_applicant_id_idx on public.applications(applicant_id);
+create index if not exists applications_status_idx       on public.applications(status);
+
+alter table public.applications enable row level security;
+
+create policy "Applicants can view their own applications"
+  on public.applications for select
+  using (auth.uid() = applicant_id);
+
+create policy "Landlords can view applications for their listings"
+  on public.applications for select
+  using (
+    exists (
+      select 1 from public.listings l
+      where l.id = listing_id and l.user_id = auth.uid()
+    )
+  );
+
+create policy "Authenticated users can submit applications"
+  on public.applications for insert
+  with check (auth.uid() = applicant_id);
+
+create policy "Landlords can update application status"
+  on public.applications for update
+  using (
+    exists (
+      select 1 from public.listings l
+      where l.id = listing_id and l.user_id = auth.uid()
+    )
+  );
+
+-- ============================================================
+-- NOTIFICATIONS
+-- ============================================================
+create table if not exists public.notifications (
+  id         uuid primary key default uuid_generate_v4(),
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  type       text not null check (type in ('new_application','application_accepted','application_rejected','new_message')),
+  title      text not null,
+  body       text default null,
+  related_id uuid default null,
+  read       boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists notifications_user_id_idx  on public.notifications(user_id);
+create index if not exists notifications_read_idx     on public.notifications(user_id, read) where read = false;
+create index if not exists notifications_created_idx  on public.notifications(created_at desc);
+
+alter table public.notifications enable row level security;
+
+create policy "Users can view their own notifications"
+  on public.notifications for select
+  using (auth.uid() = user_id);
+
+create policy "System can insert notifications"
+  on public.notifications for insert
+  with check (true);
+
+create policy "Users can mark their notifications as read"
+  on public.notifications for update
+  using (auth.uid() = user_id);
+
+alter publication supabase_realtime add table public.notifications;
+
+-- ============================================================
 -- LISTING REPORTS
 -- ============================================================
 create table if not exists public.listing_reports (
