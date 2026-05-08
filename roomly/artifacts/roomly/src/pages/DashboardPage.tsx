@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
+import { LazyImage } from "@/components/ui/lazy-image";
 import type { Listing, Profile } from "@/types/database";
 
 export function DashboardPage() {
@@ -43,7 +44,7 @@ export function DashboardPage() {
         <div className="flex items-center gap-4">
           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 shadow-sm">
             {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
+              <LazyImage src={profile.avatar_url} alt="" formatWebp />
             ) : (
               <span className="text-xl font-bold text-stone-500">{initial}</span>
             )}

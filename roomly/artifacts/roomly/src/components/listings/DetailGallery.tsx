@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 type Props = {
   images: string[];
@@ -36,7 +37,7 @@ export function DetailGallery({ images, title }: Props) {
   return (
     <div className="space-y-3">
       <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-stone-100 shadow-sm" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        <img key={main} src={main} alt={`${title} — foto ${active + 1}`} className="h-full w-full object-cover transition-opacity duration-200" />
+        <LazyImage key={main} src={main} alt={`${title} — foto ${active + 1}`} className="transition-opacity duration-200" formatWebp />
         {images.length > 1 && (
           <>
             <button type="button" onClick={prev} aria-label="Vorige foto" className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 hover:bg-black/60">
@@ -53,7 +54,7 @@ export function DetailGallery({ images, title }: Props) {
         <div className="flex gap-2 overflow-x-auto pb-1">
           {images.map((src, i) => (
             <button key={src} type="button" onClick={() => setActive(i)} className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition ${i === active ? "border-rose-500 opacity-100" : "border-transparent opacity-60 hover:opacity-90"}`} aria-label={`Foto ${i + 1}`}>
-              <img src={src} alt="" className="h-full w-full object-cover" />
+              <LazyImage src={src} alt="" formatWebp />
             </button>
           ))}
         </div>

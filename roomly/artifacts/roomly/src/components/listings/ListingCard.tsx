@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
+import { LazyImage } from "@/components/ui/lazy-image";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
 import type { Listing } from "@/types/database";
 
@@ -30,7 +31,7 @@ export function ListingCard({ listing, isFavorited = false }: Props) {
       >
         <div className="relative aspect-[4/3] bg-stone-100">
           {img ? (
-            <img src={img} alt={listing.title} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+            <LazyImage src={img} alt={listing.title} className="transition group-hover:scale-[1.02]" formatWebp />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-stone-100 to-stone-200">
               <svg className="h-10 w-10 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
