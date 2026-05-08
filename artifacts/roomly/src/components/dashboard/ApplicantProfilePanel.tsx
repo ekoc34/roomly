@@ -8,6 +8,12 @@ type OtherApp = {
   listings: { title: string; user_id: string } | null;
 };
 
+type AppStat = {
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type Props = {
   profileId: string | null;
   onClose: () => void;
@@ -33,13 +39,13 @@ function maskPhone(phone: string): string {
   return phone.slice(0, 4) + "*** ***";
 }
 
-type ActiveStatus = {
+type BadgeStyle = {
   label: string;
   cls: string;
   dot: string;
 };
 
-function getActiveStatus(lastActiveAt: string | null | undefined): ActiveStatus | null {
+function getActiveStatus(lastActiveAt: string | null | undefined): BadgeStyle | null {
   if (!lastActiveAt) return null;
   const diffMs = Date.now() - new Date(lastActiveAt).getTime();
   const diffMin = diffMs / 60000;
@@ -61,6 +67,44 @@ function getActiveStatus(lastActiveAt: string | null | undefined): ActiveStatus 
   return { label: "Langer dan een week niet actief", cls: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" };
 }
 
+function getResponseRateBadge(rate: number): BadgeStyle {
+  if (rate >= 90) {
+    return { label: `Responspercentage: ${rate}%`, cls: "border-emerald-200 bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" };
+  }
+  if (rate >= 70) {
+    return { label: `Responspercentage: ${rate}%`, cls: "border-blue-200 bg-blue-50 text-blue-700", dot: "bg-blue-500" };
+  }
+  if (rate >= 50) {
+    return { label: `Responspercentage: ${rate}%`, cls: "border-amber-200 bg-amber-50 text-amber-700", dot: "bg-amber-400" };
+  }
+  return { label: `Responspercentage: ${rate}%`, cls: "border-rose-200 bg-rose-50 text-rose-700", dot: "bg-rose-500" };
+}
+
+function formatAvgResponseTime(hours: number): string {
+  if (hours < 24) {
+    const h = Math.round(hours);
+    return `Gemiddelde reactietijd: ${h} ${h === 1 ? "uur" : "uur"}`;
+  }
+  const days = Math.round(hours / 24);
+  return `Gemiddelde reactietijd: ${days} ${days === 1 ? "dag" : "dagen"}`;
+}
+
+function computeStats(stats: AppStat[]): { rate: number; avgHours: number | null } | null {
+  if (stats.length === 0) return null;
+  const responded = stats.filter((a) => a.status === "accepted" || a.status === "rejected");
+  const rate = Math.round((responded.length / stats.length) * 100);
+
+  let avgHours: number | null = null;
+  if (responded.length > 0) {
+    const totalMs = responded.reduce((sum, a) => {
+      return sum + (new Date(a.updated_at).getTime() - new Date(a.created_at).getTime());
+    }, 0);
+    avgHours = totalMs / responded.length / 3600000;
+  }
+
+  return { rate, avgHours };
+}
+
 export function ApplicantProfilePanel({
   profileId,
   onClose,
@@ -76,12 +120,14 @@ export function ApplicantProfilePanel({
   const [emailRevealed, setEmailRevealed] = useState(false);
   const [revealing, setRevealing] = useState(false);
   const [hasConversation, setHasConversation] = useState(false);
+  const [appStats, setAppStats] = useState<{ rate: number; avgHours: number | null } | null>(null);
 
   useEffect(() => {
-    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); setHasConversation(false); return; }
+    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); setHasConversation(false); setAppStats(null); return; }
     setLoading(true);
     setEmailRevealed(false);
     setHasConversation(false);
+    setAppStats(null);
 
     if (mode === "landlord") {
       const viewerId = viewerUserId;
@@ -94,10 +140,15 @@ export function ApplicantProfilePanel({
               .select("id", { count: "exact", head: true })
               .or(`and(tenant_id.eq.${viewerId},landlord_id.eq.${profileId}),and(landlord_id.eq.${viewerId},tenant_id.eq.${profileId})`)
           : Promise.resolve({ count: 0 }),
-      ]).then(([{ data: p }, { count }, { count: convCount }]) => {
+        supabase
+          .from("applications")
+          .select("status, created_at, updated_at, listings!inner(user_id)")
+          .eq("listings.user_id", profileId),
+      ]).then(([{ data: p }, { count }, { count: convCount }, { data: stats }]) => {
         setProfile(p as Profile | null);
         setListingsCount(count ?? 0);
         setHasConversation((convCount ?? 0) > 0);
+        setAppStats(computeStats((stats as AppStat[] | null) ?? []));
         setLoading(false);
       });
     } else {
@@ -116,7 +167,6 @@ export function ApplicantProfilePanel({
           ? allApps.filter((a) => (a.listings as { user_id: string } | null)?.user_id === viewerLandlordId)
           : allApps;
         setOtherApps(filtered);
-        // For applicant mode, landlord is always in a "conversation context" (they have an application)
         setHasConversation(true);
         setLoading(false);
       });
@@ -141,12 +191,11 @@ export function ApplicantProfilePanel({
   const isLandlord = mode === "landlord";
   const panelTitle = isLandlord ? "Verhuurder profiel" : "Aanvrager profiel";
 
-  // Determine contact visibility
   const canSeeEmail = hasConversation && (profile?.show_email === true);
   const canSeePhone = hasConversation && (profile?.show_phone === true);
 
-  // Last active badge (landlord mode only)
   const activeStatus = isLandlord ? getActiveStatus(profile?.last_active_at) : null;
+  const responseRateBadge = isLandlord && appStats ? getResponseRateBadge(appStats.rate) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" aria-modal="true">
@@ -177,6 +226,7 @@ export function ApplicantProfilePanel({
               <div className="flex-1 space-y-2">
                 <div className="h-4 w-1/2 animate-pulse rounded-full bg-stone-200" />
                 <div className="h-3 w-2/3 animate-pulse rounded-full bg-stone-200" />
+                <div className="h-3 w-1/2 animate-pulse rounded-full bg-stone-200" />
               </div>
             </div>
             <div className="h-20 animate-pulse rounded-xl bg-stone-200" />
@@ -201,7 +251,26 @@ export function ApplicantProfilePanel({
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-stone-400 capitalize">
+
+                {/* Response rate + avg time badges */}
+                {responseRateBadge && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${responseRateBadge.cls}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${responseRateBadge.dot}`} />
+                      {responseRateBadge.label}
+                    </span>
+                    {appStats?.avgHours != null && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2 py-0.5 text-[10px] font-medium text-stone-500">
+                        <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        {formatAvgResponseTime(appStats.avgHours)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                <p className="mt-1 text-xs text-stone-400 capitalize">
                   {isLandlord ? "Verhuurder" : (profile?.user_type?.replace("_", " ") ?? "Huurder")}
                 </p>
 
