@@ -6,15 +6,23 @@ import type { Notification } from "@/types/database";
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [tableExists, setTableExists] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !supabase) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10);
+
+    if (error) {
+      console.error("[useNotifications] fetch error — has the notifications table been created in Supabase?", error);
+      setTableExists(false);
+      return;
+    }
+    setTableExists(true);
     setNotifications((data as Notification[]) ?? []);
   }, [user]);
 
@@ -38,7 +46,7 @@ export function useNotifications() {
         )
         .subscribe();
     } catch (e) {
-      console.warn("Notification realtime channel error:", e);
+      console.warn("[useNotifications] Realtime channel error:", e);
     }
 
     return () => {
@@ -50,7 +58,8 @@ export function useNotifications() {
 
   const markRead = async (id: string) => {
     if (!supabase) return;
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
+    if (error) { console.error("[useNotifications] markRead error:", error); return; }
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
@@ -58,13 +67,14 @@ export function useNotifications() {
 
   const markAllRead = async () => {
     if (!supabase || !user) return;
-    await supabase
+    const { error } = await supabase
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
       .eq("read", false);
+    if (error) { console.error("[useNotifications] markAllRead error:", error); return; }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  return { notifications, unreadCount, markRead, markAllRead };
+  return { notifications, unreadCount, markRead, markAllRead, tableExists };
 }

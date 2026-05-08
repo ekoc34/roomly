@@ -131,7 +131,7 @@ export function DashboardPage() {
     }
 
     if (app) {
-      await supabase.from("notifications").insert({
+      const { error: notifErr } = await supabase.from("notifications").insert({
         user_id: app.applicant_id,
         type: status === "accepted" ? "application_accepted" : "application_rejected",
         title: status === "accepted" ? "Aanvraag geaccepteerd!" : "Aanvraag afgewezen",
@@ -142,6 +142,9 @@ export function DashboardPage() {
         related_id: status === "accepted" ? convId : null,
         read: false,
       });
+      if (notifErr) {
+        console.error("[DashboardPage] notification insert failed — is the notifications table created in Supabase?", notifErr);
+      }
     }
 
     setReceivedApplications((prev) =>

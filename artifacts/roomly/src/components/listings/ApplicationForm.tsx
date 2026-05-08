@@ -23,7 +23,9 @@ export function ApplicationForm({ listingId }: Props) {
     Promise.all([
       supabase.from("applications").select("id", { count: "exact", head: true }).eq("listing_id", listingId).eq("applicant_id", user.id),
       supabase.from("listings").select("user_id, title").eq("id", listingId).maybeSingle(),
-    ]).then(([{ count }, { data: listing }]) => {
+    ]).then(([{ count, error: appErr }, { data: listing, error: listingErr }]) => {
+      if (appErr) console.error("[ApplicationForm] application count error:", appErr);
+      if (listingErr) console.error("[ApplicationForm] listing fetch error:", listingErr);
       setAlreadyApplied((count ?? 0) > 0);
       setListingOwnerId((listing as { user_id: string } | null)?.user_id ?? null);
       setListingTitle((listing as { title: string } | null)?.title ?? "");
@@ -85,17 +87,17 @@ export function ApplicationForm({ listingId }: Props) {
     }
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("applications").insert({
+      const { error: appError } = await supabase.from("applications").insert({
         listing_id: listingId,
         applicant_id: user.id,
         message: message.trim(),
         budget: budget ? parseFloat(budget) : null,
         status: "pending",
       });
-      if (error) throw error;
+      if (appError) throw appError;
 
       if (listingOwnerId) {
-        await supabase.from("notifications").insert({
+        const { error: notifError } = await supabase.from("notifications").insert({
           user_id: listingOwnerId,
           type: "new_application",
           title: "Nieuwe aanvraag ontvangen",
@@ -103,12 +105,18 @@ export function ApplicationForm({ listingId }: Props) {
           related_id: listingId,
           read: false,
         });
+        if (notifError) {
+          console.error("[ApplicationForm] notification insert failed — is the notifications table created in Supabase?", notifError);
+        }
+      } else {
+        console.warn("[ApplicationForm] listingOwnerId is null — cannot send notification to landlord.");
       }
 
       setSubmitted(true);
       setAlreadyApplied(true);
       toast.success("Je reactie is verstuurd!");
-    } catch {
+    } catch (err) {
+      console.error("[ApplicationForm] submit error:", err);
       toast.error("Er ging iets mis, probeer opnieuw.");
     } finally {
       setSubmitting(false);
