@@ -2,17 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/lib/supabase";
 import type { Listing } from "@/types/database";
-
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
 
 const CITY_COORDS: Record<string, [number, number]> = {
   amsterdam: [52.3676, 4.9041],
