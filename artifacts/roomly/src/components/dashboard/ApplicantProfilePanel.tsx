@@ -5,12 +5,15 @@ import type { Profile } from "@/types/database";
 type OtherApp = {
   id: string;
   status: string;
-  listings: { title: string } | null;
+  listings: { title: string; user_id: string } | null;
 };
 
 type Props = {
-  applicantId: string | null;
+  profileId: string | null;
   onClose: () => void;
+  mode?: "applicant" | "landlord";
+  viewerLandlordId?: string;
+  applicationId?: string;
 };
 
 const statusMap: Record<string, { label: string; cls: string }> = {
@@ -19,27 +22,78 @@ const statusMap: Record<string, { label: string; cls: string }> = {
   rejected: { label: "Afgewezen", cls: "bg-stone-100 text-stone-500 border-stone-200" },
 };
 
-export function ApplicantProfilePanel({ applicantId, onClose }: Props) {
+function maskEmail(email: string): string {
+  const atIdx = email.indexOf("@");
+  const prefix = atIdx > 0 ? email.slice(0, Math.min(3, atIdx)) : email.slice(0, 3);
+  return `${prefix}***@***`;
+}
+
+export function ApplicantProfilePanel({
+  profileId,
+  onClose,
+  mode = "applicant",
+  viewerLandlordId,
+  applicationId,
+}: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [otherApps, setOtherApps] = useState<OtherApp[]>([]);
+  const [listingsCount, setListingsCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
+  const [emailRevealed, setEmailRevealed] = useState(false);
+  const [revealing, setRevealing] = useState(false);
 
   useEffect(() => {
-    if (!applicantId || !supabase) { setProfile(null); setOtherApps([]); return; }
+    if (!profileId || !supabase) { setProfile(null); setOtherApps([]); return; }
     setLoading(true);
-    Promise.all([
-      supabase.from("profiles").select("*").eq("id", applicantId).maybeSingle(),
-      supabase.from("applications").select("id, status, listings:listing_id(title)").eq("applicant_id", applicantId).order("created_at", { ascending: false }).limit(20),
-    ]).then(([{ data: p }, { data: apps }]) => {
-      setProfile(p as Profile | null);
-      setOtherApps((apps as OtherApp[] | null) ?? []);
-      setLoading(false);
-    });
-  }, [applicantId]);
+    setEmailRevealed(false);
 
-  if (!applicantId) return null;
+    if (mode === "landlord") {
+      Promise.all([
+        supabase.from("profiles").select("*").eq("id", profileId).maybeSingle(),
+        supabase.from("listings").select("*", { count: "exact", head: true }).eq("user_id", profileId),
+      ]).then(([{ data: p }, { count }]) => {
+        setProfile(p as Profile | null);
+        setListingsCount(count ?? 0);
+        setLoading(false);
+      });
+    } else {
+      Promise.all([
+        supabase.from("profiles").select("*").eq("id", profileId).maybeSingle(),
+        supabase
+          .from("applications")
+          .select("id, status, listings:listing_id(title, user_id)")
+          .eq("applicant_id", profileId)
+          .order("created_at", { ascending: false })
+          .limit(50),
+      ]).then(([{ data: p }, { data: apps }]) => {
+        setProfile(p as Profile | null);
+        const allApps = (apps as OtherApp[] | null) ?? [];
+        const filtered = viewerLandlordId
+          ? allApps.filter((a) => (a.listings as { user_id: string } | null)?.user_id === viewerLandlordId)
+          : allApps;
+        setOtherApps(filtered);
+        setLoading(false);
+      });
+    }
+  }, [profileId, mode, viewerLandlordId]);
+
+  const handleRevealEmail = async () => {
+    setRevealing(true);
+    if (applicationId && supabase) {
+      await supabase
+        .from("applications")
+        .update({ contact_revealed: true })
+        .eq("id", applicationId);
+    }
+    setEmailRevealed(true);
+    setRevealing(false);
+  };
+
+  if (!profileId) return null;
 
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
+  const isLandlord = mode === "landlord";
+  const panelTitle = isLandlord ? "Verhuurder profiel" : "Aanvrager profiel";
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" aria-modal="true">
@@ -50,7 +104,7 @@ export function ApplicantProfilePanel({ applicantId, onClose }: Props) {
       />
       <div className="relative flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-stone-900">Aanvrager profiel</h2>
+          <h2 className="text-base font-semibold text-stone-900">{panelTitle}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -84,14 +138,33 @@ export function ApplicantProfilePanel({ applicantId, onClose }: Props) {
                   <span className="text-xl font-bold text-stone-500">{initial}</span>
                 )}
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-base font-bold text-stone-900">{profile?.name ?? "Onbekend"}</p>
-                {profile?.email && (
-                  <p className="text-sm text-stone-500 truncate">{profile.email}</p>
-                )}
                 <p className="mt-0.5 text-xs text-stone-400 capitalize">
-                  {profile?.user_type?.replace("_", " ") ?? "Huurder"}
+                  {isLandlord ? "Verhuurder" : (profile?.user_type?.replace("_", " ") ?? "Huurder")}
                 </p>
+
+                {profile?.email && (
+                  <div className="mt-1.5">
+                    {isLandlord ? (
+                      <p className="text-xs italic text-stone-400">E-mail verborgen voor privacy.</p>
+                    ) : emailRevealed ? (
+                      <p className="break-all text-sm text-stone-700">{profile.email}</p>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-stone-500">{maskEmail(profile.email)}</p>
+                        <button
+                          type="button"
+                          onClick={handleRevealEmail}
+                          disabled={revealing}
+                          className="shrink-0 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+                        >
+                          {revealing ? "…" : "Toon e-mailadres"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -136,30 +209,42 @@ export function ApplicantProfilePanel({ applicantId, onClose }: Props) {
               <p className="text-sm italic text-stone-400">Geen bio ingevuld.</p>
             )}
 
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">
-                Andere aanvragen ({otherApps.length})
-              </p>
-              {otherApps.length === 0 ? (
-                <p className="text-sm text-stone-400">Geen andere aanvragen gevonden.</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {otherApps.map((app) => {
-                    const badge = statusMap[app.status] ?? statusMap.pending;
-                    return (
-                      <div key={app.id} className="flex items-center justify-between gap-3 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5">
-                        <p className="truncate text-xs font-medium text-stone-700">
-                          {app.listings?.title ?? "Onbekende woning"}
-                        </p>
-                        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
-                          {badge.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {isLandlord ? (
+              <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Advertenties</p>
+                <p className="mt-1 text-2xl font-black text-stone-900">
+                  {listingsCount}
+                  <span className="ml-1.5 text-sm font-normal text-stone-500">
+                    actieve advertentie{listingsCount !== 1 ? "s" : ""}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                  Aanvragen op jouw advertenties ({otherApps.length})
+                </p>
+                {otherApps.length === 0 ? (
+                  <p className="text-sm text-stone-400">Geen aanvragen op jouw advertenties gevonden.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {otherApps.map((app) => {
+                      const badge = statusMap[app.status] ?? statusMap.pending;
+                      return (
+                        <div key={app.id} className="flex items-center justify-between gap-3 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5">
+                          <p className="truncate text-xs font-medium text-stone-700">
+                            {app.listings?.title ?? "Onbekende woning"}
+                          </p>
+                          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${badge.cls}`}>
+                            {badge.label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

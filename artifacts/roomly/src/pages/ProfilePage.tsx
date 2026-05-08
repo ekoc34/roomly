@@ -73,6 +73,16 @@ export function ProfilePage() {
     toast.success("Nieuwe verificatiecode verzonden");
   };
 
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setShowEmail(profile.show_email ?? false);
+      setShowPhone(profile.show_phone ?? false);
+    }
+  }, [profile]);
+
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -98,9 +108,11 @@ export function ProfilePage() {
         phone,
         avatar_url: profile?.avatar_url ?? null,
         email: user.email ?? null,
+        show_email: showEmail,
+        show_phone: showPhone,
       });
       if (err) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-      setProfile((prev) => prev ? { ...prev, name, bio, phone } : prev);
+      setProfile((prev) => prev ? { ...prev, name, bio, phone, show_email: showEmail, show_phone: showPhone } : prev);
       toast.success("Profiel opgeslagen!");
     });
   };
@@ -262,6 +274,41 @@ export function ProfilePage() {
                       {profile.verification_badge}
                     </span>
                   )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Privacyinstellingen</p>
+                <p className="mb-3 text-xs text-stone-400">Bepaal welke contactgegevens zichtbaar zijn voor anderen op Roomly.</p>
+                <div className="flex flex-col gap-3">
+                  <label className="flex cursor-pointer items-center justify-between gap-3">
+                    <span className="text-sm text-stone-700">E-mailadres zichtbaar voor anderen</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={showEmail}
+                      onClick={() => setShowEmail((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${showEmail ? "bg-rose-500" : "bg-stone-300"}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showEmail ? "translate-x-5" : "translate-x-0.5"}`}
+                      />
+                    </button>
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between gap-3">
+                    <span className="text-sm text-stone-700">Telefoonnummer zichtbaar voor anderen</span>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={showPhone}
+                      onClick={() => setShowPhone((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${showPhone ? "bg-rose-500" : "bg-stone-300"}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showPhone ? "translate-x-5" : "translate-x-0.5"}`}
+                      />
+                    </button>
+                  </label>
                 </div>
               </div>
 

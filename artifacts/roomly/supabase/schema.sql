@@ -403,3 +403,41 @@ alter table public.listings
 
 alter table public.profiles
   add column if not exists verification_badge text default null;
+
+-- ============================================================
+-- MIGRATION: Privacy settings + contact reveal tracking
+-- Run this block in the Supabase SQL Editor after initial setup
+-- ============================================================
+
+-- Privacy preferences on profiles
+alter table public.profiles
+  add column if not exists show_email boolean not null default false,
+  add column if not exists show_phone boolean not null default false;
+
+-- Track when landlord reveals applicant email
+alter table public.applications
+  add column if not exists contact_revealed boolean not null default false;
+
+-- ============================================================
+-- PRIVACY: Helper function to check contact info visibility
+-- Returns TRUE if viewer_id is allowed to see profile_id's contact info:
+--   1. viewer is the profile owner
+--   2. viewer and profile share an active conversation
+-- ============================================================
+create or replace function public.can_view_contact_info(viewer_id uuid, profile_id uuid)
+returns boolean language sql security definer as $$
+  select (
+    viewer_id = profile_id
+    or exists (
+      select 1 from public.conversations c
+      where (c.tenant_id = viewer_id and c.landlord_id = profile_id)
+         or (c.landlord_id = viewer_id and c.tenant_id = profile_id)
+    )
+  );
+$$;
+
+-- NOTE: Supabase does not support column-level security natively.
+-- Email and phone privacy is enforced at the frontend layer:
+--   - ProfilePage only renders the authenticated user's own profile.
+--   - ApplicantProfilePanel masks email by default and requires explicit reveal.
+--   - can_view_contact_info() can be used in future RPC calls for additional checks.

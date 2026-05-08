@@ -1,0 +1,43 @@
+We need to protect user privacy by hiding sensitive contact information (email and phone number) from other users. Only the profile owner should see their own full details.
+
+TASK 1 — Hide Email and Phone from Other Users on Profile Page
+1. Open the profile page component (likely ProfilePage.tsx).
+2. Check how email and phone are currently displayed.
+3. Implement strict visibility rules:
+   - The profile OWNER sees their own email and phone normally.
+   - OTHER users who visit this profile should NOT see the email address or phone number.
+   - Instead of showing the actual email/phone to other users, show a placeholder message: "Alleen zichtbaar voor de gebruiker zelf" or "Verborgen".
+   - If two users are in an active conversation together (check conversations table for tenant_id/landlord_id match), THEN the conversation partner can see the email and phone. This allows legitimate contacts to reach each other after a conversation is started.
+
+TASK 2 — Hide Email from Applicant Profile Panel
+1. Open ApplicantProfilePanel.tsx (the slide-out panel in Dashboard that shows applicant details).
+2. The panel currently shows the applicant's email in full.
+3. Modify it so:
+   - The email is masked by default: show only the first 3 characters + "***@***" (e.g., "jan***@***").
+   - Add a "Toon e-mailadres" button next to it.
+   - Clicking the button reveals the full email and tracks this action (set a `contact_revealed` flag in the applications table).
+4. Do NOT show the applicant's phone number in this panel at all.
+
+TASK 3 — Add RLS Policy for Sensitive Profile Fields
+1. Update the `supabase/schema.sql` file.
+2. Add a comment block explaining the privacy rules for the `profiles` table.
+3. Optional: If Supabase supports column-level security, add a policy that restricts SELECT on the `email` and `phone` columns to only the profile owner. If not, add a SQL comment explaining that the frontend handles this privacy logic.
+4. Add an SQL snippet to create a function `can_view_contact_info(viewer_id UUID, profile_id UUID)` that returns TRUE if the viewer is the profile owner or shares an active conversation.
+
+TASK 4 — Add Privacy Settings Toggle (Optional but Recommended)
+1. On the profile edit page (ProfileForm.tsx or similar), add a toggle in a "Privacy" section:
+   - "Toon mijn e-mailadres aan andere gebruikers" (default: OFF)
+   - "Toon mijn telefoonnummer aan andere gebruikers" (default: OFF)
+2. Save these preferences to the `profiles` table. If the table doesn't have these columns, add them via SQL:
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_email BOOLEAN DEFAULT FALSE;
+   ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_phone BOOLEAN DEFAULT FALSE;
+3. Update the visibility logic in TASK 1 to also respect these user preferences.
+
+TASK 5 — Final Verification
+1. Test the following scenarios:
+   - User A visits User B's profile → email and phone are hidden.
+   - User A starts a conversation with User B → email and phone become visible.
+   - Landlord views an applicant in the Dashboard panel → email is masked with reveal button, phone is hidden entirely.
+   - Profile owner visits their own profile → everything is visible.
+2. Commit with message: "Add privacy protection for email and phone visibility" and push to GitHub.
+3. Provide a summary of all changes and any SQL commands I need to run manually in Supabase SQL Editor.

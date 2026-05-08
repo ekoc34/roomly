@@ -25,6 +25,8 @@ export type Profile = {
   student_verified: boolean;
   student_verification_requested_at: string | null;
   verification_badge: string | null;
+  show_email: boolean;
+  show_phone: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -55,6 +57,7 @@ export type Application = {
   message: string;
   budget: number | null;
   status: ApplicationStatus;
+  contact_revealed: boolean;
   created_at: string;
 };
 

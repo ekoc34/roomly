@@ -36,6 +36,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
   const [selectedApplicantId, setSelectedApplicantId] = useState<string | null>(null);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -178,8 +179,11 @@ export function DashboardPage() {
   return (
     <>
       <ApplicantProfilePanel
-        applicantId={selectedApplicantId}
-        onClose={() => setSelectedApplicantId(null)}
+        profileId={selectedApplicantId}
+        onClose={() => { setSelectedApplicantId(null); setSelectedApplicationId(null); }}
+        mode="applicant"
+        viewerLandlordId={user?.id}
+        applicationId={selectedApplicationId ?? undefined}
       />
 
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -418,7 +422,7 @@ export function DashboardPage() {
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => setSelectedApplicantId(app.applicant_id)}
+                              onClick={() => { setSelectedApplicantId(app.applicant_id); setSelectedApplicationId(app.id); }}
                               className="text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
                             >
                               {name}
