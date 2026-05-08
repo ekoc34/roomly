@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,34 @@ export function ApplicationForm({ listingId }: Props) {
   const [budget, setBudget] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [alreadyApplied, setAlreadyApplied] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!user || !supabase) { setAlreadyApplied(false); return; }
+    supabase
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("listing_id", listingId)
+      .eq("applicant_id", user.id)
+      .then(({ count }) => setAlreadyApplied((count ?? 0) > 0));
+  }, [listingId, user]);
+
+  if (alreadyApplied === null) {
+    return (
+      <div className="h-11 w-48 animate-pulse rounded-2xl bg-stone-200" />
+    );
+  }
+
+  if (alreadyApplied) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-5 py-3">
+        <svg className="h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-sm font-medium text-stone-600">Je hebt al gereageerd op deze woning.</p>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -64,6 +92,7 @@ export function ApplicationForm({ listingId }: Props) {
       });
       if (error) throw error;
       setSubmitted(true);
+      setAlreadyApplied(true);
       toast.success("Je reactie is verstuurd!");
     } catch {
       toast.error("Er ging iets mis, probeer opnieuw.");

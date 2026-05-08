@@ -192,11 +192,17 @@ export function ConversationPage() {
         <div ref={bottomRef} />
       </div>
 
-      {user && (
-        <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
-          <ChatComposer conversationId={conversation.id} onSent={fetchMessages} />
-        </div>
-      )}
+      {user && (() => {
+        const isTenant = conversation.tenant_id === user.id;
+        const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
+        const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
+        const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
+        return (
+          <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
+            <ChatComposer conversationId={conversation.id} onSent={fetchMessages} isLocked={isLocked} />
+          </div>
+        );
+      })()}
     </div>
   );
 }

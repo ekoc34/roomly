@@ -4,12 +4,31 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 
-export function ChatComposer({ conversationId, onSent }: { conversationId: string; onSent?: () => void }) {
+type Props = {
+  conversationId: string;
+  onSent?: () => void;
+  isLocked?: boolean;
+};
+
+export function ChatComposer({ conversationId, onSent, isLocked = false }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
+
+  if (isLocked) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <svg className="h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <p className="text-xs leading-relaxed text-amber-700">
+          Wacht op een reactie van de verhuurder voordat je een nieuw bericht stuurt.
+        </p>
+      </div>
+    );
+  }
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

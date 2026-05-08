@@ -1,0 +1,29 @@
+We are improving the Roomly application flow between landlords and tenants.
+
+TASK 1: Remove the "Snel reageren" section from the listing detail page.
+- On the listing detail page, there is a section labeled "Snel reageren" with a "Stuur bericht" button.
+- This section is now redundant because tenants can already submit an application via the "Reageer op deze woning" form.
+- Remove the entire "Snel reageren" section and its "Stuur bericht" button.
+- Do NOT remove the "Reageer op deze woning" application form. That form must remain.
+
+TASK 2: When a landlord accepts an application, automatically create a conversation.
+- When the landlord clicks "Accepteren", the application status updates to "accepted".
+- Automatically create a conversation between the tenant (applicant_id) and the landlord (listing owner) by reusing the same logic from ContactButton (check for existing conversation first).
+- Both users must see this conversation appear in their "Berichten" page.
+
+TASK 3: Enforce a spam prevention rule.
+- In the accepted conversation, the tenant cannot send a second message until the landlord has replied at least once.
+- After the landlord sends at least one message, the tenant may continue the conversation freely.
+- This prevents tenants from spamming landlords who have not yet responded.
+
+TASK 4: Update both dashboards.
+- The tenant's "Mijn zoektocht" tab must show the application as "Geaccepteerd" with a link to the conversation.
+- The landlord's "Mijn verhuur" tab must also show the updated status and a link to the conversation.
+
+TASK 5: Prevent duplicate applications to the same listing.
+- A tenant must not be able to submit more than one application to the same listing.
+- Before showing the "Reageer op deze woning" button or form, check if the current user already has an application for this listing in the `applications` table.
+- If an application already exists (regardless of its status: pending, accepted, or rejected), hide the application form and show a message instead: "Je hebt al gereageerd op deze woning." (You have already applied to this listing).
+
+Do NOT create any new UI buttons. Use the existing "Berichten" page and conversation components.
+After implementing, test the full flow and push to GitHub.
