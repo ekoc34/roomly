@@ -5,14 +5,41 @@ type Props = {
   alt?: string;
   className?: string;
   formatWebp?: boolean;
+  widths?: number[];
+  sizes?: string;
 };
 
-export function LazyImage({ src, alt = "", className = "", formatWebp = false }: Props) {
+export function LazyImage({ 
+  src, 
+  alt = "", 
+  className = "", 
+  formatWebp = true,
+  widths = [400, 800, 1200],
+  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+}: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  // Append ?format=webp to Supabase Storage URLs if requested
-  const imageSrc = formatWebp && !src.includes("?format=") ? `${src}?format=webp` : src;
+  // Generate srcSet with Supabase transformations for different widths
+  const generateSrcSet = (baseSrc: string, isWebp: boolean): string => {
+    const separator = baseSrc.includes("?") ? "&" : "?";
+    const formatParam = isWebp ? "format=webp" : "";
+    
+    return widths
+      .map((width) => {
+        const params = [
+          formatParam,
+          `width=${width}`,
+          `quality=${isWebp ? 85 : 90}`,
+        ].filter(Boolean).join("&");
+        
+        return `${baseSrc}${separator}${params} ${width}w`;
+      })
+      .join(", ");
+  };
+
+  const webpSrcSet = generateSrcSet(src, true);
+  const fallbackSrcSet = generateSrcSet(src, false);
 
   const handleLoad = () => {
     setIsLoading(false);
@@ -38,14 +65,24 @@ export function LazyImage({ src, alt = "", className = "", formatWebp = false }:
       {isLoading && (
         <div className="absolute inset-0 animate-pulse bg-stone-200" />
       )}
-      <img
-        src={imageSrc}
-        alt={alt || "Afbeelding"}
-        className={`h-full w-full object-cover ${className}`}
-        loading="lazy"
-        onLoad={handleLoad}
-        onError={handleError}
-      />
+      <picture>
+        {formatWebp && (
+          <source
+            srcSet={webpSrcSet}
+            sizes={sizes}
+            type="image/webp"
+          />
+        )}
+        <img
+          srcSet={fallbackSrcSet}
+          sizes={sizes}
+          alt={alt || "Afbeelding"}
+          className={`h-full w-full object-cover ${className}`}
+          loading="lazy"
+          onLoad={handleLoad}
+          onError={handleError}
+        />
+      </picture>
     </div>
   );
 }
