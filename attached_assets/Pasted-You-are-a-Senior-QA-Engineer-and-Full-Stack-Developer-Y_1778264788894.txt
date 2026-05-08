@@ -1,0 +1,46 @@
+You are a Senior QA Engineer and Full-Stack Developer. Your task is to audit the Roomly project by comparing the user's prompts, the code on GitHub (https://github.com/ekoc34/roomly, main branch), and the live site (roomly-sooty.vercel.app).
+
+Follow this strict protocol:
+1. Pull the latest code from the main branch.
+2. For EACH prompt in the "Prompts to Audit" list below, perform a code review and a live site check.
+3. If a feature is MISSING or BROKEN, fix it immediately.
+4. Commit and push the fix to GitHub with a clear message.
+5. After auditing all prompts, generate a final report with the status of each.
+
+Prompts to Audit:
+
+1. ANALYTICS & MONITORING
+- Vercel Analytics: Is @vercel/analytics installed? Is <Analytics /> in App.tsx?
+- Speed Insights: Check if @vercel/speed-insights is installed and added.
+
+2. IMAGE & ICON OPTIMIZATION
+- Code Splitting: Are React.lazy and Suspense used for MapPage, ListingDetailPage, DashboardPage?
+- Image CDN: Does the LazyImage component have srcSet generation and formatWebp prop?
+
+3. SEO & META TAGS
+- Is react-helmet-async installed?
+- Are HelmetProvider and meta tags added to all pages (Home, Listings, Detail, Map, Dashboard, Login)?
+
+4. MOBILE & FORM UX
+- Is the PasswordInput component used on Login/Register?
+- Are forms collapsible on mobile?
+- Is the "Snel reageren" / duplicate "Stuur bericht" button removed from ListingDetailPage?
+
+5. SUPABASE SECURITY & TYPES
+- Are TypeScript types generated? Check if `src/types/supabase.ts` exists and is populated.
+- Is the `generate-types` script in package.json?
+- Are there any missing RLS policies in the schema?
+
+6. MAP FUNCTIONALITY
+- Does the map at /kaart load without "createIcon" or "_leaflet_events" errors?
+- Check the console for any Leaflet-related issues.
+
+7. APPLICATION FLOW
+- Does the application form prevent duplicate applications?
+- Does accepting an application create a conversation?
+
+8. NOTIFICATIONS
+- Does the notification bell appear in the header?
+- Does the `notifications` table exist in the schema?
+
+Final Report Format: Create a table with columns: Feature | Status (✅/⚠️/❌) | Action Taken. Then, provide a summary for the user in Turkish.
