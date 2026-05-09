@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import type { Profile } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
@@ -12,9 +13,18 @@ export function OwnerBadges({ profile, memberSince }: Props) {
 
   const fullyVerified = isFullyVerified(profile);
   const partiallyVerified = isPartiallyVerified(profile);
+  const isScamFlagged = profile?.scam_flagged === true;
 
   return (
     <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm" data-testid="owner-badges">
+      {isScamFlagged && (
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <p className="text-xs leading-relaxed text-amber-800">
+            <span className="font-semibold">Let op:</span> Deze verhuurder heeft meldingen ontvangen. Wees voorzichtig en chat altijd via het platform.
+          </p>
+        </div>
+      )}
       <h2 className="text-sm font-semibold text-stone-900">Over de plaatser</h2>
       <div className="mt-4 flex items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">

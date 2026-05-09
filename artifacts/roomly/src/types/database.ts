@@ -30,6 +30,7 @@ export type Profile = {
   notify_new_message?: boolean | null;
   notify_application_update?: boolean | null;
   notify_matching_listing?: boolean | null;
+  scam_flagged?: boolean;
   last_active_at: string | null;
   created_at: string;
   updated_at: string;
@@ -100,7 +101,8 @@ export type NotificationType =
   | "application_accepted"
   | "application_rejected"
   | "new_message"
-  | "new_matching_listing";
+  | "new_matching_listing"
+  | "badge_revoked";
 
 export type SavedSearch = {
   id: string;
