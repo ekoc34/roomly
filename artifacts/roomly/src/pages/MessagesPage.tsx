@@ -11,6 +11,8 @@ export function MessagesPage() {
   const [convs, setConvs] = useState<ConvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -18,13 +20,13 @@ export function MessagesPage() {
 
     async function fetchConvs() {
       try {
-        // 'listing:listings!left(*)' kullanarak çakışan foreign key hatasını çözüyoruz
         const { data, error: queryError } = await supabase!
           .from("conversations")
           .select(
             "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
           )
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
+          .not("hidden_by", "cs", `{${user!.id}}`)
           .order("last_message_at", { ascending: false, nullsFirst: false });
 
         if (queryError) {
@@ -59,6 +61,30 @@ export function MessagesPage() {
     fetchConvs();
   }, [user, authLoading]);
 
+  async function handleDelete(convId: string) {
+    if (!supabase || !user || deleting) return;
+    setDeleting(true);
+
+    const conv = convs.find((c) => c.id === convId);
+    const currentHidden: string[] = conv?.hidden_by ?? [];
+
+    setConvs((prev) => prev.filter((c) => c.id !== convId));
+    setConfirmId(null);
+
+    const { error: updateError } = await supabase
+      .from("conversations")
+      .update({ hidden_by: [...currentHidden, user.id] })
+      .eq("id", convId);
+
+    if (updateError) {
+      console.error("[MessagesPage] Failed to hide conversation:", updateError);
+      if (conv) setConvs((prev) => [conv, ...prev]);
+      setError("Verwijderen mislukt. Probeer het opnieuw.");
+    }
+
+    setDeleting(false);
+  }
+
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -71,11 +97,13 @@ export function MessagesPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-6 text-2xl font-bold text-stone-900">Berichten</h1>
+
       {error && (
         <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       )}
+
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((n) => (
@@ -102,22 +130,59 @@ export function MessagesPage() {
           {convs.map((conv) => {
             const initial = (conv.other?.name ?? conv.other?.email ?? "?").slice(0, 1).toUpperCase();
             const title = conv.listing?.title ?? "Verwijderde advertentie";
-            const ts = conv.last_message_at ? new Date(conv.last_message_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) : "";
+            const ts = conv.last_message_at
+              ? new Date(conv.last_message_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })
+              : "";
             return (
-              <Link key={conv.id} href={`/berichten/${conv.id}`} data-testid={`conversation-${conv.id}`} className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
-                  {conv.other?.avatar_url ? (
-                    <img src={conv.other.avatar_url} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-base font-semibold text-stone-500">{initial}</span>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
-                  <p className="truncate text-xs text-stone-500">{title}</p>
-                </div>
-                <span className="shrink-0 text-xs text-stone-400">{ts}</span>
-              </Link>
+              <div key={conv.id} className="group relative flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <Link
+                  href={`/berichten/${conv.id}`}
+                  data-testid={`conversation-${conv.id}`}
+                  className="flex flex-1 min-w-0 items-center gap-4"
+                >
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+                    {conv.other?.avatar_url ? (
+                      <img src={conv.other.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-base font-semibold text-stone-500">{initial}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
+                    <p className="truncate text-xs text-stone-500">{title}</p>
+                  </div>
+                  <span className="shrink-0 text-xs text-stone-400 pr-2">{ts}</span>
+                </Link>
+
+                {confirmId === conv.id ? (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs text-stone-500 hidden sm:inline">Verwijderen?</span>
+                    <button
+                      onClick={() => handleDelete(conv.id)}
+                      disabled={deleting}
+                      className="rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+                    >
+                      Ja
+                    </button>
+                    <button
+                      onClick={() => setConfirmId(null)}
+                      className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-50"
+                    >
+                      Nee
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    aria-label="Gesprek verwijderen"
+                    onClick={() => setConfirmId(conv.id)}
+                    className="shrink-0 rounded-lg p-1.5 text-stone-300 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

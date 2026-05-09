@@ -83,6 +83,7 @@ export type Conversation = {
   landlord_id: string;
   last_message_at: string;
   created_at: string;
+  hidden_by: string[];
 };
 
 export type Message = {
