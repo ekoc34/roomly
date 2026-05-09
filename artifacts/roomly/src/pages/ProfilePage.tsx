@@ -1,6 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
+import { MessageSquare, Bell, Search } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
@@ -75,13 +76,30 @@ export function ProfilePage() {
 
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
+  const [notifyNewMessage, setNotifyNewMessage] = useState(true);
+  const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
+  const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
 
   useEffect(() => {
     if (profile) {
       setShowEmail(profile.show_email ?? false);
       setShowPhone(profile.show_phone ?? false);
+      setNotifyNewMessage(profile.notify_new_message ?? true);
+      setNotifyApplicationUpdate(profile.notify_application_update ?? true);
+      setNotifyMatchingListing(profile.notify_matching_listing ?? true);
     }
   }, [profile]);
+
+  const handleNotifToggle = async (
+    field: "notify_new_message" | "notify_application_update" | "notify_matching_listing",
+    value: boolean
+  ) => {
+    if (!supabase || !user) return;
+    if (field === "notify_new_message") setNotifyNewMessage(value);
+    if (field === "notify_application_update") setNotifyApplicationUpdate(value);
+    if (field === "notify_matching_listing") setNotifyMatchingListing(value);
+    await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
+  };
 
   if (!authLoading && !user) {
     return (
@@ -332,6 +350,83 @@ export function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Notification preferences — separate card, saves immediately on toggle */}
+      {!loading && profile && (
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-base font-semibold text-stone-900">Notificatievoorkeuren</p>
+          <p className="mt-1 mb-5 text-sm text-stone-500">Bepaal voor welke activiteiten je een melding wilt ontvangen.</p>
+          <div className="flex flex-col divide-y divide-stone-100">
+
+            {/* Nieuwe berichten */}
+            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
+                  <MessageSquare className="h-4 w-4 text-amber-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-800">Nieuwe berichten</p>
+                  <p className="text-xs text-stone-400">Melding bij een nieuw chatbericht van een andere gebruiker.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={notifyNewMessage}
+                onClick={() => handleNotifToggle("notify_new_message", !notifyNewMessage)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyNewMessage ? "bg-rose-500" : "bg-stone-300"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyNewMessage ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+
+            {/* Aanvraag updates */}
+            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                  <Bell className="h-4 w-4 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-800">Aanvraag updates</p>
+                  <p className="text-xs text-stone-400">Melding als je aanvraag wordt geaccepteerd of afgewezen.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={notifyApplicationUpdate}
+                onClick={() => handleNotifToggle("notify_application_update", !notifyApplicationUpdate)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyApplicationUpdate ? "bg-rose-500" : "bg-stone-300"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyApplicationUpdate ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+
+            {/* Nieuwe woningen */}
+            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-50">
+                  <Search className="h-4 w-4 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-stone-800">Nieuwe woningen</p>
+                  <p className="text-xs text-stone-400">Melding als een nieuwe woning overeenkomt met je opgeslagen zoekopdracht.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={notifyMatchingListing}
+                onClick={() => handleNotifToggle("notify_matching_listing", !notifyMatchingListing)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyMatchingListing ? "bg-rose-500" : "bg-stone-300"}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyMatchingListing ? "translate-x-5" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

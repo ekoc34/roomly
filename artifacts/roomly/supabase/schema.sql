@@ -493,3 +493,12 @@ ALTER TABLE public.applications
 --   - ProfilePage only renders the authenticated user's own profile.
 --   - ApplicantProfilePanel masks email by default and requires explicit reveal.
 --   - can_view_contact_info() can be used in future RPC calls for additional checks.
+
+-- ============================================================
+-- MIGRATION: notification preferences on profiles
+-- Run in Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS notify_new_message       BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS notify_application_update BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS notify_matching_listing   BOOLEAN NOT NULL DEFAULT TRUE;

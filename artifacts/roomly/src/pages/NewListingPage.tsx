@@ -72,17 +72,30 @@ async function notifyMatchingSavedSearches(listing: NewListing, ownerId: string)
 
   if (matches.length === 0) return;
 
+  // Fetch notification preferences for all matching users in one query
+  const matchingUserIds = [...new Set(matches.map((s) => s.user_id))];
+  const { data: prefsData } = await supabase!
+    .from("profiles")
+    .select("id, notify_matching_listing")
+    .in("id", matchingUserIds);
+  const prefsMap = new Map(
+    ((prefsData ?? []) as { id: string; notify_matching_listing: boolean | null }[]).map((p) => [p.id, p.notify_matching_listing])
+  );
+
   const now = new Date().toISOString();
   await Promise.all(
     matches.map(async (s) => {
+      const wantsNotif = prefsMap.get(s.user_id) !== false;
       await Promise.all([
-        supabase!.from("notifications").insert({
-          user_id: s.user_id,
-          type: "new_matching_listing",
-          title: "Nieuwe woning gevonden!",
-          body: `Een nieuwe woning matcht met je opgeslagen zoekopdracht "${s.name}".`,
-          related_id: listing.id,
-        }),
+        wantsNotif
+          ? supabase!.from("notifications").insert({
+              user_id: s.user_id,
+              type: "new_matching_listing",
+              title: "Nieuwe woning gevonden!",
+              body: `Een nieuwe woning matcht met je opgeslagen zoekopdracht "${s.name}".`,
+              related_id: listing.id,
+            })
+          : Promise.resolve(),
         supabase!
           .from("saved_searches")
           .update({ last_matched_at: now })

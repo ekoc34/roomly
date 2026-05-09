@@ -27,6 +27,9 @@ export type Profile = {
   verification_badge: string | null;
   show_email: boolean;
   show_phone: boolean;
+  notify_new_message?: boolean | null;
+  notify_application_update?: boolean | null;
+  notify_matching_listing?: boolean | null;
   last_active_at: string | null;
   created_at: string;
   updated_at: string;

@@ -55,17 +55,24 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
         .insert({ conversation_id: conversationId, sender_id: user.id, body });
       if (err) { toast.error("Versturen mislukt. Probeer opnieuw."); return; }
 
-      // Notify the other party
+      // Notify the other party (if they have new-message notifications enabled)
       if (recipientId && recipientId !== user.id) {
-        const preview = body.length > 50 ? body.slice(0, 50) + "…" : body;
-        await supabase.from("notifications").insert({
-          user_id: recipientId,
-          type: "new_message",
-          title: "Nieuw bericht",
-          body: preview,
-          related_id: conversationId,
-          read: false,
-        });
+        const { data: recipientPrefs } = await supabase
+          .from("profiles")
+          .select("notify_new_message")
+          .eq("id", recipientId)
+          .maybeSingle();
+        if (recipientPrefs?.notify_new_message !== false) {
+          const preview = body.length > 50 ? body.slice(0, 50) + "…" : body;
+          await supabase.from("notifications").insert({
+            user_id: recipientId,
+            type: "new_message",
+            title: "Nieuw bericht",
+            body: preview,
+            related_id: conversationId,
+            read: false,
+          });
+        }
       }
 
       formRef.current?.reset();
