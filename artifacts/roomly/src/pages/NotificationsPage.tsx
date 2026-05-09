@@ -104,6 +104,32 @@ export function NotificationsPage() {
     if (authLoading) return;
     if (!user) { navigate("/inloggen"); return; }
     fetchAll();
+
+    if (!supabase) return;
+    let channel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
+    try {
+      channel = supabase
+        .channel(`notifications-page:${user.id}:${Date.now()}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            setNotifications((prev) => [payload.new as Notification, ...prev]);
+          }
+        )
+        .subscribe();
+    } catch (e) {
+      console.warn("[NotificationsPage] Realtime channel error:", e);
+    }
+
+    return () => {
+      if (channel && supabase) supabase.removeChannel(channel);
+    };
   }, [user, authLoading, fetchAll, navigate]);
 
   const handleClick = async (n: Notification) => {
