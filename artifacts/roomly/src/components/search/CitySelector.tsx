@@ -1,12 +1,26 @@
 import { useState } from "react";
+import { useLocation, useSearch } from "wouter";
+import { X } from "lucide-react";
 import { useSelectedCity, DUTCH_CITIES } from "@/contexts/SelectedCityContext";
 
 export function CitySelector() {
   const { selectedCity, setSelectedCity } = useSelectedCity();
   const [isOpen, setIsOpen] = useState(false);
-  const displayCity = selectedCity ?? "Amsterdam";
+  const [, navigate] = useLocation();
+  const searchString = useSearch();
 
+  const displayCity = selectedCity ?? "Amsterdam";
   const isActive = selectedCity !== null;
+
+  function handleClear() {
+    setSelectedCity(null);
+    const params = new URLSearchParams(searchString);
+    params.delete("city");
+    params.delete("district");
+    const qs = params.toString();
+    navigate(qs ? `?${qs}` : window.location.pathname, { replace: true });
+    setIsOpen(false);
+  }
 
   return (
     <div className="relative">
@@ -34,6 +48,18 @@ export function CitySelector() {
             <p className="px-3 py-2 text-xs font-semibold text-stone-400 uppercase tracking-wide">
               Selecteer een stad
             </p>
+            {isActive && (
+              <>
+                <button
+                  onClick={handleClear}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-stone-500 transition hover:bg-stone-50 hover:text-rose-500"
+                >
+                  <X className="h-3.5 w-3.5 shrink-0" />
+                  Alle steden
+                </button>
+                <div className="mx-3 my-1 border-t border-stone-100" />
+              </>
+            )}
             {DUTCH_CITIES.map((city) => (
               <button
                 key={city}
