@@ -6,6 +6,7 @@ export function useUnreadMessages() {
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
+  const initialFetchDoneRef = useRef(false);
 
   const fetchUnread = useCallback(async () => {
     if (!user || !supabase) return;
@@ -19,6 +20,7 @@ export function useUnreadMessages() {
       const convIds = (convs ?? []).map((c: { id: string }) => c.id);
       if (convIds.length === 0) {
         setUnreadCount(0);
+        initialFetchDoneRef.current = true;
         return;
       }
 
@@ -32,6 +34,8 @@ export function useUnreadMessages() {
       setUnreadCount(count ?? 0);
     } catch {
       setUnreadCount(0);
+    } finally {
+      initialFetchDoneRef.current = true;
     }
   }, [user]);
 
@@ -41,6 +45,8 @@ export function useUnreadMessages() {
       return;
     }
 
+    // Reset the fetch guard when user changes
+    initialFetchDoneRef.current = false;
     fetchUnread();
 
     if (channelRef.current) {
@@ -61,7 +67,8 @@ export function useUnreadMessages() {
             table: "messages",
           },
           (payload) => {
-            if (payload.new.sender_id !== user.id) {
+            // Yalnızca ilk fetch tamamlandıktan sonra sayacı güncelle
+            if (payload.new.sender_id !== user.id && initialFetchDoneRef.current) {
               setUnreadCount((prev) => (prev === null ? 1 : prev + 1));
             }
           }
@@ -74,7 +81,9 @@ export function useUnreadMessages() {
             table: "messages",
           },
           () => {
-            fetchUnread();
+            if (initialFetchDoneRef.current) {
+              fetchUnread();
+            }
           }
         )
         .subscribe((status) => {
