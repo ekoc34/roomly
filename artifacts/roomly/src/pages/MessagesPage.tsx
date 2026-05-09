@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { Conversation, Listing, Profile } from "@/types/database";
@@ -61,25 +62,62 @@ export function MessagesPage() {
     fetchConvs();
   }, [user, authLoading]);
 
+  async function handleUndo(conv: ConvRow) {
+    if (!supabase || !user) return;
+
+    // Restore optimistically — prepend so it appears at the top
+    setConvs((prev) => [conv, ...prev]);
+
+    // Write the original hidden_by (without current user's ID) back to Supabase
+    const { error: undoError } = await supabase
+      .from("conversations")
+      .update({ hidden_by: conv.hidden_by })
+      .eq("id", conv.id);
+
+    if (undoError) {
+      console.error("[MessagesPage] Failed to restore conversation:", undoError);
+      setConvs((prev) => prev.filter((c) => c.id !== conv.id));
+      toast.error("Herstellen mislukt. Probeer het opnieuw.");
+      return;
+    }
+
+    toast.success("Gesprek hersteld");
+  }
+
   async function handleDelete(convId: string) {
     if (!supabase || !user || deleting) return;
     setDeleting(true);
 
+    // Capture the conversation before removal so we can undo
     const conv = convs.find((c) => c.id === convId);
-    const currentHidden: string[] = conv?.hidden_by ?? [];
+    const originalHidden: string[] = conv?.hidden_by ?? [];
 
+    // Optimistic removal + close inline confirm
     setConvs((prev) => prev.filter((c) => c.id !== convId));
     setConfirmId(null);
 
     const { error: updateError } = await supabase
       .from("conversations")
-      .update({ hidden_by: [...currentHidden, user.id] })
+      .update({ hidden_by: [...originalHidden, user.id] })
       .eq("id", convId);
 
     if (updateError) {
       console.error("[MessagesPage] Failed to hide conversation:", updateError);
       if (conv) setConvs((prev) => [conv, ...prev]);
-      setError("Verwijderen mislukt. Probeer het opnieuw.");
+      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+      setDeleting(false);
+      return;
+    }
+
+    // Show undo toast — conv captured above still has the original hidden_by
+    if (conv) {
+      toast("Gesprek verwijderd", {
+        duration: 6000,
+        action: {
+          label: "Ongedaan maken",
+          onClick: () => handleUndo(conv),
+        },
+      });
     }
 
     setDeleting(false);
