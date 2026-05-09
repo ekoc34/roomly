@@ -13,8 +13,8 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
-  const [showPhoneVerifyInfo, setShowPhoneVerifyInfo] = useState(false);
-  const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "code" | "verified">("idle");
+  const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "sending" | "code" | "verified">("idle");
+  const [pendingPhone, setPendingPhone] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyTimer, setVerifyTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -31,48 +31,79 @@ export function ProfilePage() {
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
     if (phoneVerifyStep === "code" && verifyTimer > 0) {
-      interval = setInterval(() => {
-        setVerifyTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setVerifyTimer((prev) => prev - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [phoneVerifyStep, verifyTimer]);
 
   const startPhoneVerification = async (phone: string) => {
-    if (!phone) { toast.error("Voer eerst een telefoonnummer in."); return; }
+    const normalized = phone.trim();
+    if (!normalized) { toast.error("Voer eerst een telefoonnummer in."); return; }
+    if (!/^\+\d{7,15}$/.test(normalized)) {
+      toast.error("Gebruik internationaal formaat, bijv. +31612345678.");
+      return;
+    }
     if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
-    
-    // Save phone number first
-    const { error: updateErr } = await supabase.from("profiles").update({ phone }).eq("id", user.id);
-    if (updateErr) { toast.error("Telefoonnummer opslaan mislukt."); return; }
-    
-    setProfile((prev) => prev ? { ...prev, phone } : prev);
+
+    setPhoneVerifyStep("sending");
+    setPendingPhone(normalized);
+
+    const { error } = await supabase.auth.signInWithOtp({ phone: normalized });
+    if (error) {
+      toast.error("Versturen mislukt: " + error.message);
+      setPhoneVerifyStep("idle");
+      return;
+    }
+
     setPhoneVerifyStep("code");
     setVerifyTimer(60);
-    setShowPhoneVerifyInfo(false);
-    toast.success("Verificatiecode verzonden naar " + phone);
+    setVerifyCode("");
+    toast.success("Verificatiecode verzonden naar " + normalized);
   };
 
   const verifyPhoneCode = async () => {
     if (verifyCode.length !== 6) { toast.error("Voer een 6-cijferige code in."); return; }
-    if (!verifyCode.startsWith("1")) { toast.error("Ongeldige code. Probeer opnieuw."); return; }
-    
+    if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
+
     setIsVerifying(true);
-    if (!supabase || !user) { toast.error("Niet ingelogd."); setIsVerifying(false); return; }
-    
-    const { error } = await supabase.from("profiles").update({ phone_verified: true }).eq("id", user.id);
-    if (error) { toast.error("Verificatie mislukt."); setIsVerifying(false); return; }
-    
-    setProfile((prev) => prev ? { ...prev, phone_verified: true } : prev);
+
+    const { error: otpErr } = await supabase.auth.verifyOtp({
+      phone: pendingPhone,
+      token: verifyCode,
+      type: "sms",
+    });
+
+    if (otpErr) {
+      toast.error("Ongeldige of verlopen code. Probeer opnieuw.");
+      setIsVerifying(false);
+      return;
+    }
+
+    // OTP verified — persist phone number and set phone_verified flag
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({ phone: pendingPhone, phone_verified: true })
+      .eq("id", user.id);
+
+    if (profileErr) {
+      toast.error("Profiel bijwerken mislukt. Probeer opnieuw.");
+      setIsVerifying(false);
+      return;
+    }
+
+    setProfile((prev) => prev ? { ...prev, phone: pendingPhone, phone_verified: true } : prev);
     setPhoneVerifyStep("verified");
     setVerifyCode("");
     setIsVerifying(false);
     toast.success("Telefoonnummer geverifieerd!");
   };
 
-  const resendVerificationCode = () => {
+  const resendVerificationCode = async () => {
+    if (!supabase || !pendingPhone) return;
+    const { error } = await supabase.auth.signInWithOtp({ phone: pendingPhone });
+    if (error) { toast.error("Versturen mislukt: " + error.message); return; }
     setVerifyTimer(60);
-    toast.success("Nieuwe verificatiecode verzonden");
+    toast.success("Nieuwe verificatiecode verzonden naar " + pendingPhone);
   };
 
   const [showEmail, setShowEmail] = useState(false);
@@ -205,16 +236,17 @@ export function ProfilePage() {
                     className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
                     data-testid="profile-phone"
                   />
-                  {!profile?.phone_verified && phoneVerifyStep === "idle" && (
+                  {!profile?.phone_verified && (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") && (
                     <button
                       type="button"
+                      disabled={phoneVerifyStep === "sending"}
                       onClick={() => {
                         const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
                         startPhoneVerification(phoneInput.value);
                       }}
-                      className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+                      className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
                     >
-                      Verifiëren
+                      {phoneVerifyStep === "sending" ? "Versturen…" : "Verifiëren"}
                     </button>
                   )}
                   {profile?.phone_verified && (
@@ -227,7 +259,7 @@ export function ProfilePage() {
                 {phoneVerifyStep === "code" && (
                   <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
                     <p className="text-xs font-semibold text-blue-900">Voer de verificatiecode in</p>
-                    <p className="mt-1 text-xs text-blue-700">We hebben een 6-cijferige code naar je telefoon gestuurd. (Test: elke code die begint met '1' is geldig)</p>
+                    <p className="mt-1 text-xs text-blue-700">We hebben een 6-cijferige code per SMS naar <span className="font-medium">{pendingPhone}</span> gestuurd.</p>
                     <div className="mt-3 flex gap-2">
                       <input
                         type="text"
