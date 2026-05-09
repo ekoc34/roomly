@@ -6,10 +6,29 @@ import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { CitySelector } from "@/components/search/CitySelector";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 
+function navCls(active: boolean) {
+  return `flex items-center gap-1.5 border-b-2 pb-0.5 transition ${
+    active
+      ? "border-rose-500 text-rose-500"
+      : "border-transparent text-stone-600 hover:text-rose-600"
+  }`;
+}
+
+function iconCls(active: boolean) {
+  return `h-4 w-4 ${active ? "text-rose-500" : "text-stone-400"}`;
+}
+
 export function Header() {
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
-  const [, navigate] = useLocation();
+  const [path, navigate] = useLocation();
+
+  const isKamers    = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
+  const isKaart     = path === "/kaart";
+  const isFavorieten = path.startsWith("/favorieten");
+  const isBerichten  = path.startsWith("/berichten");
+  const isDashboard  = path === "/dashboard";
+  const isNieuw      = path === "/kamers/nieuw";
 
   const handleSignOut = async () => {
     if (!supabase) return;
@@ -24,24 +43,24 @@ export function Header() {
           Roomly
         </Link>
 
-        <nav className="hidden items-center gap-4 text-sm font-medium text-stone-600 md:flex">
-          <Link href="/kamers" data-testid="header-kamers-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
-            <Building2 className="h-4 w-4 text-stone-400" />
+        <nav className="hidden items-center gap-4 text-sm font-medium md:flex">
+          <Link href="/kamers" data-testid="header-kamers-link" className={navCls(isKamers)}>
+            <Building2 className={iconCls(isKamers)} />
             Woningen
           </Link>
-          <Link href="/kaart" data-testid="header-kaart-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
-            <Map className="h-4 w-4 text-stone-400" />
+          <Link href="/kaart" data-testid="header-kaart-link" className={navCls(isKaart)}>
+            <Map className={iconCls(isKaart)} />
             Kaart
           </Link>
           <CitySelector />
           {user ? (
             <>
-              <Link href="/favorieten" data-testid="header-favorites-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
-                <Heart className="h-4 w-4 text-stone-400" />
+              <Link href="/favorieten" data-testid="header-favorites-link" className={navCls(isFavorieten)}>
+                <Heart className={iconCls(isFavorieten)} />
                 Favorieten
               </Link>
-              <Link href="/berichten" data-testid="header-messages-link" className="relative flex items-center gap-1.5 transition hover:text-rose-600">
-                <MessageSquare className="h-4 w-4 text-stone-400" />
+              <Link href="/berichten" data-testid="header-messages-link" className={`relative ${navCls(isBerichten)}`}>
+                <MessageSquare className={iconCls(isBerichten)} />
                 Berichten
                 {unreadCount > 0 && (
                   <span
@@ -52,15 +71,19 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <Link href="/dashboard" className="flex items-center gap-1.5 transition hover:text-rose-600">
-                <LayoutDashboard className="h-4 w-4 text-stone-400" />
+              <Link href="/dashboard" className={navCls(isDashboard)}>
+                <LayoutDashboard className={iconCls(isDashboard)} />
                 Dashboard
               </Link>
               <NotificationBell />
               <Link
                 href="/kamers/nieuw"
                 data-testid="header-new-listing-link"
-                className="flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-1.5 text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                className={`flex items-center gap-1.5 rounded-full border px-4 py-1.5 transition ${
+                  isNieuw
+                    ? "border-rose-300 bg-rose-50 text-rose-700"
+                    : "border-stone-200 text-stone-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                }`}
               >
                 <Plus className="h-4 w-4" />
                 Advertentie plaatsen
@@ -77,7 +100,7 @@ export function Header() {
             </>
           ) : (
             <>
-              <Link href="/inloggen" data-testid="header-login-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
+              <Link href="/inloggen" data-testid="header-login-link" className="flex items-center gap-1.5 text-stone-600 transition hover:text-rose-600">
                 <LogIn className="h-4 w-4 text-stone-400" />
                 Inloggen
               </Link>
