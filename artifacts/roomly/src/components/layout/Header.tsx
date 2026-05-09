@@ -62,7 +62,7 @@ export function Header() {
               <Link href="/berichten" data-testid="header-messages-link" className={`relative ${navCls(isBerichten)}`}>
                 <MessageSquare className={iconCls(isBerichten)} />
                 Berichten
-                {unreadCount > 0 && (
+                {unreadCount !== null && unreadCount > 0 && (
                   <span
                     data-testid="header-unread-badge"
                     className="absolute -right-3 -top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white"

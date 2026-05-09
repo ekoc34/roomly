@@ -14,20 +14,44 @@ export function MessagesPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user || !supabase) { setLoading(false); return; }
-    async function fetchConvs() {
-      const { data } = await supabase!
-        .from("conversations")
-        .select("*, listing:listing_id(*), tenant:tenant_id(*), landlord:landlord_id(*)")
-        .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
-        .order("last_message_at", { ascending: false });
 
-      const rows = ((data ?? []) as (Conversation & { listing: Listing | null; tenant: Profile | null; landlord: Profile | null })[]).map((row) => ({
-        ...row,
-        other: row.tenant_id === user!.id ? row.landlord : row.tenant,
-      }));
-      setConvs(rows);
-      setLoading(false);
+    async function fetchConvs() {
+      try {
+        const { data, error } = await supabase!
+          .from("conversations")
+          .select(
+            "*, listing:listing_id!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
+          )
+          .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
+          .order("last_message_at", { ascending: false, nullsFirst: false });
+
+        if (error) {
+          console.error("[MessagesPage] Supabase query error:", error);
+          setConvs([]);
+          setLoading(false);
+          return;
+        }
+
+        const rows = (
+          (data ?? []) as (Conversation & {
+            listing: Listing | null;
+            tenant: Profile | null;
+            landlord: Profile | null;
+          })[]
+        ).map((row) => ({
+          ...row,
+          other: row.tenant_id === user!.id ? row.landlord : row.tenant,
+        }));
+
+        setConvs(rows);
+      } catch (err) {
+        console.error("[MessagesPage] Unexpected error fetching conversations:", err);
+        setConvs([]);
+      } finally {
+        setLoading(false);
+      }
     }
+
     fetchConvs();
   }, [user, authLoading]);
 

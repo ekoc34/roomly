@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export function useUnreadMessages() {
   const { user } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
 
   const fetchUnread = useCallback(async () => {
@@ -31,22 +31,23 @@ export function useUnreadMessages() {
 
       setUnreadCount(count ?? 0);
     } catch {
-      // Hata olursa sessizce geç — sayaç 0 kalır
+      setUnreadCount(0);
     }
   }, [user]);
 
   useEffect(() => {
-    if (!user || !supabase) return;
+    if (!user || !supabase) {
+      setUnreadCount(null);
+      return;
+    }
 
     fetchUnread();
 
-    // Eğer önceki bir kanal varsa önce temizle
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
-    // Her mount'ta benzersiz kanal adı kullan (StrictMode double-invoke'u önler)
     const channelName = `unread-messages:${user.id}:${Date.now()}`;
 
     try {
@@ -61,7 +62,7 @@ export function useUnreadMessages() {
           },
           (payload) => {
             if (payload.new.sender_id !== user.id) {
-              setUnreadCount((prev) => prev + 1);
+              setUnreadCount((prev) => (prev === null ? 1 : prev + 1));
             }
           }
         )
