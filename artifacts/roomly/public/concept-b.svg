@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!--
+    CONCEPT B — Moving Box to Home
+    A filled house rises from inside an open moving box.
+    Box is outline-only (white fill), house is solid rose-500.
+    Open flap lines show the box is freshly opened.
+  -->
+
+  <!-- House rising from box: roof triangle -->
+  <path d="M16 4 L25 14 L7 14 Z" fill="#f43f5e"/>
+  <!-- House body (partially hidden behind white box interior) -->
+  <rect x="8" y="14" width="16" height="7" fill="#f43f5e"/>
+  <!-- White door on house (visible above box rim) -->
+  <rect x="13.5" y="15" width="5" height="6" rx="1" fill="white"/>
+
+  <!-- Moving box (white fill hides bottom of house, giving "box" depth) -->
+  <rect x="3" y="18" width="26" height="12" rx="2.5" fill="white" stroke="#f43f5e" stroke-width="2.5"/>
+
+  <!-- Open flap — left -->
+  <path d="M4 19 L6.5 12.5" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Open flap — right -->
+  <path d="M28 19 L25.5 12.5" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

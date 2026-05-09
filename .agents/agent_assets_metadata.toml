@@ -18,3 +18,21 @@ id = "O4Q49A729fcwwA3VIY8M_"
 uri = "file://artifacts/roomly/public/logo-large.svg"
 type = "image"
 title = "logo-large.svg — marketing/welcome page (96×96)"
+
+[[outputs]]
+id = "WXCGhp5YI32fkZ5zgdq3A"
+uri = "file://artifacts/roomly/public/concept-a.svg"
+type = "image"
+title = "Concept A — The Welcoming Key (house-shaped handle + keyhole + teeth, tilted -20°)"
+
+[[outputs]]
+id = "_usnC7ubPSFkruuQyaEBr"
+uri = "file://artifacts/roomly/public/concept-b.svg"
+type = "image"
+title = "Concept B — Moving Box to Home (house rising from open cardboard box)"
+
+[[outputs]]
+id = "J2_njF4_X-mi2vF2IYvxJ"
+uri = "file://artifacts/roomly/public/concept-c.svg"
+type = "image"
+title = "Concept C — The Open Door (house silhouette, wide open door, rightward arrow, subtle W roof)"

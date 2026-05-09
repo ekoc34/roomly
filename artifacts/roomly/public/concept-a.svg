@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!--
+    CONCEPT A — The Welcoming Key
+    A house-shaped key handle (the bow) with a keyhole cutout.
+    Shaft + two teeth below. Tilted -20° like a key about to turn.
+  -->
+  <g transform="rotate(-20, 16, 16)">
+    <!-- House-shaped bow (pentagon: triangle roof + square body) -->
+    <path d="M16 3 L23.5 9.5 L23.5 19 L8.5 19 L8.5 9.5 Z" fill="#f43f5e"/>
+    <!-- Keyhole: circle cutout in house center -->
+    <circle cx="16" cy="12.5" r="2.8" fill="white"/>
+    <!-- Key shaft -->
+    <rect x="14.5" y="19" width="3" height="9" rx="1.5" fill="#f43f5e"/>
+    <!-- Tooth 1 (upper) -->
+    <rect x="17.5" y="21.5" width="3.5" height="2" rx="0.7" fill="#f43f5e"/>
+    <!-- Tooth 2 (lower) -->
+    <rect x="17.5" y="25.5" width="2.5" height="2" rx="0.7" fill="#f43f5e"/>
+  </g>
+</svg>

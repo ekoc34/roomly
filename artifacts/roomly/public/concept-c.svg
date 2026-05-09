@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!--
+    CONCEPT C — The Open Door
+    House silhouette with a wide-open door on the left side.
+    A bold arrow inside the doorway points rightward (moving in).
+    The roofline forms a subtle W (two soft peaks) for brand continuity.
+  -->
+
+  <!-- House body with subtle W roofline: two soft peaks -->
+  <path d="M1 17 L8 7 L13 12 L16 9 L19 12 L24 7 L31 17 L31 30 L1 30 Z" fill="#f43f5e"/>
+
+  <!-- Open door (white rectangle on left side of house front) -->
+  <rect x="5" y="19" width="10" height="11" rx="1.5" fill="white"/>
+
+  <!-- Bold arrow pointing INTO the house (→) inside the doorway -->
+  <!-- Arrow body -->
+  <line x1="6.5" y1="24.5" x2="13" y2="24.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Arrow head -->
+  <path d="M10 21.5 L13 24.5 L10 27.5" stroke="#f43f5e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>
