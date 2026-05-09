@@ -11,7 +11,7 @@ import type { Listing, SavedSearch } from "@/types/database";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { ListingType } from "@/types/database";
 
-const FILTER_KEYS = ["q", "type", "district", "min", "max", "pets", "smoking", "gender", "rooms", "min_surface", "sort"] as const;
+const FILTER_KEYS = ["q", "city", "type", "district", "min", "max", "pets", "smoking", "gender", "rooms", "min_surface", "sort"] as const;
 
 function normalizeFilters(searchString: string): Record<string, string> {
   const params = new URLSearchParams(searchString);
@@ -62,6 +62,7 @@ export function ListingsPage() {
       if (!supabase) { setLoading(false); return; }
       const params = new URLSearchParams(searchString);
       const q = params.get("q") ?? "";
+      const city = params.get("city") ?? "";
       const type = params.get("type") ?? "";
       const district = params.get("district") ?? "";
       const minPrice = Number(params.get("min") ?? 0);
@@ -77,6 +78,7 @@ export function ListingsPage() {
 
       if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
       if (type) query = query.eq("type", type);
+      if (city) query = query.ilike("location", `%${city}%`);
       if (district) query = query.ilike("location", `%${district}%`);
       if (minPrice > 0) query = query.gte("price", minPrice);
       if (maxPrice < 10000) query = query.lte("price", maxPrice);
