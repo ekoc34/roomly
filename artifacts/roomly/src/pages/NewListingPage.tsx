@@ -3,13 +3,20 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { LISTING_TYPE_LABELS } from "@/lib/constants";
+import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import type { ListingType, SavedSearch } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
+const DUTCH_CITIES = [
+  "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
+  "Groningen", "Maastricht", "Leiden", "Delft", "Tilburg",
+  "Breda", "Nijmegen", "Arnhem", "Haarlem", "'s-Hertogenbosch",
+];
+
 const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
+const selectClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
 const labelClass = "text-xs font-medium text-stone-700";
 
 type NewListing = {
@@ -93,6 +100,15 @@ export function NewListingPage() {
   const [images, setImages] = useState<string[]>([]);
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+
+  const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCity(e.target.value);
+    setDistrict("");
+  };
 
   if (!authLoading && !user) {
     return (
@@ -110,7 +126,9 @@ export function NewListingPage() {
     const title = String(fd.get("title") ?? "").trim();
     const description = String(fd.get("description") ?? "").trim();
     const price = Number(fd.get("price") ?? 0);
-    const location = String(fd.get("location") ?? "").trim();
+    const location = city
+      ? district ? `${city}, ${district}` : city
+      : String(fd.get("location_fallback") ?? "").trim();
     const type = String(fd.get("type") ?? "room_for_rent") as ListingType;
     const availability_date = String(fd.get("availability_date") ?? "").trim() || null;
     const roomsRaw = String(fd.get("rooms") ?? "").trim();
@@ -121,7 +139,7 @@ export function NewListingPage() {
     const gender_preference = genderRaw === "" ? null : genderRaw as "man" | "vrouw" | "gemengd";
 
     if (!title || !description || !location || price <= 0) {
-      setError("Vul alle verplichte velden in (titel, beschrijving, locatie, prijs).");
+      setError("Vul alle verplichte velden in (titel, beschrijving, stad, prijs).");
       return;
     }
     startTransition(async () => {
@@ -141,7 +159,6 @@ export function NewListingPage() {
       const listingId = (data as { id: string }).id;
       toast.success("Advertentie geplaatst!");
 
-      // Fire-and-forget: notify tenants with matching saved searches
       notifyMatchingSavedSearches(
         { id: listingId, title, description, price, location, type, pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area },
         user.id
@@ -169,7 +186,7 @@ export function NewListingPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="nl-type" className={labelClass}>Type</label>
-              <select id="nl-type" name="type" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-type">
+              <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
                 {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
               </select>
             </div>
@@ -178,14 +195,54 @@ export function NewListingPage() {
               <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className={inputClass} data-testid="new-listing-price" />
             </div>
           </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="nl-location" className={labelClass}>Locatie *</label>
-              <input id="nl-location" name="location" type="text" required placeholder="Amsterdam, Jordaan" className={inputClass} data-testid="new-listing-location" />
+              <label htmlFor="nl-city" className={labelClass}>Stad *</label>
+              <select
+                id="nl-city"
+                value={city}
+                onChange={handleCityChange}
+                className={selectClass}
+                data-testid="new-listing-city"
+              >
+                <option value="">Kies een stad…</option>
+                {DUTCH_CITIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
+            <div>
+              <label htmlFor="nl-district" className={labelClass}>Stadsdeel / wijk</label>
+              <select
+                id="nl-district"
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                disabled={availableDistricts.length === 0}
+                className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                data-testid="new-listing-district"
+              >
+                <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
+                {availableDistricts.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
               <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
+            </div>
+            <div>
+              <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
+              <select id="nl-gender" name="gender_preference" className={selectClass}>
+                <option value="">Geen voorkeur</option>
+                <option value="man">Alleen mannen</option>
+                <option value="vrouw">Alleen vrouwen</option>
+                <option value="gemengd">Gemengd</option>
+              </select>
             </div>
           </div>
 
@@ -201,16 +258,6 @@ export function NewListingPage() {
                 <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
               </div>
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
-            <select id="nl-gender" name="gender_preference" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
-              <option value="">Geen voorkeur</option>
-              <option value="man">Alleen mannen</option>
-              <option value="vrouw">Alleen vrouwen</option>
-              <option value="gemengd">Gemengd</option>
-            </select>
           </div>
 
           <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">

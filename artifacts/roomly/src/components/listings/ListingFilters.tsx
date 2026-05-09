@@ -1,10 +1,18 @@
 import { useCallback, useState, useTransition } from "react";
 import { useLocation, useSearch } from "wouter";
-import { AMSTERDAM_DISTRICTS, LISTING_TYPE_LABELS } from "@/lib/constants";
+import { CITY_DISTRICTS, LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 const PRICE_MAX = 2000;
+const PRICE_STEP = 50;
+
+const DUTCH_CITIES = [
+  "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
+  "Groningen", "Maastricht", "Leiden", "Delft", "Tilburg",
+  "Breda", "Nijmegen", "Arnhem", "Haarlem", "'s-Hertogenbosch",
+];
+
 const SORT_OPTIONS = [
   { value: "newest", label: "Nieuwste eerst" },
   { value: "cheapest", label: "Goedkoopste eerst" },
@@ -39,6 +47,7 @@ export function ListingFilters() {
   const [sliderMin, setSliderMin] = useState(spMin);
   const [sliderMax, setSliderMax] = useState(spMax);
 
+  const city = searchParams.get("city") ?? "";
   const district = searchParams.get("district") ?? "";
   const type = searchParams.get("type") ?? "";
   const sort = searchParams.get("sort") ?? "newest";
@@ -49,11 +58,14 @@ export function ListingFilters() {
   const rooms = searchParams.get("rooms") ?? "";
   const minSurface = searchParams.get("min_surface") ?? "";
 
+  const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
+
   const advancedCount = [pets, smoking, gender, rooms, minSurface].filter(Boolean).length;
 
   const activeCount = [
     searchParams.get("min"),
     searchParams.get("max"),
+    city,
     district,
     type,
     searchParams.get("q"),
@@ -72,6 +84,10 @@ export function ListingFilters() {
     }
     startTransition(() => navigate(`/kamers?${next.toString()}`));
   }, [navigate, searchString]);
+
+  const handleCityChange = (newCity: string) => {
+    push({ city: newCity, district: "" });
+  };
 
   const commitPrice = () => push({
     min: sliderMin > 0 ? String(sliderMin) : "",
@@ -185,19 +201,36 @@ export function ListingFilters() {
         </div>
 
         <div>
-          <label className="text-xs font-medium text-stone-700">Stadsdeel</label>
+          <label className="text-xs font-medium text-stone-700">Stad</label>
           <select
-            value={district}
-            onChange={(e) => push({ district: e.target.value })}
+            value={city}
+            onChange={(e) => handleCityChange(e.target.value)}
             className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
           >
-            <option value="">Alle stadsdelen</option>
-            {AMSTERDAM_DISTRICTS.map((d) => (
-              <option key={d} value={d}>{d}</option>
+            <option value="">Alle steden</option>
+            {DUTCH_CITIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
 
+        <div>
+          <label className="text-xs font-medium text-stone-700">Stadsdeel</label>
+          <select
+            value={district}
+            onChange={(e) => push({ district: e.target.value })}
+            disabled={availableDistricts.length === 0}
+            className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Alle stadsdelen"}</option>
+            {availableDistricts.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="text-xs font-medium text-stone-700">Type</label>
           <select
@@ -325,5 +358,3 @@ export function ListingFilters() {
     </div>
   );
 }
-
-const PRICE_STEP = 50;

@@ -3,14 +3,27 @@ import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
-import { LISTING_TYPE_LABELS } from "@/lib/constants";
+import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import type { Listing, ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
+const DUTCH_CITIES = [
+  "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
+  "Groningen", "Maastricht", "Leiden", "Delft", "Tilburg",
+  "Breda", "Nijmegen", "Arnhem", "Haarlem", "'s-Hertogenbosch",
+];
+
 const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
+const selectClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
 const labelClass = "text-xs font-medium text-stone-700";
+
+function parseLocation(location: string): { city: string; district: string } {
+  const idx = location.indexOf(", ");
+  if (idx !== -1) return { city: location.slice(0, idx), district: location.slice(idx + 2) };
+  return { city: location, district: "" };
+}
 
 export function EditListingPage() {
   const params = useParams<{ id: string }>();
@@ -24,6 +37,15 @@ export function EditListingPage() {
   const [notFound, setNotFound] = useState(false);
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+
+  const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
+
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCity(e.target.value);
+    setDistrict("");
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -36,6 +58,9 @@ export function EditListingPage() {
       setImages(l.images ?? []);
       setPetsAllowed(l.pets_allowed ?? false);
       setSmokingAllowed(l.smoking_allowed ?? false);
+      const parsed = parseLocation(l.location ?? "");
+      setCity(parsed.city);
+      setDistrict(parsed.district);
       setLoading(false);
     }
     fetchListing();
@@ -58,7 +83,9 @@ export function EditListingPage() {
     const title = String(fd.get("title") ?? "").trim();
     const description = String(fd.get("description") ?? "").trim();
     const price = Number(fd.get("price") ?? 0);
-    const location = String(fd.get("location") ?? "").trim();
+    const location = city
+      ? district ? `${city}, ${district}` : city
+      : String(fd.get("location_fallback") ?? "").trim();
     const type = String(fd.get("type") ?? "room_for_rent") as ListingType;
     const availability_date = String(fd.get("availability_date") ?? "").trim() || null;
     const roomsRaw = String(fd.get("rooms") ?? "").trim();
@@ -128,7 +155,7 @@ export function EditListingPage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="el-type" className={labelClass}>Type</label>
-                <select id="el-type" name="type" defaultValue={listing.type} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
+                <select id="el-type" name="type" defaultValue={listing.type} className={selectClass}>
                   {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
@@ -137,14 +164,54 @@ export function EditListingPage() {
                 <input id="el-price" name="price" type="number" required min={1} step={1} defaultValue={listing.price} className={inputClass} data-testid="edit-listing-price" />
               </div>
             </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="el-location" className={labelClass}>Locatie *</label>
-                <input id="el-location" name="location" type="text" required defaultValue={listing.location} className={inputClass} />
+                <label htmlFor="el-city" className={labelClass}>Stad *</label>
+                <select
+                  id="el-city"
+                  value={city}
+                  onChange={handleCityChange}
+                  className={selectClass}
+                  data-testid="edit-listing-city"
+                >
+                  <option value="">Kies een stad…</option>
+                  {DUTCH_CITIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
+              <div>
+                <label htmlFor="el-district" className={labelClass}>Stadsdeel / wijk</label>
+                <select
+                  id="el-district"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  disabled={availableDistricts.length === 0}
+                  className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                  data-testid="edit-listing-district"
+                >
+                  <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
+                  {availableDistricts.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="el-avail" className={labelClass}>Beschikbaar per</label>
                 <input id="el-avail" name="availability_date" type="date" defaultValue={listing.availability_date ?? ""} className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="el-gender" className={labelClass}>Gender voorkeur</label>
+                <select id="el-gender" name="gender_preference" defaultValue={listing.gender_preference ?? ""} className={selectClass}>
+                  <option value="">Geen voorkeur</option>
+                  <option value="man">Alleen mannen</option>
+                  <option value="vrouw">Alleen vrouwen</option>
+                  <option value="gemengd">Gemengd</option>
+                </select>
               </div>
             </div>
 
@@ -160,16 +227,6 @@ export function EditListingPage() {
                   <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
                 </div>
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="el-gender" className={labelClass}>Gender voorkeur</label>
-              <select id="el-gender" name="gender_preference" defaultValue={listing.gender_preference ?? ""} className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200">
-                <option value="">Geen voorkeur</option>
-                <option value="man">Alleen mannen</option>
-                <option value="vrouw">Alleen vrouwen</option>
-                <option value="gemengd">Gemengd</option>
-              </select>
             </div>
 
             <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
