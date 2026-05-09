@@ -58,7 +58,7 @@ export function ReportListingButton({ listingId, isLoggedIn }: Props) {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-semibold text-stone-900">Advertentie melden</h3>
-                    <p className="mt-1 text-sm text-stone-500">Help ons Roomly veilig te houden.</p>
+                    <p className="mt-1 text-sm text-stone-500">Help ons Welkthuis veilig te houden.</p>
                   </div>
                   <button type="button" onClick={() => setOpen(false)} className="text-stone-400 hover:text-stone-600" aria-label="Sluiten">✕</button>
                 </div>

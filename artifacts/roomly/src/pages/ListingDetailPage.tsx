@@ -206,7 +206,7 @@ export function ListingDetailPage() {
                 onClick={() => setShowLandlordPanel(true)}
                 className="text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
               >
-                {owner.name || "Roomly gebruiker"}
+                {owner.name || "Welkthuis gebruiker"}
               </button>
               {verificationBadgeLabel && (
                 <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">

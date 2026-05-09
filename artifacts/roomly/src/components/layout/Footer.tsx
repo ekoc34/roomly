@@ -6,7 +6,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="sm:col-span-1">
-            <p className="text-xl font-bold text-rose-600">Roomly</p>
+            <p className="text-xl font-bold text-rose-600">Welkthuis</p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
               Woningen vinden in Nederland — eerlijk, duidelijk en snel. Voor studenten, professionals, expats, families en alleenstaanden.
             </p>
@@ -46,7 +46,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-stone-100 bg-stone-50/80 py-4 text-center text-xs text-stone-400">
-        © {new Date().getFullYear()} Roomly — Huisvesting in Nederland, gratis en eerlijk
+        © {new Date().getFullYear()} Welkthuis — Huisvesting in Nederland, gratis en eerlijk
       </div>
     </footer>
   );

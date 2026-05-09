@@ -157,7 +157,7 @@ export function SimilarLandlords({ location, excludeUserId, viewerUserId }: Prop
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-stone-900">
-                        {profile.name ?? "Roomly gebruiker"}
+                        {profile.name ?? "Welkthuis gebruiker"}
                       </p>
                       {profile.verification_badge && (
                         <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">

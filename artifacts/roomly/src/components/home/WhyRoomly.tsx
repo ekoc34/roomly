@@ -33,7 +33,7 @@ export function WhyRoomly() {
     <section className="mt-16">
       <div className="rounded-3xl border border-stone-200/80 bg-white px-6 py-12 shadow-sm sm:px-10">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-rose-500">Waarom Roomly</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-rose-500">Waarom Welkthuis</p>
           <h2 className="mt-2 text-2xl font-bold text-stone-900 sm:text-3xl">Huizen vinden, eerlijk en simpel</h2>
           <p className="mt-3 text-sm leading-relaxed text-stone-500 sm:text-base">
             Een platform waar studenten, professionals, expats en families hun volgende woonplek vinden — met vertrouwde tools en zonder abonnement.

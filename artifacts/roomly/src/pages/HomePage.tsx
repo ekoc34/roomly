@@ -62,8 +62,8 @@ export function HomePage() {
   return (
     <>
       <Helmet>
-        <title>Roomly — Vind jouw kamer of woning in Nederland</title>
-        <meta name="description" content="Vind kamers, appartementen en woningen in heel Nederland. Zoek op stad, prijs en type woning op Roomly." />
+        <title>Welkthuis — Vind jouw kamer of woning in Nederland</title>
+        <meta name="description" content="Vind kamers, appartementen en woningen in heel Nederland. Zoek op stad, prijs en type woning op Welkthuis." />
       </Helmet>
       <HomePageContent />
     </>

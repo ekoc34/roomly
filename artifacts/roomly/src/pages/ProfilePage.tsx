@@ -297,7 +297,7 @@ export function ProfilePage() {
 
               <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Privacyinstellingen</p>
-                <p className="mb-3 text-xs text-stone-400">Bepaal welke contactgegevens zichtbaar zijn voor anderen op Roomly.</p>
+                <p className="mb-3 text-xs text-stone-400">Bepaal welke contactgegevens zichtbaar zijn voor anderen op Welkthuis.</p>
                 <div className="flex flex-col gap-3">
                   <label className="flex cursor-pointer items-center justify-between gap-3">
                     <span className="text-sm text-stone-700">E-mailadres zichtbaar voor anderen</span>

@@ -29,7 +29,7 @@ export function ResetPasswordPage() {
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
         <div className="text-center">
-          <p className="text-3xl font-black text-rose-600">Roomly</p>
+          <p className="text-3xl font-black text-rose-600">Welkthuis</p>
           <h1 className="mt-2 text-xl font-bold text-stone-900">Nieuw wachtwoord instellen</h1>
           <p className="mt-1 text-sm text-stone-500">Kies een sterk nieuw wachtwoord.</p>
         </div>

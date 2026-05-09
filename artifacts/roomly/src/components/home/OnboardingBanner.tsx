@@ -10,7 +10,7 @@ export function OnboardingBanner() {
           </div>
           <div>
             <p className="text-sm font-semibold text-blue-900">
-              Roomly is een gratis huisvestingsplatform voor heel Nederland
+              Welkthuis is een gratis huisvestingsplatform voor heel Nederland
             </p>
             <p className="mt-0.5 text-sm leading-relaxed text-blue-800/80">
               Heb je een kamer of appartement te huur? Plaats je advertentie gratis en bereik duizenden geverifieerde huurders.

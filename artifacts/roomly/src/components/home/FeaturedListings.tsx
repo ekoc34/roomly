@@ -13,7 +13,7 @@ export function FeaturedListings({ listings, favoriteIds }: Props) {
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Populaire woningen</h2>
-          <p className="mt-1 text-sm text-stone-500">De nieuwste woningen op Roomly.</p>
+          <p className="mt-1 text-sm text-stone-500">De nieuwste woningen op Welkthuis.</p>
         </div>
         <Link href="/kamers" className="text-sm font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
       </div>

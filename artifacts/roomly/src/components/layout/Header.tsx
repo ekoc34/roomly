@@ -40,7 +40,7 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" data-testid="header-logo" className="text-xl font-bold tracking-tight text-rose-600">
-          Roomly
+          Welkthuis
         </Link>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex">

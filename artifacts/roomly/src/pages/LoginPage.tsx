@@ -29,13 +29,13 @@ export function LoginPage() {
   return (
     <>
       <Helmet>
-        <title>Inloggen — Roomly</title>
-        <meta name="description" content="Log in op je Roomly account en vind jouw perfecte woning in Nederland." />
+        <title>Inloggen — Welkthuis</title>
+        <meta name="description" content="Log in op je Welkthuis account en vind jouw perfecte woning in Nederland." />
       </Helmet>
       <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
         <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
           <div className="text-center">
-            <p className="text-3xl font-black text-rose-600">Roomly</p>
+            <p className="text-3xl font-black text-rose-600">Welkthuis</p>
             <h1 className="mt-2 text-xl font-bold text-stone-900">Welkom terug</h1>
             <p className="mt-1 text-sm text-stone-500">Log in op je account</p>
           </div>

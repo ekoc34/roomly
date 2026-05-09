@@ -41,7 +41,7 @@ export function UserPersonaSelector() {
     <div className="w-full max-w-lg" data-testid="persona-selector">
       <div className="text-center">
         <span className="text-4xl">👋</span>
-        <h1 className="mt-4 text-3xl font-black text-stone-900 sm:text-4xl">Welkom bij Roomly</h1>
+        <h1 className="mt-4 text-3xl font-black text-stone-900 sm:text-4xl">Welkom bij Welkthuis</h1>
         <p className="mt-3 text-base leading-relaxed text-stone-500">Kies wat het beste bij je past — zo personaliseren we je ervaring.</p>
       </div>
       <div className="mt-8 grid gap-4">
