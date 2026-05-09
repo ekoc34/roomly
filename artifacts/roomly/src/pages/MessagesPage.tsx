@@ -10,6 +10,7 @@ export function MessagesPage() {
   const { user, loading: authLoading } = useAuth();
   const [convs, setConvs] = useState<ConvRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -17,7 +18,8 @@ export function MessagesPage() {
 
     async function fetchConvs() {
       try {
-        const { data, error } = await supabase!
+        // Use !left joins to avoid dropping conversations with missing profiles/listings
+        const { data, error: queryError } = await supabase!
           .from("conversations")
           .select(
             "*, listing:listing_id!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
@@ -25,8 +27,9 @@ export function MessagesPage() {
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
           .order("last_message_at", { ascending: false, nullsFirst: false });
 
-        if (error) {
-          console.error("[MessagesPage] Supabase query error:", error);
+        if (queryError) {
+          console.error("[MessagesPage] Supabase query error:", queryError);
+          setError("Er is iets misgegaan bij het ophalen van je berichten.");
           setConvs([]);
           setLoading(false);
           return;
@@ -46,6 +49,7 @@ export function MessagesPage() {
         setConvs(rows);
       } catch (err) {
         console.error("[MessagesPage] Unexpected error fetching conversations:", err);
+        setError("Er is iets misgegaan. Probeer de pagina opnieuw te laden.");
         setConvs([]);
       } finally {
         setLoading(false);
@@ -67,6 +71,11 @@ export function MessagesPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="mb-6 text-2xl font-bold text-stone-900">Berichten</h1>
+      {error && (
+        <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      )}
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((n) => (
