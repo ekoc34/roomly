@@ -23,6 +23,12 @@ type MyApplication = {
 
 type ConvSummary = { id: string; listing_id: string; tenant_id: string };
 
+type RecentView = {
+  listing_id: string;
+  viewed_at: string;
+  listing: { id: string; title: string; price: number; location: string; images: string[] } | null;
+};
+
 export function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -35,6 +41,7 @@ export function DashboardPage() {
   const [tenantConversations, setTenantConversations] = useState<ConvSummary[]>([]);
   const [landlordConversations, setLandlordConversations] = useState<ConvSummary[]>([]);
   const [savedSearchesCount, setSavedSearchesCount] = useState(0);
+  const [recentViews, setRecentViews] = useState<RecentView[]>([]);
   const [inlineReply, setInlineReply] = useState<{ appId: string; action: "accepted" | "rejected"; text: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>("zoektocht");
@@ -55,6 +62,7 @@ export function DashboardPage() {
         { data: myApps },
         { data: tenantConvData },
         { count: savedCount },
+        { data: recentViewsData },
       ] = await Promise.all([
         supabase!.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
         supabase!.from("listings").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
@@ -64,6 +72,7 @@ export function DashboardPage() {
         supabase!.from("applications").select("*, listings:listing_id(id, title)").eq("applicant_id", user!.id).order("created_at", { ascending: false }),
         supabase!.from("conversations").select("id, listing_id, tenant_id").eq("tenant_id", user!.id),
         supabase!.from("saved_searches").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
+        supabase!.from("listing_views").select("listing_id, viewed_at, listing:listings(id, title, price, location, images)").eq("user_id", user!.id).order("viewed_at", { ascending: false }).limit(5),
       ]);
 
       setProfile(p as Profile | null);
@@ -71,6 +80,7 @@ export function DashboardPage() {
       setTenantConvsCount(tenantConvCount ?? 0);
       setLandlordConvsCount(landlordConvCount ?? 0);
       setSavedSearchesCount(savedCount ?? 0);
+      setRecentViews((recentViewsData as RecentView[] | null) ?? []);
       setMyApplications((myApps as MyApplication[] | null) ?? []);
       setTenantConversations((tenantConvData as ConvSummary[] | null) ?? []);
 
@@ -366,6 +376,60 @@ export function DashboardPage() {
                           </Link>
                         )}
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h2 className="mb-4 text-lg font-bold text-stone-900">Recent bekeken</h2>
+              {loading ? (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div key={n} className="animate-pulse rounded-2xl bg-stone-200 h-36" />
+                  ))}
+                </div>
+              ) : recentViews.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-10 text-center shadow-sm">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-50">
+                    <svg className="h-5 w-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-stone-700">Je hebt nog geen woningen bekeken.</p>
+                  <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">Bekijk woningen →</Link>
+                </div>
+              ) : (
+                <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                  {recentViews.map((v) => {
+                    const l = v.listing;
+                    if (!l) return null;
+                    const thumb = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
+                    return (
+                      <Link
+                        key={v.listing_id}
+                        href={`/kamers/${l.id}`}
+                        className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                          {thumb ? (
+                            <img src={thumb} alt={l.title} className="h-full w-full object-cover transition group-hover:scale-105" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <svg className="h-8 w-8 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-1 flex-col gap-0.5 p-3">
+                          <p className="line-clamp-2 text-xs font-semibold text-stone-900 leading-snug">{l.title}</p>
+                          <p className="text-xs text-stone-400 truncate">{l.location}</p>
+                          <p className="mt-1 text-xs font-bold text-rose-600">€{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
+                        </div>
+                      </Link>
                     );
                   })}
                 </div>

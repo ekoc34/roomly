@@ -124,6 +124,13 @@ export type Notification = {
   created_at: string;
 };
 
+export type ListingView = {
+  id: string;
+  user_id: string;
+  listing_id: string;
+  viewed_at: string;
+};
+
 export type ReportCategory =
   | "scam"
   | "spam"

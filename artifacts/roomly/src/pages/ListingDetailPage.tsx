@@ -36,6 +36,14 @@ export function ListingDetailPage() {
       setOwner(ownerProfile as Profile | null);
       setFavorited(!!fav);
       setLoading(false);
+
+      // Fire-and-forget: track this view for the "Recent bekeken" section
+      if (user && supabase) {
+        supabase.from("listing_views").upsert(
+          { user_id: user.id, listing_id: params.id, viewed_at: new Date().toISOString() },
+          { onConflict: "user_id,listing_id" }
+        );
+      }
     }
     fetchData();
   }, [params.id, user]);
