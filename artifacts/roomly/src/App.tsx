@@ -16,6 +16,7 @@ import { EditListingPage } from "@/pages/EditListingPage";
 import { FavoritesPage } from "@/pages/FavoritesPage";
 import { MessagesPage } from "@/pages/MessagesPage";
 import { ConversationPage } from "@/pages/ConversationPage";
+import { NotificationsPage } from "@/pages/NotificationsPage";
 import { WelcomePage } from "@/pages/WelcomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -81,6 +82,7 @@ function Router() {
       <Route path="/favorieten" component={() => <AnimatedRoute component={FavoritesPage} />} />
       <Route path="/berichten" component={() => <AnimatedRoute component={MessagesPage} />} />
       <Route path="/berichten/:id" component={() => <AnimatedRoute component={ConversationPage} />} />
+      <Route path="/notificaties" component={() => <AnimatedRoute component={NotificationsPage} />} />
       <Route path="/dashboard" component={() => <AnimatedRoute component={DashboardPage} />} />
       <Route path="/opgeslagen-zoekopdrachten" component={() => <AnimatedRoute component={SavedSearchesPage} />} />
       <Route path="/profiel" component={() => <AnimatedRoute component={ProfilePage} />} />

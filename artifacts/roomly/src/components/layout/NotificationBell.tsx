@@ -128,17 +128,24 @@ export function NotificationBell() {
             )}
           </div>
 
-          {notifications.length > 0 && (
-            <div className="border-t border-stone-100 px-4 py-2.5">
+          <div className="border-t border-stone-100 px-4 py-2.5 flex items-center justify-between gap-2">
+            {notifications.length > 0 && (
               <button
                 type="button"
                 onClick={async () => { await markAllRead(); }}
-                className="text-xs font-medium text-rose-600 transition hover:text-rose-700 hover:underline"
+                className="text-xs font-medium text-stone-500 transition hover:text-stone-700 hover:underline"
               >
                 Alles als gelezen markeren
               </button>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              onClick={() => { setOpen(false); navigate("/notificaties"); }}
+              className="ml-auto text-xs font-medium text-rose-600 transition hover:text-rose-700 hover:underline"
+            >
+              Bekijk alle notificaties →
+            </button>
+          </div>
         </div>
       )}
     </div>
