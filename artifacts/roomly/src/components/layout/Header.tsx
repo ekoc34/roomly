@@ -18,12 +18,21 @@ function iconCls(active: boolean) {
   return `h-4 w-4 ${active ? "text-rose-500" : "text-stone-400"}`;
 }
 
+function getInitial(name: string | null, email: string | null): string {
+  const src = name?.trim() || email?.trim() || "?";
+  return src.charAt(0).toUpperCase();
+}
+
 export function Header() {
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
   const [path, navigate] = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   const isKamers = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
   const isKaart  = path === "/kaart";
@@ -44,6 +53,24 @@ export function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!user || !supabase) return;
+    supabase
+      .from("profiles")
+      .select("avatar_url, name")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setAvatarUrl(data.avatar_url ?? null);
+          setDisplayName(data.name ?? null);
+        }
+      });
+  }, [user]);
+
+  const showImg = !!avatarUrl && !imgError;
+  const initial = getInitial(displayName, user?.email ?? null);
 
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 shadow-sm backdrop-blur-md">
@@ -72,9 +99,20 @@ export function Header() {
                 type="button"
                 data-testid="header-profile-button"
                 onClick={() => setDropdownOpen((o) => !o)}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full ring-2 ring-white transition hover:ring-rose-300"
               >
-                <User className="h-4.5 w-4.5" />
+                {showImg ? (
+                  <img
+                    src={avatarUrl!}
+                    alt={displayName ?? "Profiel"}
+                    onError={() => setImgError(true)}
+                    className="h-8 w-8 rounded-full object-cover ring-2 ring-white transition hover:ring-rose-300"
+                  />
+                ) : (
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-semibold text-rose-600 ring-2 ring-white transition hover:ring-rose-300 select-none">
+                    {initial}
+                  </span>
+                )}
                 {unreadCount !== null && unreadCount > 0 && (
                   <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                     {unreadCount > 9 ? "9+" : unreadCount}
@@ -97,7 +135,7 @@ export function Header() {
                     href="/berichten"
                     data-testid="header-messages-link"
                     onClick={() => setDropdownOpen(false)}
-                    className="relative flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
+                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                   >
                     <MessageSquare className="h-4 w-4 text-stone-400" />
                     Berichten
