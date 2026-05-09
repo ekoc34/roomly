@@ -6,9 +6,12 @@ export function Footer() {
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="sm:col-span-1">
-            <p className="text-xl tracking-tight">
-              <span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span>
-            </p>
+            <div className="flex items-center gap-2">
+              <img src="/logo.svg" alt="Welkthuis logo" className="h-10 w-10" />
+              <p className="text-xl tracking-tight">
+                <span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span>
+              </p>
+            </div>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
               Woningen vinden in Nederland — eerlijk, duidelijk en snel. Voor studenten, professionals, expats, families en alleenstaanden.
             </p>

@@ -76,7 +76,8 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 shadow-sm backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Brand */}
-        <Link href="/" data-testid="header-logo" className="text-xl tracking-tight">
+        <Link href="/" data-testid="header-logo" className="flex items-center gap-2 text-xl tracking-tight">
+          <img src="/logo.svg" alt="Welkthuis logo" className="h-8 w-8" />
           <span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span>
         </Link>
 

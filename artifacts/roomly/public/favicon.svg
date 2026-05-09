@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Chimney -->
+  <rect x="21" y="5" width="3" height="10" rx="1" fill="#f43f5e"/>
+  <!-- Roof -->
+  <polygon points="16,3 2,16 30,16" fill="#f43f5e"/>
+  <!-- Body -->
+  <rect x="5" y="14" width="22" height="15" rx="3" fill="#f43f5e"/>
+  <!-- Window panes -->
+  <rect x="10" y="18" width="4" height="4" rx="1" fill="white"/>
+  <rect x="17" y="18" width="4" height="4" rx="1" fill="white"/>
+  <rect x="10" y="24" width="4" height="4" rx="1" fill="white"/>
+  <rect x="17" y="24" width="4" height="4" rx="1" fill="white"/>
+</svg>
