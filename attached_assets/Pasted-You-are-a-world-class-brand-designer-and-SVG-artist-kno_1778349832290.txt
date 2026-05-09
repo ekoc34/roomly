@@ -1,0 +1,51 @@
+You are a world-class brand designer and SVG artist known for creating iconic, memorable logos that stand out in crowded markets (like Airbnb, Thuisbezorgd, FedEx). You don't do generic house icons. You find clever visual metaphors that make people smile and remember.
+
+TASK: Design 5 groundbreaking SVG logo concepts for "Welkthuis", a Dutch rental platform.
+
+THE BRAND SOUL:
+"Welkthuis" = "Welk" (Which) + "thuis" (Home). The brand asks every user: "Which home is yours?" It's the bridge between searching and finding. It transforms the anxiety of "Where will I live?" into the excitement of "Look at all these possibilities!"
+
+CORE IDEA TO VISUALIZE: "The moment of choice — among many doors, one opens for you."
+
+PUSH YOUR CREATIVE LIMITS:
+- NO generic house icons with roofs and chimneys
+- NO generic magnifying glasses
+- NO generic keys or locks
+- Every concept must use a CLEVER VISUAL METAPHOR that makes the viewer think for a split second, then smile when they get it
+- Think: negative space (FedEx arrow), double meanings (Amazon smile from A to Z), visual puns
+
+5 REQUIRED CONCEPTS:
+
+CONCEPT A — "THE OPEN CURTAIN"
+A window with curtains pulled apart, revealing a bright doorway inside. The curtains form a subtle "W" shape. Metaphor: "Your new home is waiting behind the curtain."
+
+CONCEPT B — "THE FINGERPRINT HOUSE"
+A fingerprint pattern where the swirls and ridges subtly form the outline of a home. Metaphor: "Every person's home is unique to them."
+
+CONCEPT C — "THE WELCOMING ARMS"
+Two abstract arms forming a welcoming embrace, but the negative space between them creates a house shape. Metaphor: "Welcome home." Warm, human, emotional.
+
+CONCEPT D — "THE DOORWAY ARROW"
+A simple arch (doorway) where the negative space inside forms an arrow pointing upward and forward. The arch itself is formed by a subtle "W". Metaphor: "Step through to your next chapter."
+
+CONCEPT E — "THE ADDRESS PIN"
+A location pin (like a map pin) but the pin's body is a tiny house. The pin's shadow on the ground is a question mark. Metaphor: "Which location? Here. This is home."
+
+BONUS (SURPRISE ME):
+Create one ADDITIONAL concept that I haven't described. Use any clever visual metaphor you can think of. Surprise me with your creativity. You're the expert designer — show me what I didn't know I wanted.
+
+TECHNICAL:
+- Each SVG: viewBox="0 0 200 200"
+- Primary color: #f43f5e (rose-500)
+- Secondary (optional): #1e293b (slate-800)
+- Stroke widths: 3-4px minimum
+- Must work at 16x16 favicon size
+- Each concept in a separate labeled code block
+- Include a short explanation (1-2 sentences) of the visual metaphor under each concept
+
+AFTER SHOWING ALL 5 + BONUS CONCEPTS:
+- Pick your TOP 3 and rank them
+- Explain WHY each of the top 3 works brilliantly for this brand
+- Ask which one the user wants to finalize
+
+Do NOT generate derivative files yet. Just the concepts.

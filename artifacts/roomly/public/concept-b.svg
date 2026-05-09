@@ -1,23 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <!--
-    CONCEPT B — Moving Box to Home
-    A filled house rises from inside an open moving box.
-    Box is outline-only (white fill), house is solid rose-500.
-    Open flap lines show the box is freshly opened.
+    CONCEPT B — THE FINGERPRINT HOUSE
+    A fingerprint's concentric oval rings converge to a center that isn't an oval —
+    it's a house pentagon. Every home is as unique as the person searching for it.
   -->
 
-  <!-- House rising from box: roof triangle -->
-  <path d="M16 4 L25 14 L7 14 Z" fill="#f43f5e"/>
-  <!-- House body (partially hidden behind white box interior) -->
-  <rect x="8" y="14" width="16" height="7" fill="#f43f5e"/>
-  <!-- White door on house (visible above box rim) -->
-  <rect x="13.5" y="15" width="5" height="6" rx="1" fill="white"/>
+  <!-- Fingerprint rings — four concentric ovals -->
+  <ellipse cx="100" cy="108" rx="88" ry="84" fill="none" stroke="#f43f5e" stroke-width="3.5"/>
+  <ellipse cx="100" cy="108" rx="70" ry="66" fill="none" stroke="#f43f5e" stroke-width="3.5"/>
+  <ellipse cx="100" cy="108" rx="52" ry="48" fill="none" stroke="#f43f5e" stroke-width="3.5"/>
+  <ellipse cx="100" cy="108" rx="34" ry="30" fill="none" stroke="#f43f5e" stroke-width="3.5"/>
 
-  <!-- Moving box (white fill hides bottom of house, giving "box" depth) -->
-  <rect x="3" y="18" width="26" height="12" rx="2.5" fill="white" stroke="#f43f5e" stroke-width="2.5"/>
+  <!-- White fill mask — erases oval lines inside the house shape -->
+  <path d="M100,72 L130,98 L130,132 L70,132 L70,98 Z" fill="white"/>
 
-  <!-- Open flap — left -->
-  <path d="M4 19 L6.5 12.5" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
-  <!-- Open flap — right -->
-  <path d="M28 19 L25.5 12.5" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- House pentagon — the innermost "ring" is now a house shape -->
+  <path d="M100,72 L130,98 L130,132 L70,132 L70,98 Z"
+        fill="none" stroke="#f43f5e" stroke-width="4.5"/>
+
+  <!-- Door cutout inside house (rose-500 rectangle as a door, proving it's a home) -->
+  <rect x="88" y="116" width="24" height="16" rx="3" fill="#f43f5e"/>
 </svg>

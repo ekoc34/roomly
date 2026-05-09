@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <!--
+    BONUS CONCEPT — "THE NESTING"
+    Four house silhouettes nested inside each other, progressively bolder.
+    The outer houses fade — the infinite possibilities. The solid inner house glows —
+    the one that's yours. "Among all homes, Welkthuis finds the one."
+    A visual metaphor for "narrowing in" on your perfect home.
+  -->
+
+  <!-- Outermost house (very faint — the sea of options) -->
+  <path d="M100,44 L184,116 L184,195 L16,195 L16,116 Z"
+        fill="none" stroke="#f43f5e" stroke-width="3" opacity="0.18"/>
+
+  <!-- Second house -->
+  <path d="M100,62 L165,118 L165,180 L35,180 L35,118 Z"
+        fill="none" stroke="#f43f5e" stroke-width="3" opacity="0.40"/>
+
+  <!-- Third house (getting clearer) -->
+  <path d="M100,80 L146,120 L146,164 L54,164 L54,120 Z"
+        fill="none" stroke="#f43f5e" stroke-width="3.5" opacity="0.68"/>
+
+  <!-- Innermost house — solid, found, certain -->
+  <path d="M100,98 L127,120 L127,148 L73,148 L73,120 Z" fill="#f43f5e"/>
+
+  <!-- White door — this is HOME -->
+  <rect x="88" y="133" width="24" height="15" rx="3" fill="white"/>
+</svg>

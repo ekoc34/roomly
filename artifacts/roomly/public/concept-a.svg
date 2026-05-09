@@ -1,19 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
   <!--
-    CONCEPT A — The Welcoming Key
-    A house-shaped key handle (the bow) with a keyhole cutout.
-    Shaft + two teeth below. Tilted -20° like a key about to turn.
+    CONCEPT A — THE OPEN CURTAIN
+    Two draped curtain panels whose swag hemline forms a clear W shape.
+    The warm interior reveals a soft arched doorway — your home is waiting behind the curtain.
   -->
-  <g transform="rotate(-20, 16, 16)">
-    <!-- House-shaped bow (pentagon: triangle roof + square body) -->
-    <path d="M16 3 L23.5 9.5 L23.5 19 L8.5 19 L8.5 9.5 Z" fill="#f43f5e"/>
-    <!-- Keyhole: circle cutout in house center -->
-    <circle cx="16" cy="12.5" r="2.8" fill="white"/>
-    <!-- Key shaft -->
-    <rect x="14.5" y="19" width="3" height="9" rx="1.5" fill="#f43f5e"/>
-    <!-- Tooth 1 (upper) -->
-    <rect x="17.5" y="21.5" width="3.5" height="2" rx="0.7" fill="#f43f5e"/>
-    <!-- Tooth 2 (lower) -->
-    <rect x="17.5" y="25.5" width="2.5" height="2" rx="0.7" fill="#f43f5e"/>
-  </g>
+
+  <!-- Warm interior background -->
+  <rect x="10" y="26" width="180" height="168" fill="#fff1f2"/>
+
+  <!-- Curtain swag valance — bottom hemline IS the W letterform -->
+  <path d="
+    M10,30 Q10,26 15,26
+    L185,26 Q190,26 190,30
+    L190,46
+    Q155,46 130,92
+    Q115,54 100,60
+    Q85,54 70,92
+    Q45,46 10,46 Z
+  " fill="#f43f5e"/>
+
+  <!-- Left curtain tail (swept/tied to the left) -->
+  <path d="M10,46 L10,186 Q10,190 15,190 L60,190 Q68,186 70,168 L70,92 Q55,50 10,46 Z" fill="#f43f5e"/>
+
+  <!-- Right curtain tail (swept/tied to the right) -->
+  <path d="M190,46 L190,186 Q190,190 185,190 L140,190 Q132,186 130,168 L130,92 Q145,50 190,46 Z" fill="#f43f5e"/>
+
+  <!-- Curtain rod rings (small circles, decorative) -->
+  <circle cx="40" cy="26" r="4" fill="white" opacity="0.5"/>
+  <circle cx="70" cy="26" r="4" fill="white" opacity="0.5"/>
+  <circle cx="100" cy="26" r="4" fill="white" opacity="0.5"/>
+  <circle cx="130" cy="26" r="4" fill="white" opacity="0.5"/>
+  <circle cx="160" cy="26" r="4" fill="white" opacity="0.5"/>
+
+  <!-- Interior arched doorway (visible between the curtains) -->
+  <path d="M100,88 Q73,88 73,125 L73,180 L127,180 L127,125 Q127,88 100,88 Z"
+        fill="none" stroke="#f43f5e" stroke-width="3.5" opacity="0.55"/>
 </svg>

@@ -23,16 +23,34 @@ title = "logo-large.svg — marketing/welcome page (96×96)"
 id = "WXCGhp5YI32fkZ5zgdq3A"
 uri = "file://artifacts/roomly/public/concept-a.svg"
 type = "image"
-title = "Concept A — The Welcoming Key (house-shaped handle + keyhole + teeth, tilted -20°)"
+title = "A — The Open Curtain (W-shaped swag hemline, arched doorway inside)"
 
 [[outputs]]
 id = "_usnC7ubPSFkruuQyaEBr"
 uri = "file://artifacts/roomly/public/concept-b.svg"
 type = "image"
-title = "Concept B — Moving Box to Home (house rising from open cardboard box)"
+title = "B — The Fingerprint House (oval rings morph into a house pentagon at center)"
 
 [[outputs]]
 id = "J2_njF4_X-mi2vF2IYvxJ"
 uri = "file://artifacts/roomly/public/concept-c.svg"
 type = "image"
-title = "Concept C — The Open Door (house silhouette, wide open door, rightward arrow, subtle W roof)"
+title = "C — The Welcoming Arms (two arms embrace, negative space = house shape)"
+
+[[outputs]]
+id = "XDfh4AmXK2Gk0YbPuyRa8"
+uri = "file://artifacts/roomly/public/concept-d.svg"
+type = "image"
+title = "D — The Doorway Arrow (W-crowned arch, bold upward arrow through the opening)"
+
+[[outputs]]
+id = "Y4pX25Hz07ewMCRkrMZAL"
+uri = "file://artifacts/roomly/public/concept-e.svg"
+type = "image"
+title = "E — The Address Pin (map pin with house inside, question-mark shadow below)"
+
+[[outputs]]
+id = "YRZCE0jPZF1NYmaBs0Kew"
+uri = "file://artifacts/roomly/public/concept-f.svg"
+type = "image"
+title = "BONUS — The Nesting (4 nested houses, fading out to solid: finding the one)"
