@@ -122,6 +122,14 @@ export function Header() {
 
               {dropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 min-w-[200px] rounded-2xl border border-stone-200 bg-white py-2 shadow-lg">
+                  <div className="px-4 py-3 border-b border-stone-100">
+                    <p className="font-semibold text-sm text-stone-900 truncate">
+                      {displayName ?? "Gebruiker"}
+                    </p>
+                    <p className="text-xs text-stone-400 truncate mt-0.5">
+                      {user?.email ?? ""}
+                    </p>
+                  </div>
                   <Link
                     href="/favorieten"
                     data-testid="header-favorites-link"
