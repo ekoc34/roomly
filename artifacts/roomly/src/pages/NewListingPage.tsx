@@ -1,11 +1,15 @@
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { ShieldAlert, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
-import type { ListingType, SavedSearch } from "@/types/database";
+import { isFullyVerified } from "@/lib/verificationUtils";
+import type { ListingType, SavedSearch, Profile } from "@/types/database";
+
+const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
@@ -126,6 +130,24 @@ export function NewListingPage() {
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState<boolean>(
+    () => localStorage.getItem(BANNER_DISMISSED_KEY) === "1"
+  );
+
+  useEffect(() => {
+    if (!user || !supabase) return;
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => {
+      setProfile(data as Profile | null);
+    });
+  }, [user]);
+
+  const dismissBanner = () => {
+    localStorage.setItem(BANNER_DISMISSED_KEY, "1");
+    setBannerDismissed(true);
+  };
+
+  const showVerifyBanner = !bannerDismissed && !!user && !isFullyVerified(profile);
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
 
@@ -203,6 +225,36 @@ export function NewListingPage() {
       <p className="mt-1 text-sm text-stone-500">Gratis — bereik duizenden huurders in heel Nederland.</p>
       <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
         <form onSubmit={onSubmit} className="space-y-5" data-testid="new-listing-form">
+          {showVerifyBanner && (
+            <div className="relative rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 pr-10">
+              <button
+                type="button"
+                onClick={dismissBanner}
+                aria-label="Sluiten"
+                className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-amber-400 transition hover:bg-amber-100 hover:text-amber-700"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                  <ShieldAlert className="h-4 w-4 text-amber-600" />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-900">Vergroot je kans op reacties</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
+                    Geverifieerde accounts krijgen meer vertrouwen. Verifieer je e-mail en telefoonnummer voor een grotere kans op reacties.
+                  </p>
+                  <Link
+                    href="/profiel"
+                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 active:scale-95"
+                  >
+                    <ShieldAlert className="h-3 w-3" />
+                    Verifiëren
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
           <div>
             <label htmlFor="nl-title" className={labelClass}>Titel *</label>
             <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className={inputClass} data-testid="new-listing-title" />
