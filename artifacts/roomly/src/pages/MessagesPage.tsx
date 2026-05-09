@@ -18,11 +18,11 @@ export function MessagesPage() {
 
     async function fetchConvs() {
       try {
-        // Use !left joins to avoid dropping conversations with missing profiles/listings
+        // 'listing:listings!left(*)' kullanarak çakışan foreign key hatasını çözüyoruz
         const { data, error: queryError } = await supabase!
           .from("conversations")
           .select(
-            "*, listing:listing_id!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
+            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
           )
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
           .order("last_message_at", { ascending: false, nullsFirst: false });
