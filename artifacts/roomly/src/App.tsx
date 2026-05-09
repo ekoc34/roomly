@@ -4,9 +4,11 @@ import { lazy, Suspense, useEffect, useRef } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { CompareBar } from "@/components/listings/CompareBar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
+import { CompareProvider } from "@/contexts/CompareContext";
 import { useLastActive } from "@/hooks/useLastActive";
 
 import { HomePage } from "@/pages/HomePage";
@@ -28,6 +30,7 @@ const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ 
 const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((m) => ({ default: m.ProfilePage })));
 const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.MapPage })));
 const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m) => ({ default: m.SavedSearchesPage })));
+const ComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
 
 function PageLoader() {
   return (
@@ -84,6 +87,7 @@ function Router() {
       <Route path="/berichten/:id" component={() => <AnimatedRoute component={ConversationPage} />} />
       <Route path="/notificaties" component={() => <AnimatedRoute component={NotificationsPage} />} />
       <Route path="/dashboard" component={() => <AnimatedRoute component={DashboardPage} />} />
+      <Route path="/vergelijk" component={() => <AnimatedRoute component={ComparePage} />} />
       <Route path="/opgeslagen-zoekopdrachten" component={() => <AnimatedRoute component={SavedSearchesPage} />} />
       <Route path="/profiel" component={() => <AnimatedRoute component={ProfilePage} />} />
       <Route path="/welkom" component={() => <AnimatedRoute component={WelcomePage} />} />
@@ -99,18 +103,21 @@ function Router() {
 export default function App() {
   return (
     <SelectedCityProvider>
-      <div className="flex min-h-screen flex-col bg-stone-50">
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <ActivityTracker />
-          <Header />
-          <main className="flex-1">
-            <Router />
-          </main>
-          <Footer />
-          <MobileBottomNav />
-        </WouterRouter>
-        <Toaster position="bottom-right" richColors closeButton />
-      </div>
+      <CompareProvider>
+        <div className="flex min-h-screen flex-col bg-stone-50">
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <ActivityTracker />
+            <Header />
+            <main className="flex-1">
+              <Router />
+            </main>
+            <Footer />
+            <MobileBottomNav />
+            <CompareBar />
+          </WouterRouter>
+          <Toaster position="bottom-right" richColors closeButton />
+        </div>
+      </CompareProvider>
     </SelectedCityProvider>
   );
 }

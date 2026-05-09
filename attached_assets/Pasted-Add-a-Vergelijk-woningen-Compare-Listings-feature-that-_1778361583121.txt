@@ -1,0 +1,36 @@
+Add a "Vergelijk woningen" (Compare Listings) feature that lets users select up to 3 listings and see them side-by-side in a comparison table.
+
+1. Create a new comparison page at /vergelijk that reads selected listing IDs from URL params (e.g., /vergelijk?ids=id1,id2,id3).
+
+2. Add an "Vergelijk" button with a PlusCircle or Scale icon to each listing card component (ListingCard.tsx). This button should:
+   - Toggle the listing in a persistent comparison list stored in localStorage or React Context
+   - Show a visual indicator when a listing is selected for comparison (e.g., button turns rose-500 filled)
+   - If a user tries to select more than 3 listings, show a toast: "Je kunt maximaal 3 woningen vergelijken."
+
+3. Create a floating comparison bar that appears at the bottom of the screen when at least 1 listing is selected, showing:
+   - Mini thumbnail images of the selected listings
+   - Total count: "X van 3 woningen geselecteerd"
+   - "Vergelijk" button to navigate to the comparison page with selected IDs
+   - "Wissen" (Clear) button to remove all selections
+
+4. On the /vergelijk page, fetch the selected listings from Supabase using the IDs from URL params and display them in a responsive comparison table with these rows:
+   - Foto (main image)
+   - Prijs per maand
+   - Locatie
+   - Type woning
+   - Aantal kamers
+   - Woonoppervlakte (m²)
+   - Huisdieren toegestaan (Yes/No)
+   - Roken toegestaan (Yes/No)
+   - Gender voorkeur
+   - Beschikbaar vanaf (availability date)
+
+   Each column represents one listing with its data. The rows should be divided with subtle borders for clarity.
+
+5. Add a "Verwijder" (Remove) button below each listing column to remove it from the comparison. Show a "Voeg woning toe" placeholder card if fewer than 3 listings are selected, linking back to /kamers. If no listings are selected, redirect back to /kamers with an info toast.
+
+6. On mobile (screens smaller than 768px), display the comparison as a vertical stack of cards rather than a horizontal table, with each card showing the listing's full details in sections.
+
+7. Keep all existing functionality, Dutch labels, and Tailwind v4 styling intact. Match the current design language (rounded-2xl, rose-500 accent, stone colors, Inter font).
+
+8. After implementing, commit with message: "Add Vergelijk woningen comparison feature" and push.

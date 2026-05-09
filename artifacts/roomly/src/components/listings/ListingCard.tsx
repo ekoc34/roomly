@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
+import { CompareButton } from "@/components/listings/CompareButton";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
 import type { Listing } from "@/types/database";
 
@@ -94,6 +95,10 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge }:
                 {listing.surface_area} m²
               </span>
             )}
+          </div>
+
+          <div className="mt-3 flex items-center">
+            <CompareButton listingId={listing.id} />
           </div>
 
           <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
