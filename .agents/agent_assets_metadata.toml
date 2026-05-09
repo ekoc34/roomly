@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "HJMECRBh-mWdg4OV49LPl"
+uri = "file://artifacts/roomly/public/logo.svg"
+type = "image"
+title = "logo.svg — header/footer (32×32)"
+
+[[outputs]]
+id = "buww75SwsoDI-znQZrlGs"
+uri = "file://artifacts/roomly/public/favicon.svg"
+type = "image"
+title = "favicon.svg — browser tab (32×32)"
+
+[[outputs]]
+id = "O4Q49A729fcwwA3VIY8M_"
+uri = "file://artifacts/roomly/public/logo-large.svg"
+type = "image"
+title = "logo-large.svg — marketing/welcome page (96×96)"
