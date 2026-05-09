@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
-import { Building2, Map, LogIn, User, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut } from "lucide-react";
+import { Building2, Map, LogIn, User, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut, Scale } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useCompare } from "@/contexts/CompareContext";
 import { CitySelector } from "@/components/search/CitySelector";
 
 function navCls(active: boolean) {
@@ -26,6 +27,7 @@ function getInitial(name: string | null, email: string | null): string {
 export function Header() {
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
+  const { compareIds } = useCompare();
   const [path, navigate] = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -92,6 +94,16 @@ export function Header() {
             Kaart
           </Link>
           <CitySelector />
+
+          {compareIds.length > 0 && (
+            <Link
+              href={`/vergelijk?ids=${compareIds.join(",")}`}
+              className="hidden items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-100 md:flex"
+            >
+              <Scale className="h-4 w-4" />
+              Vergelijk ({compareIds.length})
+            </Link>
+          )}
 
           {user ? (
             /* Profile dropdown */
