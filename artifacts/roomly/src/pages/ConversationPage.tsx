@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
 function ConversationSkeleton() {
   return (
@@ -36,8 +37,10 @@ export function ConversationPage() {
   const [other, setOther] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [otherIsTyping, setOtherIsTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) return;
@@ -129,13 +132,48 @@ export function ConversationPage() {
       console.warn("Realtime conversation channel error:", e);
     }
 
+    // Typing presence channel
+    if (typingChannelRef.current && supabase) {
+      supabase.removeChannel(typingChannelRef.current);
+      typingChannelRef.current = null;
+    }
+    if (supabase && user) {
+      try {
+        const typingChannel = supabase.channel(`typing:${params.id}`, {
+          config: { presence: { key: user.id } },
+        });
+        typingChannel
+          .on("presence", { event: "sync" }, () => {
+            const state = typingChannel.presenceState<{ typing: boolean }>();
+            const otherTyping = Object.entries(state).some(
+              ([key, presences]) =>
+                key !== user.id &&
+                (presences as { typing: boolean }[]).some((p) => p.typing)
+            );
+            setOtherIsTyping(otherTyping);
+          })
+          .subscribe();
+        typingChannelRef.current = typingChannel;
+      } catch (e) {
+        console.warn("Typing presence channel error:", e);
+      }
+    }
+
     return () => {
       if (channelRef.current && supabase) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      if (typingChannelRef.current && supabase) {
+        supabase.removeChannel(typingChannelRef.current);
+        typingChannelRef.current = null;
+      }
     };
   }, [params.id, user, authLoading, fetchMessages]);
+
+  const trackTyping = useCallback((isTyping: boolean) => {
+    typingChannelRef.current?.track({ typing: isTyping });
+  }, []);
 
   if (loading) return <ConversationSkeleton />;
 
@@ -248,11 +286,21 @@ export function ConversationPage() {
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
+            {/* Typing indicator */}
+            <div className={`mb-2 flex items-center gap-1.5 transition-opacity duration-300 ${otherIsTyping ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+              <span className="flex gap-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:300ms]" />
+              </span>
+              <span className="text-xs text-stone-400">… aan het typen</span>
+            </div>
             <ChatComposer
               conversationId={conversation.id}
               recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
               onSent={fetchMessages}
               isLocked={isLocked}
+              onTyping={trackTyping}
             />
           </div>
         );

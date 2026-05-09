@@ -1,4 +1,4 @@
-import { useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,14 +9,24 @@ type Props = {
   recipientId?: string;
   onSent?: () => void;
   isLocked?: boolean;
+  onTyping?: (isTyping: boolean) => void;
 };
 
-export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false }: Props) {
+export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false, onTyping }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { user } = useAuth();
+
+  const stopTyping = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    onTyping?.(false);
+  }, [onTyping]);
 
   if (isLocked) {
     return (
@@ -37,6 +47,7 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
     const body = String(fd.get("body") ?? "").trim();
     if (!body) { toast.error("Bericht mag niet leeg zijn."); return; }
     if (body.length > MAX_MESSAGE_LENGTH) { toast.error("Bericht is te lang."); return; }
+    stopTyping();
     startTransition(async () => {
       if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
       const { error: err } = await supabase
@@ -66,6 +77,17 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const lines = e.target.value.split("\n").length;
     setRows(Math.min(lines, 5));
+
+    if (e.target.value.trim()) {
+      onTyping?.(true);
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        onTyping?.(false);
+        typingTimeoutRef.current = null;
+      }, 2000);
+    } else {
+      stopTyping();
+    }
   };
 
   return (
