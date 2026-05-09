@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
+import { Check, CheckCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
@@ -40,23 +41,32 @@ export function ConversationPage() {
 
   const fetchMessages = useCallback(async () => {
     if (!supabase) return;
-    const { data } = await supabase.from("messages").select("*").eq("conversation_id", params.id).order("created_at", { ascending: true });
-    setMessages((data ?? []) as Message[]);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+    // Mark incoming messages as read BEFORE fetching, so the fetched data
+    // already has read_at populated — receipts show correctly on first render.
     if (user) {
-      await supabase.from("messages").update({ read_at: new Date().toISOString() })
+      await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
         .eq("conversation_id", params.id)
         .neq("sender_id", user.id)
         .is("read_at", null);
     }
+
+    const { data } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", params.id)
+      .order("created_at", { ascending: true });
+
+    setMessages((data ?? []) as Message[]);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }, [params.id, user]);
 
   useEffect(() => {
-    // Wait for auth to resolve before querying — avoids RLS rejecting an unauthenticated request
     if (authLoading) return;
     if (!supabase) { setLoading(false); return; }
 
-    // Reset state so a re-run (e.g. after auth resolves) shows the skeleton, not a stale error
     setLoading(true);
     setConversation(null);
 
@@ -72,7 +82,11 @@ export function ConversationPage() {
       const otherId = (conv as Conversation).tenant_id === user?.id
         ? (conv as Conversation).landlord_id
         : (conv as Conversation).tenant_id;
-      const { data: otherProfile } = await supabase!.from("profiles").select("*").eq("id", otherId).maybeSingle();
+      const { data: otherProfile } = await supabase!
+        .from("profiles")
+        .select("*")
+        .eq("id", otherId)
+        .maybeSingle();
       setOther(otherProfile as Profile | null);
       await fetchMessages();
       setLoading(false);
@@ -80,7 +94,6 @@ export function ConversationPage() {
 
     fetchAll();
 
-    // Cleanup any existing channel before subscribing
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -90,12 +103,26 @@ export function ConversationPage() {
     try {
       const channel = supabase
         .channel(channelName)
+        // New messages arriving
         .on("postgres_changes", {
           event: "INSERT",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${params.id}`,
         }, () => { fetchMessages(); })
+        // Read receipts: other user opened conversation and set read_at on our messages
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${params.id}`,
+        }, (payload) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === payload.new.id ? { ...m, read_at: payload.new.read_at as string | null } : m
+            )
+          );
+        })
         .subscribe();
       channelRef.current = channel;
     } catch (e) {
@@ -131,6 +158,7 @@ export function ConversationPage() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-0 px-4 py-4 sm:px-6">
+      {/* Conversation header */}
       <div className="mb-4 flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
         <Link
           href="/berichten"
@@ -157,6 +185,7 @@ export function ConversationPage() {
         </div>
       </div>
 
+      {/* Message list */}
       <div className="min-h-[300px] space-y-3 pb-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -172,10 +201,12 @@ export function ConversationPage() {
         {messages.map((msg) => {
           const isMine = msg.sender_id === user?.id;
           const time = new Date(msg.created_at).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+          const isRead = msg.read_at !== null;
+
           return (
             <div
               key={msg.id}
-              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+              className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
               data-testid={`message-${msg.id}`}
             >
               <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm transition-opacity ${
@@ -186,12 +217,30 @@ export function ConversationPage() {
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.body}</p>
                 <p className={`mt-1 text-right text-[10px] ${isMine ? "text-white/60" : "text-stone-400"}`}>{time}</p>
               </div>
+
+              {/* Read receipt — only for my outgoing messages */}
+              {isMine && (
+                <div className="mt-0.5 flex items-center gap-1 pr-0.5">
+                  {isRead ? (
+                    <>
+                      <CheckCheck className="h-3 w-3 text-blue-500" />
+                      <span className="text-[10px] text-blue-500">Gelezen</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-3 w-3 text-stone-400" />
+                      <span className="text-[10px] text-stone-400">Verzonden</span>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
         <div ref={bottomRef} />
       </div>
 
+      {/* Composer */}
       {user && (() => {
         const isTenant = conversation.tenant_id === user.id;
         const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
@@ -200,11 +249,11 @@ export function ConversationPage() {
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
             <ChatComposer
-            conversationId={conversation.id}
-            recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
-            onSent={fetchMessages}
-            isLocked={isLocked}
-          />
+              conversationId={conversation.id}
+              recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
+              onSent={fetchMessages}
+              isLocked={isLocked}
+            />
           </div>
         );
       })()}
