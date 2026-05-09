@@ -7,6 +7,7 @@ import {
   computeResponseStats,
   type AppStat,
 } from "@/lib/landlordUtils";
+import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
 type OtherApp = {
   id: string;
@@ -267,15 +268,20 @@ export function ApplicantProfilePanel({
               </div>
             </div>
 
-            {(profile?.verification_badge ||
-              profile?.phone_verified ||
+            {(profile?.phone_verified ||
               profile?.email_auto_verified ||
               profile?.student_verified) && (
               <div className="flex flex-wrap gap-2">
-                {profile?.verification_badge && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                {isFullyVerified(profile) && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                    {profile.verification_badge}
+                    Geverifieerd
+                  </span>
+                )}
+                {isPartiallyVerified(profile) && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+                    Gedeeltelijk geverifieerd
                   </span>
                 )}
                 {profile?.student_verified && (

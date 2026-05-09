@@ -13,6 +13,7 @@ import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePa
 import { SimilarLandlords } from "@/components/listings/SimilarLandlords";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { Listing, Profile } from "@/types/database";
+import { isFullyVerified } from "@/lib/verificationUtils";
 
 export function ListingDetailPage() {
   const params = useParams<{ id: string }>();
@@ -81,8 +82,8 @@ export function ListingDetailPage() {
   const isOwner = user?.id === listing.user_id;
   const isLoggedIn = !!user;
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
-  const isLandlordVerified = !!(owner?.phone_verified || owner?.email_auto_verified || owner?.student_verified || owner?.verification_badge);
-  const verificationBadgeLabel = owner?.verification_badge || (isLandlordVerified ? "Geverifieerde verhuurder" : null);
+  const isLandlordVerified = isFullyVerified(owner);
+  const verificationBadgeLabel = isLandlordVerified ? "Geverifieerd" : null;
 
   return (
     <>
