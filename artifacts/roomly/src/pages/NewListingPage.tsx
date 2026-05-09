@@ -34,26 +34,37 @@ type NewListing = {
 };
 
 function listingMatchesFilters(listing: NewListing, filters: Record<string, string>): boolean {
-  const q = filters.q ?? "";
+  const q          = filters.q ?? "";
+  const city       = filters.city ?? "";
+  const district   = filters.district ?? "";
   const filterType = filters.type ?? "";
-  const district = filters.district ?? "";
-  const minPrice = Number(filters.min ?? 0);
-  const maxPrice = Number(filters.max ?? 10000);
-  const pets = filters.pets ?? "";
-  const smoking = filters.smoking ?? "";
-  const gender = filters.gender ?? "";
-  const rooms = filters.rooms ?? "";
+  const minPrice   = Number(filters.min ?? 0);
+  const maxPrice   = Number(filters.max ?? 10000);
+  const pets       = filters.pets ?? "";
+  const smoking    = filters.smoking ?? "";
+  const gender     = filters.gender ?? "";
+  const rooms      = filters.rooms ?? "";
   const minSurface = filters.min_surface ?? "";
 
+  // Free-text search across title, description and location
   if (q && !`${listing.title} ${listing.description} ${listing.location}`.toLowerCase().includes(q.toLowerCase())) return false;
-  if (filterType && listing.type !== filterType) return false;
+  // City — listing location format is "Amsterdam" or "Amsterdam, Centrum"
+  if (city && !listing.location.toLowerCase().includes(city.toLowerCase())) return false;
+  // District / stadsdeel
   if (district && !listing.location.toLowerCase().includes(district.toLowerCase())) return false;
+  // Listing type (room_for_rent, roommate_search, short_stay)
+  if (filterType && listing.type !== filterType) return false;
+  // Price range
   if (minPrice > 0 && listing.price < minPrice) return false;
   if (maxPrice < 10000 && listing.price > maxPrice) return false;
+  // Amenity flags — only filter when explicitly set
   if (pets === "1" && !listing.pets_allowed) return false;
   if (smoking === "1" && !listing.smoking_allowed) return false;
+  // Gender preference — exact match
   if (gender && listing.gender_preference !== gender) return false;
+  // Minimum rooms
   if (rooms && (listing.rooms == null || listing.rooms < Number(rooms))) return false;
+  // Minimum surface area
   if (minSurface && (listing.surface_area == null || listing.surface_area < Number(minSurface))) return false;
   return true;
 }
@@ -92,7 +103,7 @@ async function notifyMatchingSavedSearches(listing: NewListing, ownerId: string)
               user_id: s.user_id,
               type: "new_matching_listing",
               title: "Nieuwe woning gevonden!",
-              body: `Een nieuwe woning matcht met je opgeslagen zoekopdracht "${s.name}".`,
+              body: `"${listing.title}" in ${listing.location} matcht met je opgeslagen zoekopdracht "${s.name}".`,
               related_id: listing.id,
             })
           : Promise.resolve(),

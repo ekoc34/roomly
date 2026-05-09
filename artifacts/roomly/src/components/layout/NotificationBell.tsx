@@ -36,6 +36,14 @@ function notifIcon(type: Notification["type"]) {
         </svg>
       </div>
     );
+  if (type === "new_matching_listing")
+    return (
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-100">
+        <svg className="h-4 w-4 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </div>
+    );
   return (
     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rose-100">
       <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -48,6 +56,7 @@ function notifIcon(type: Notification["type"]) {
 function notifHref(n: Notification): string {
   if (n.type === "application_accepted" && n.related_id) return `/berichten/${n.related_id}`;
   if (n.type === "new_message" && n.related_id) return `/berichten/${n.related_id}`;
+  if (n.type === "new_matching_listing" && n.related_id) return `/kamers/${n.related_id}`;
   return "/dashboard";
 }
 
