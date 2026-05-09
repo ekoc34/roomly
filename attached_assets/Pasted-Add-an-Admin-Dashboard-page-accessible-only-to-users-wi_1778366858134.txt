@@ -1,0 +1,50 @@
+Add an Admin Dashboard page accessible only to users with role = 'admin'. The dashboard should be linked from the profile dropdown menu and only visible to admin users. Ensure that admin privileges are NOT automatically assigned to new users.
+
+TASK 1 — Create Admin Dashboard page
+1. Create a new page: src/pages/AdminDashboardPage.tsx
+2. Add the route /admin/dashboard in App.tsx, wrapped with React.lazy for code splitting.
+3. The page must check if the current user has role = 'admin'. If not, redirect to /dashboard with a toast: "Je hebt geen toegang tot deze pagina."
+
+TASK 2 — Admin Dashboard content
+The dashboard should show three sections:
+
+SECTION A — Reported Landlords
+- Fetch all profiles where scam_flagged = TRUE
+- For each flagged landlord, show:
+  - Name, email, avatar
+  - Number of scam reports across all their listings
+  - Date of most recent scam report
+  - A "Herstel" (Restore) button that:
+    - Sets scam_flagged = FALSE
+    - Re-checks email_auto_verified and phone_verified (if both true, the existing sync_verification_badge trigger will restore their badge)
+    - Deletes all scam reports for their listings
+    - Shows a success toast: "Verhuurder hersteld."
+
+SECTION B — Scam Reports List
+- Fetch all listing_reports where category = 'scam', joined with listing and reporter info
+- Show in a table: Landlord name, Listing title, Reporter name, Reason (truncated), Date
+- Add a "Negeer rapport" (Ignore Report) button that deletes that single report row
+
+SECTION C — Quick Stats
+- Total number of scam-flagged landlords
+- Total number of unresolved scam reports
+- Total number of listings on the platform
+
+TASK 3 — Add link to profile dropdown
+1. Open Header.tsx and find the profile dropdown menu.
+2. Add a new menu item "Admin Dashboard" with a Shield or ShieldCheck icon that ONLY appears when user.role === 'admin'.
+3. Place it between Notificaties and the first divider.
+4. Link to /admin/dashboard.
+
+TASK 4 — Security: ensure admin is NOT automatic
+1. The profile creation trigger (handle_new_user) must keep the default role as 'student' or 'landlord' — never 'admin'.
+2. The only way to make someone an admin is by manually running this SQL in Supabase SQL Editor (replace YOUR_EMAIL with the actual email):
+   UPDATE profiles SET role = 'admin' WHERE email = 'YOUR_EMAIL';
+   This is the documented admin assignment procedure.
+3. Add a comment at the top of AdminDashboardPage.tsx explaining this manual process.
+4. No other code path should ever set role = 'admin' automatically.
+
+TASK 5 — Keep everything else intact
+1. All text in Dutch.
+2. Use existing Tailwind v4 styling (rounded-2xl, rose-500 accent, stone colors).
+3. Commit with message: "Add Admin Dashboard for managing reported landlords" and push.

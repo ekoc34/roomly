@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
-import { Building2, Map, LogIn, User, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut, Scale } from "lucide-react";
+import { Building2, Map, LogIn, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut, Scale, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -34,6 +34,7 @@ export function Header() {
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
 
   const isKamers = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
@@ -60,13 +61,14 @@ export function Header() {
     if (!user || !supabase) return;
     supabase
       .from("profiles")
-      .select("avatar_url, name")
+      .select("avatar_url, name, role")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           setAvatarUrl(data.avatar_url ?? null);
           setDisplayName(data.name ?? null);
+          setUserRole(data.role ?? null);
         }
       });
   }, [user]);
@@ -177,6 +179,16 @@ export function Header() {
                     <Bell className="h-4 w-4 text-stone-400" />
                     Notificaties
                   </Link>
+                  {userRole === "admin" && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50"
+                    >
+                      <ShieldCheck className="h-4 w-4 text-rose-500" />
+                      Admin Dashboard
+                    </Link>
+                  )}
 
                   <div className="my-1.5 border-t border-stone-100" />
 

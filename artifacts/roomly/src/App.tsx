@@ -31,6 +31,7 @@ const ProfilePage = lazy(() => import("@/pages/ProfilePage").then((m) => ({ defa
 const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.MapPage })));
 const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m) => ({ default: m.SavedSearchesPage })));
 const ComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
+const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
 
 function PageLoader() {
   return (
@@ -95,6 +96,7 @@ function Router() {
       <Route path="/registreren" component={() => <AnimatedRoute component={RegisterPage} />} />
       <Route path="/wachtwoord-vergeten" component={() => <AnimatedRoute component={ForgotPasswordPage} />} />
       <Route path="/wachtwoord-instellen" component={() => <AnimatedRoute component={ResetPasswordPage} />} />
+      <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
