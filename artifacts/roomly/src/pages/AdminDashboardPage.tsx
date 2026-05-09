@@ -53,27 +53,33 @@ export function AdminDashboardPage() {
   const [isPending, startTransition] = useTransition();
 
   // ── 1. Fetch role ──────────────────────────────────────────────────────────
+  // Wait for auth to settle first — while authLoading is true, user is null
+  // even for logged-in users, which would cause a false "not logged in" result.
   useEffect(() => {
+    if (authLoading) return;                       // auth not ready yet
     if (!user || !supabase) { setRoleLoading(false); return; }
     supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
+      .single()
+      .then(({ data, error }) => {
+        console.log("[Admin] profile fetch → data:", data, "error:", error);
         setRole(data?.role ?? null);
         setRoleLoading(false);
       });
-  }, [user]);
+  }, [user, authLoading]);
 
   // ── 2. Redirect non-admins ─────────────────────────────────────────────────
+  // Both auth AND role must be fully resolved before we evaluate access.
   useEffect(() => {
-    if (roleLoading) return;
+    if (authLoading || roleLoading) return;
+    console.log("[Admin] role check → role:", role, "user id:", user?.id);
     if (!user || role !== "admin") {
       toast.error("Je hebt geen toegang tot deze pagina.");
       navigate("/dashboard");
     }
-  }, [role, roleLoading, user, navigate]);
+  }, [role, roleLoading, authLoading, user, navigate]);
 
   // ── 3. Fetch dashboard data ────────────────────────────────────────────────
   async function loadData() {
