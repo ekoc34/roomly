@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { Building2, Map, Heart, MessageSquare, LayoutDashboard, LogOut, Plus, LogIn } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -24,19 +25,23 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-4 text-sm font-medium text-stone-600 md:flex">
-          <Link href="/kamers" data-testid="header-kamers-link" className="transition hover:text-rose-600">
+          <Link href="/kamers" data-testid="header-kamers-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
+            <Building2 className="h-4 w-4 text-stone-400" />
             Woningen
           </Link>
-          <Link href="/kaart" data-testid="header-kaart-link" className="transition hover:text-rose-600">
+          <Link href="/kaart" data-testid="header-kaart-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
+            <Map className="h-4 w-4 text-stone-400" />
             Kaart
           </Link>
           <CitySelector />
           {user ? (
             <>
-              <Link href="/favorieten" data-testid="header-favorites-link" className="transition hover:text-rose-600">
+              <Link href="/favorieten" data-testid="header-favorites-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
+                <Heart className="h-4 w-4 text-stone-400" />
                 Favorieten
               </Link>
-              <Link href="/berichten" data-testid="header-messages-link" className="relative transition hover:text-rose-600">
+              <Link href="/berichten" data-testid="header-messages-link" className="relative flex items-center gap-1.5 transition hover:text-rose-600">
+                <MessageSquare className="h-4 w-4 text-stone-400" />
                 Berichten
                 {unreadCount > 0 && (
                   <span
@@ -47,29 +52,33 @@ export function Header() {
                   </span>
                 )}
               </Link>
-              <Link href="/dashboard" className="transition hover:text-rose-600">
+              <Link href="/dashboard" className="flex items-center gap-1.5 transition hover:text-rose-600">
+                <LayoutDashboard className="h-4 w-4 text-stone-400" />
                 Dashboard
               </Link>
               <NotificationBell />
               <Link
                 href="/kamers/nieuw"
                 data-testid="header-new-listing-link"
-                className="rounded-full border border-stone-200 px-4 py-1.5 text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                className="flex items-center gap-1.5 rounded-full border border-stone-200 px-4 py-1.5 text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
+                <Plus className="h-4 w-4" />
                 Advertentie plaatsen
               </Link>
               <button
                 type="button"
                 data-testid="header-signout-button"
                 onClick={handleSignOut}
-                className="text-sm font-medium text-stone-500 transition hover:text-rose-600"
+                className="flex items-center gap-1.5 text-sm font-medium text-stone-500 transition hover:text-rose-600"
               >
+                <LogOut className="h-4 w-4" />
                 Uitloggen
               </button>
             </>
           ) : (
             <>
-              <Link href="/inloggen" data-testid="header-login-link" className="transition hover:text-rose-600">
+              <Link href="/inloggen" data-testid="header-login-link" className="flex items-center gap-1.5 transition hover:text-rose-600">
+                <LogIn className="h-4 w-4 text-stone-400" />
                 Inloggen
               </Link>
               <Link
