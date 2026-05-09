@@ -32,8 +32,9 @@ function filtersEqual(a: Record<string, string>, b: Record<string, string>): boo
 
 function generateSearchName(filters: Record<string, string>): string {
   const parts: string[] = [];
-  if (filters.q) parts.push(`"${filters.q}"`);
+  if (filters.city) parts.push(filters.city);
   if (filters.district) parts.push(filters.district);
+  if (filters.q) parts.push(`"${filters.q}"`);
   if (filters.type) parts.push(LISTING_TYPE_LABELS[filters.type as ListingType] ?? filters.type);
   if (filters.max && Number(filters.max) < 10000) parts.push(`max €${filters.max}`);
   if (filters.min && Number(filters.min) > 0) parts.push(`min €${filters.min}`);
