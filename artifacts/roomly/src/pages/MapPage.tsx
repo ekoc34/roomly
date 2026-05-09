@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useSearch } from "wouter";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -179,6 +180,10 @@ export function MapPage() {
   const listHref = searchString ? `/kamers?${searchString}` : "/kamers";
 
   return (
+    <>
+    <Helmet>
+      <title>Kaartweergave — Welkthuis.nl</title>
+    </Helmet>
     <div className="flex h-[calc(100vh-4rem)] flex-col">
       <div className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3 sm:px-6">
         <div>
@@ -270,5 +275,6 @@ export function MapPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

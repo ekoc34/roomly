@@ -157,7 +157,7 @@ export function NotificationsPage() {
   return (
     <>
       <Helmet>
-        <title>Notificaties — Welkthuis</title>
+        <title>Notificaties — Welkthuis.nl</title>
         <meta name="description" content="Bekijk al je meldingen op één plek." />
       </Helmet>
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">

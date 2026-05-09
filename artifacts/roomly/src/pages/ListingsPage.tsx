@@ -178,7 +178,7 @@ export function ListingsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <Helmet>
-        <title>{q ? `"${q}" — Woningen` : "Alle woningen"} — Welkthuis</title>
+        <title>Woningen te huur — Welkthuis.nl</title>
         <meta name="description" content="Doorzoek honderden kamers en woningen in Nederland. Filter op prijs, type, stad en meer." />
       </Helmet>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">

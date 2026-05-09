@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -219,6 +220,9 @@ export function DashboardPage() {
 
   return (
     <>
+      <Helmet>
+        <title>Dashboard — Welkthuis.nl</title>
+      </Helmet>
       <ApplicantProfilePanel
         profileId={selectedApplicantId}
         onClose={() => { setSelectedApplicantId(null); setSelectedApplicationId(null); }}

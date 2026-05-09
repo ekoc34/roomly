@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,6 +85,10 @@ export function ListingDetailPage() {
   const verificationBadgeLabel = owner?.verification_badge || (isLandlordVerified ? "Geverifieerde verhuurder" : null);
 
   return (
+    <>
+    <Helmet>
+      <title>{listing.title} — Welkthuis.nl</title>
+    </Helmet>
     <div className="mx-auto max-w-5xl px-4 pb-32 pt-8 sm:px-6 lg:px-8 lg:pb-8">
       {showLandlordPanel && (
         <ApplicantProfilePanel
@@ -236,5 +241,6 @@ export function ListingDetailPage() {
 
       <StickyApplyCTA price={listing.price} listingId={listing.id} canApply={isLoggedIn && !isOwner} isOwner={isOwner} isLoggedIn={isLoggedIn} />
     </div>
+    </>
   );
 }

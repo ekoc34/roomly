@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <!-- W-shaped double-peak roof + house body -->
-  <path d="M2 18 L10 5 L16 13 L22 5 L30 18 L30 29 C30 29.6 29.6 30 29 30 L3 30 C2.4 30 2 29.6 2 29 Z" fill="#f43f5e"/>
-  <!-- Door cutout (white negative space) -->
-  <rect x="12" y="22" width="8" height="8" rx="1.5" fill="white"/>
-</svg>
