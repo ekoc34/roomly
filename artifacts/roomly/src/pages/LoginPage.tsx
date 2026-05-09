@@ -35,7 +35,7 @@ export function LoginPage() {
       <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
         <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
           <div className="text-center">
-            <p className="text-3xl tracking-tight"><span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-stone-400">.nl</span></span></p>
+            <p className="text-3xl tracking-tight"><span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span></p>
             <h1 className="mt-2 text-xl font-bold text-stone-900">Welkom terug</h1>
             <p className="mt-1 text-sm text-stone-500">Log in op je account</p>
           </div>

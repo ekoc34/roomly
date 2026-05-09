@@ -7,7 +7,7 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-3">
           <div className="sm:col-span-1">
             <p className="text-xl tracking-tight">
-              <span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-stone-400">.nl</span></span>
+              <span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span>
             </p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
               Woningen vinden in Nederland — eerlijk, duidelijk en snel. Voor studenten, professionals, expats, families en alleenstaanden.
