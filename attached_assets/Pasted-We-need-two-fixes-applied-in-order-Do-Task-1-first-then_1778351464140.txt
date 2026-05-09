@@ -1,0 +1,35 @@
+We need two fixes applied in order. Do Task 1 first, then Task 2.
+
+TASK 1 — Fix brand name color from black to original rose-500
+The "Welkthuis" text in the header and footer is currently displaying as black (stone-900). Change it back to the original rose-500 (#f43f5e) brand color.
+
+1. Open Header.tsx and find the Welkthuis.nl wordmark.
+2. Change the "Welkthuis" part from text-stone-900 to text-rose-500.
+3. The ".nl" part should remain lighter — keep it as text-stone-400 with normal weight.
+4. Apply the same fix to Footer.tsx and LoginPage.tsx.
+
+TASK 2 — Add Open Graph and social share meta tags
+Add branded Open Graph meta tags to index.html so Welkthuis.nl shows a professional preview card when shared on WhatsApp, LinkedIn, Twitter, and other social platforms.
+
+1. Open index.html.
+2. Add the following meta tags inside the <head> section:
+
+<!-- Open Graph / Social Share Meta Tags -->
+<meta property="og:title" content="Welkthuis.nl — Vind je thuis in Nederland" />
+<meta property="og:description" content="Betaalbare kamers, appartementen en woningen huren in Amsterdam, Rotterdam, Utrecht en meer. Vind je ideale woonruimte op Welkthuis.nl." />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://welkthuis.nl" />
+<meta property="og:image" content="https://welkthuis.nl/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="nl_NL" />
+<meta property="og:site_name" content="Welkthuis.nl" />
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Welkthuis.nl — Vind je thuis in Nederland" />
+<meta name="twitter:description" content="Betaalbare kamers, appartementen en woningen huren in Amsterdam, Rotterdam, Utrecht en meer." />
+<meta name="twitter:image" content="https://welkthuis.nl/og-image.png" />
+
+3. Keep all existing meta tags and functionality intact.
+4. Commit with message: "Fix brand color to rose-500 and add Open Graph social share meta tags" and push.
