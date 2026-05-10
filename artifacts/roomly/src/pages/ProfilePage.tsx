@@ -117,6 +117,15 @@ export function ProfilePage() {
   };
 
   const [emailVerifySending, setEmailVerifySending] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (emailCooldown > 0) {
+      interval = setInterval(() => setEmailCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [emailCooldown]);
 
   const sendEmailVerification = async () => {
     if (!supabase || !user?.email) { toast.error("Niet ingelogd."); return; }
@@ -131,6 +140,7 @@ export function ProfilePage() {
       return;
     }
     toast.success(`Verificatielink verzonden naar ${user.email}. Check je inbox!`);
+    setEmailCooldown(60);
   };
 
   const [showEmail, setShowEmail] = useState(false);
@@ -283,11 +293,11 @@ export function ProfilePage() {
                   {!profile?.email_auto_verified ? (
                     <button
                       type="button"
-                      disabled={emailVerifySending}
+                      disabled={emailVerifySending || emailCooldown > 0}
                       onClick={sendEmailVerification}
                       className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
                     >
-                      {emailVerifySending ? "Versturen…" : "Verifiëren"}
+                      {emailVerifySending ? "Versturen…" : emailCooldown > 0 ? `Opnieuw versturen (${emailCooldown}s)` : "Verifiëren"}
                     </button>
                   ) : (
                     <span className="flex shrink-0 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">

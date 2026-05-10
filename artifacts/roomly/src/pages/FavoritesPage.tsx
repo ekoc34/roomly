@@ -9,6 +9,7 @@ import type { Listing } from "@/types/database";
 export function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
+  const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,6 +19,19 @@ export function FavoritesPage() {
       const { data } = await supabase!.from("favorites").select("listing_id, listings(*)").eq("user_id", user!.id);
       const ls = (data ?? []).map((row: { listings: Listing }) => row.listings).filter(Boolean) as Listing[];
       setListings(ls);
+
+      const ownerIds = [...new Set(ls.map((l) => l.user_id))];
+      if (ownerIds.length > 0) {
+        const { data: profiles } = await supabase!
+          .from("profiles")
+          .select("id, email_auto_verified, phone_verified")
+          .in("id", ownerIds);
+        const badgeMap: Record<string, string | null> = {};
+        for (const p of (profiles ?? []) as { id: string; email_auto_verified: boolean; phone_verified: boolean }[]) {
+          badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+        }
+        setVerificationBadges(badgeMap);
+      }
       setLoading(false);
     }
     fetchFavs();
@@ -56,7 +70,7 @@ export function FavoritesPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} isFavorited={true} />
+            <ListingCard key={l.id} listing={l} isFavorited={true} verificationBadge={verificationBadges[l.user_id] ?? null} />
           ))}
         </div>
       )}

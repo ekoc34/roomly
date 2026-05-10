@@ -663,7 +663,14 @@ export function DashboardPage() {
               ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {myListings.map((l) => (
-                    <ListingCard key={l.id} listing={l} isFavorited={false} />
+                    <ListingCard
+                      key={l.id}
+                      listing={l}
+                      isFavorited={false}
+                      verificationBadge={
+                        profile?.email_auto_verified && profile?.phone_verified ? "Geverifieerd" : null
+                      }
+                    />
                   ))}
                 </div>
               )}

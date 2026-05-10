@@ -14,6 +14,7 @@ function HomePageContent() {
   const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,8 +27,22 @@ function HomePageContent() {
           query,
           user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [] },
         ]);
-        setListings((ls as Listing[] | null) ?? []);
+        const fetchedListings = (ls as Listing[] | null) ?? [];
+        setListings(fetchedListings);
         setFavoriteIds(((favs ?? []) as { listing_id: string }[]).map((f) => f.listing_id));
+
+        const ownerIds = [...new Set(fetchedListings.map((l) => l.user_id))];
+        if (ownerIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from("profiles")
+            .select("id, email_auto_verified, phone_verified")
+            .in("id", ownerIds);
+          const badgeMap: Record<string, string | null> = {};
+          for (const p of (profiles ?? []) as { id: string; email_auto_verified: boolean; phone_verified: boolean }[]) {
+            badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+          }
+          setVerificationBadges(badgeMap);
+        }
       } catch {
         // silently fail — show empty state
       } finally {
@@ -50,7 +65,7 @@ function HomePageContent() {
           <SkeletonGrid count={6} />
         </div>
       ) : (
-        <FeaturedListings listings={listings} favoriteIds={favoriteIds} />
+        <FeaturedListings listings={listings} favoriteIds={favoriteIds} verificationBadges={verificationBadges} />
       )}
 
       <WhyRoomly />

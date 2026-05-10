@@ -5,9 +5,10 @@ import type { Listing } from "@/types/database";
 type Props = {
   listings: Listing[];
   favoriteIds: string[];
+  verificationBadges?: Record<string, string | null>;
 };
 
-export function FeaturedListings({ listings, favoriteIds }: Props) {
+export function FeaturedListings({ listings, favoriteIds, verificationBadges }: Props) {
   return (
     <section className="mt-16" data-testid="featured-listings">
       <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -32,7 +33,7 @@ export function FeaturedListings({ listings, favoriteIds }: Props) {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} />
+            <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationBadges?.[l.user_id] ?? null} />
           ))}
         </div>
       )}
