@@ -1,8 +1,9 @@
 import { Link } from "wouter";
-import { Users } from "lucide-react";
+import { Users, Home } from "lucide-react";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { CompareButton } from "@/components/listings/CompareButton";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
+import { useAuth } from "@/hooks/useAuth";
 import type { Listing } from "@/types/database";
 
 type Props = {
@@ -19,7 +20,9 @@ function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
 }
 
 export function ListingCard({ listing, isFavorited = false, verificationBadge }: Props) {
+  const { user } = useAuth();
   const isLandlordVerified = !!verificationBadge;
+  const isOwnListing = !!user && listing.user_id === user.id;
   const img = listing.images[0];
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
   const newLabel = getNewLabel(listing.created_at);
@@ -131,6 +134,12 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge }:
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {verificationBadge}
+              </span>
+            )}
+            {isOwnListing && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                <Home className="h-3 w-3 shrink-0" />
+                Eigen woning
               </span>
             )}
           </div>
