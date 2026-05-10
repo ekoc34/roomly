@@ -11,7 +11,7 @@ import type { Listing, SavedSearch } from "@/types/database";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { ListingType } from "@/types/database";
 
-const FILTER_KEYS = ["q", "city", "type", "district", "min", "max", "pets", "smoking", "gender", "rooms", "min_surface", "sort"] as const;
+const FILTER_KEYS = ["q", "city", "type", "district", "min", "max", "pets", "smoking", "gender", "rooms", "min_surface", "sort", "verified"] as const;
 
 function normalizeFilters(searchString: string): Record<string, string> {
   const params = new URLSearchParams(searchString);
@@ -74,6 +74,17 @@ export function ListingsPage() {
       const gender = params.get("gender") ?? "";
       const rooms = params.get("rooms") ?? "";
       const minSurface = params.get("min_surface") ?? "";
+      const verified = params.get("verified") ?? "";
+
+      let verifiedLandlordIds: string[] | null = null;
+      if (verified === "1") {
+        const { data: verifiedProfiles } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("email_auto_verified", true)
+          .eq("phone_verified", true);
+        verifiedLandlordIds = ((verifiedProfiles ?? []) as { id: string }[]).map((p) => p.id);
+      }
 
       let query = supabase.from("listings").select("*");
 
@@ -88,6 +99,7 @@ export function ListingsPage() {
       if (gender) query = query.eq("gender_preference", gender);
       if (rooms) query = query.gte("rooms", Number(rooms));
       if (minSurface) query = query.gte("surface_area", Number(minSurface));
+      if (verifiedLandlordIds !== null) query = query.in("user_id", verifiedLandlordIds.length > 0 ? verifiedLandlordIds : ["00000000-0000-0000-0000-000000000000"]);
 
       if (sort === "cheapest") {
         query = query.order("price", { ascending: true });
