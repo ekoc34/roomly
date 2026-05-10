@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "wouter";
+import { ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { DetailGallery } from "@/components/listings/DetailGallery";
@@ -83,7 +84,6 @@ export function ListingDetailPage() {
   const isLoggedIn = !!user;
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
   const isLandlordVerified = isFullyVerified(owner);
-  const verificationBadgeLabel = isLandlordVerified ? "Geverifieerd" : null;
 
   return (
     <>
@@ -214,12 +214,10 @@ export function ListingDetailPage() {
               >
                 {owner.name || "Welkthuis gebruiker"}
               </button>
-              {verificationBadgeLabel && (
-                <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {verificationBadgeLabel}
+              {isLandlordVerified && (
+                <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Geverifieerd
                 </span>
               )}
             </div>
