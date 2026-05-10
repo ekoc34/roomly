@@ -67,7 +67,12 @@ export function ContactPage() {
     setSubmitting(false);
 
     if (error) {
-      toast.error("Er is iets misgegaan. Probeer het opnieuw.");
+      console.error("[ContactPage] Supabase insert error:", error.code, error.message, error.details, error.hint);
+      if (error.code === "42501" || error.message?.toLowerCase().includes("row-level security") || error.message?.toLowerCase().includes("permission")) {
+        toast.error("Je moet ingelogd zijn om een bericht te sturen. Log in of maak een account aan.");
+      } else {
+        toast.error(`Er is iets misgegaan: ${error.message ?? "Onbekende fout"}. Probeer het opnieuw.`);
+      }
       return;
     }
 

@@ -550,11 +550,11 @@ CREATE TABLE IF NOT EXISTS public.contact_messages (
 -- Enable Row Level Security
 ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
 
--- Any authenticated user may INSERT a contact message
-CREATE POLICY "authenticated_insert_contact_messages"
+-- Anyone (including anonymous visitors) may INSERT a contact message
+CREATE POLICY "public_insert_contact_messages"
   ON public.contact_messages
   FOR INSERT
-  TO authenticated
+  TO anon, authenticated
   WITH CHECK (true);
 
 -- Only admins may SELECT contact messages
