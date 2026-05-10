@@ -22,6 +22,23 @@ export function LoginPage() {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
       if (err) { setError(err.message === "Invalid login credentials" ? "Onjuist e-mailadres of wachtwoord." : err.message); return; }
+
+      // Check if the account has been soft-deleted
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("deleted_at")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        if (profile?.deleted_at) {
+          await supabase.auth.signOut();
+          setError("Dit account is verwijderd en kan niet meer worden gebruikt.");
+          return;
+        }
+      }
+
       navigate(nextParam);
     });
   };

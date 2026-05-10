@@ -32,6 +32,7 @@ export type Profile = {
   notify_matching_listing?: boolean | null;
   scam_flagged?: boolean;
   last_active_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -163,12 +163,23 @@ export function ProfilePage() {
         return;
       }
 
-      // Anonymise listings so existing conversations aren't broken
+      // Anonymise listings so existing conversations aren't broken for the other party
       await supabase.from("listings").update({ user_id: null }).eq("user_id", user.id);
 
-      // Delete profile — cascades to conversations, messages, applications,
-      // favorites, saved_searches, listing_views, listing_reports
-      await supabase.from("profiles").delete().eq("id", user.id);
+      // Soft-delete: anonymise personal data and set deleted_at timestamp.
+      // This keeps the row (and its FK references) intact while blocking future logins.
+      await supabase.from("profiles").update({
+        deleted_at: new Date().toISOString(),
+        name: "Verwijderde gebruiker",
+        email: null,
+        phone: null,
+        avatar_url: null,
+        bio: null,
+        email_auto_verified: false,
+        phone_verified: false,
+        student_verified: false,
+        verification_badge: null,
+      }).eq("id", user.id);
 
       toast.success("Je account is definitief verwijderd.");
       await supabase.auth.signOut();

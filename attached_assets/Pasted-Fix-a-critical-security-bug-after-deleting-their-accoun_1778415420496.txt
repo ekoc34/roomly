@@ -1,0 +1,30 @@
+Fix a critical security bug: after deleting their account, the user can still log in because the auth record survives and the profile trigger auto-creates a fresh profile. Implement a soft-delete system that prevents this completely.
+
+TASK 1 — Add deleted_at column to profiles
+Add this SQL to supabase/schema.sql and provide the exact command to run in Supabase SQL Editor:
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+TASK 2 — Update the account deletion flow in ProfilePage.tsx
+Replace the current hard-delete logic with a soft-delete approach:
+1. Instead of deleting the profile row, UPDATE it:
+   - Set deleted_at = NOW()
+   - Anonymize personal data: name = 'Verwijderde gebruiker', email = NULL, phone = NULL, avatar_url = NULL, bio = NULL
+   - Clear all verification flags: email_auto_verified = FALSE, phone_verified = FALSE, student_verified = FALSE, verification_badge = NULL
+2. Keep listing anonymization (user_id → NULL) so conversations don't break.
+3. Call supabase.auth.signOut() to invalidate the current session.
+4. Because the user's auth record still exists, block future logins by adding a check: when a soft-deleted user tries to sign in, they should get an error "Dit account is verwijderd."
+
+TASK 3 — Update the handle_new_user() trigger
+Update the SQL function so it checks for an existing soft-deleted profile:
+1. If a profile exists for this user ID AND deleted_at IS NOT NULL, do NOT insert a new profile. Instead, RAISE an exception or do nothing.
+2. Add the migration to supabase/schema.sql.
+
+TASK 4 — Protect login endpoint
+Add middleware or a login check: when a user authenticates successfully, check if their profile has deleted_at set. If yes:
+  - Immediately sign them out
+  - Show a toast: "Dit account is verwijderd en kan niet meer worden gebruikt."
+
+TASK 5 — Keep everything else intact
+1. All text in Dutch.
+2. Do not break any existing functionality.
+3. Commit with message: "Fix soft-delete to prevent deleted users from logging in" and push.

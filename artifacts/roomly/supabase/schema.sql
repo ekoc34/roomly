@@ -502,3 +502,31 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS notify_new_message       BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS notify_application_update BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS notify_matching_listing   BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- ============================================================
+-- MIGRATION: Soft-delete support
+-- Run in Supabase SQL Editor
+-- ============================================================
+
+-- 1. Add deleted_at column to profiles
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+-- 2. Update handle_new_user() so it never overwrites a soft-deleted profile
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  -- If a soft-deleted profile already exists for this auth user, block the re-creation
+  IF EXISTS (
+    SELECT 1 FROM public.profiles WHERE id = NEW.id AND deleted_at IS NOT NULL
+  ) THEN
+    RETURN NEW; -- do nothing, leave the soft-deleted record intact
+  END IF;
+
+  INSERT INTO public.profiles (id, email, email_auto_verified, show_email, show_phone)
+  VALUES (NEW.id, NEW.email, false, false, false)
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
