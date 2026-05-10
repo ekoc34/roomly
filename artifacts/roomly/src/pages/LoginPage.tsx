@@ -82,30 +82,7 @@ export function LoginPage() {
               Supabase is niet geconfigureerd. Voeg <code className="rounded bg-amber-100 px-1">VITE_SUPABASE_URL</code> en <code className="rounded bg-amber-100 px-1">VITE_SUPABASE_ANON_KEY</code> toe als omgevingsvariabelen.
             </div>
           )}
-          <form onSubmit={onSubmit} className="mt-6 space-y-4" data-testid="login-form">
-            <div>
-              <label htmlFor="email" className="text-xs font-medium text-stone-700">E-mailadres</label>
-              <input id="email" name="email" type="email" required autoComplete="email" data-testid="login-email" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" placeholder="jij@example.nl" />
-            </div>
-            <div>
-              <label htmlFor="password" className="text-xs font-medium text-stone-700">Wachtwoord</label>
-              <div className="mt-1.5">
-                <PasswordInput id="password" name="password" required autoComplete="current-password" data-testid="login-password" placeholder="••••••••" />
-              </div>
-            </div>
-            {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
-            <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="login-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
-              {isPending ? "Inloggen…" : "Inloggen"}
-            </button>
-          </form>
-
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-stone-200" />
-            <span className="text-xs text-stone-400">of</span>
-            <div className="h-px flex-1 bg-stone-200" />
-          </div>
-
-          <div className="space-y-3">
+          <div className="mt-6 space-y-3">
             {oauthError && (
               <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{oauthError}</p>
             )}
@@ -137,6 +114,29 @@ export function LoginPage() {
               {oauthLoading === "facebook" ? "Bezig…" : "Doorgaan met Facebook"}
             </button>
           </div>
+
+          <div className="my-5 flex items-center gap-3">
+            <div className="h-px flex-1 bg-stone-200" />
+            <span className="text-xs text-stone-400">of</span>
+            <div className="h-px flex-1 bg-stone-200" />
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-4" data-testid="login-form">
+            <div>
+              <label htmlFor="email" className="text-xs font-medium text-stone-700">E-mailadres</label>
+              <input id="email" name="email" type="email" required autoComplete="email" data-testid="login-email" className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" placeholder="jij@example.nl" />
+            </div>
+            <div>
+              <label htmlFor="password" className="text-xs font-medium text-stone-700">Wachtwoord</label>
+              <div className="mt-1.5">
+                <PasswordInput id="password" name="password" required autoComplete="current-password" data-testid="login-password" placeholder="••••••••" />
+              </div>
+            </div>
+            {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
+            <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="login-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
+              {isPending ? "Inloggen…" : "Inloggen"}
+            </button>
+          </form>
 
           <p className="mt-4 text-center text-sm">
             <Link href="/wachtwoord-vergeten" className="text-stone-500 hover:text-rose-600 hover:underline">Wachtwoord vergeten?</Link>
