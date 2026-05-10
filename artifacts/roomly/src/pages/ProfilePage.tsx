@@ -106,6 +106,23 @@ export function ProfilePage() {
     toast.success("Nieuwe verificatiecode verzonden naar " + pendingPhone);
   };
 
+  const [emailVerifySending, setEmailVerifySending] = useState(false);
+
+  const sendEmailVerification = async () => {
+    if (!supabase || !user?.email) { toast.error("Niet ingelogd."); return; }
+    setEmailVerifySending(true);
+    const { error } = await supabase.auth.signInWithOtp({
+      email: user.email,
+      options: { shouldCreateUser: false },
+    });
+    setEmailVerifySending(false);
+    if (error) {
+      toast.error("Versturen mislukt: " + error.message);
+      return;
+    }
+    toast.success(`Verificatielink verzonden naar ${user.email}. Check je inbox!`);
+  };
+
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
   const [notifyNewMessage, setNotifyNewMessage] = useState(true);
@@ -224,6 +241,33 @@ export function ProfilePage() {
                   data-testid="profile-bio"
                 />
               </div>
+              <div>
+                <label className="text-xs font-medium text-stone-700">E-mailadres</label>
+                <div className="mt-1.5 flex gap-2">
+                  <input
+                    type="email"
+                    readOnly
+                    value={user?.email ?? ""}
+                    className="flex-1 rounded-xl border border-stone-100 bg-stone-50 px-4 py-2.5 text-sm text-stone-500 cursor-default focus:outline-none"
+                  />
+                  {!profile?.email_auto_verified ? (
+                    <button
+                      type="button"
+                      disabled={emailVerifySending}
+                      onClick={sendEmailVerification}
+                      className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                    >
+                      {emailVerifySending ? "Versturen…" : "Verifiëren"}
+                    </button>
+                  ) : (
+                    <span className="flex shrink-0 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      Geverifieerd
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="prof-phone" className="text-xs font-medium text-stone-700">Telefoonnummer</label>
                 <div className="mt-1.5 flex gap-2">
