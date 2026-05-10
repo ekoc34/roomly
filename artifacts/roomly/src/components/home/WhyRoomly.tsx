@@ -1,4 +1,4 @@
-import { Search, MessageSquare, Home } from "lucide-react";
+import { Search, MessageSquare, Home, ShieldCheck } from "lucide-react";
 
 const STEPS = [
   {
@@ -42,6 +42,18 @@ export function WhyRoomly() {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6 flex items-center gap-4 rounded-2xl border border-stone-100 bg-stone-50/60 px-5 py-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-stone-200/60">
+            <ShieldCheck className="h-5 w-5 text-rose-500" strokeWidth={2} />
+          </div>
+          <div>
+            <p className="font-semibold text-stone-900">Geverifieerde gebruikers</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-stone-500">
+              E-mailadressen en telefoonnummers kunnen worden geverifieerd voor extra veiligheid. Je weet met wie je praat.
+            </p>
+          </div>
         </div>
       </div>
     </section>

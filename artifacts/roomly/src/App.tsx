@@ -35,7 +35,6 @@ const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.M
 const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m) => ({ default: m.SavedSearchesPage })));
 const ComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
-const OverOnsPage = lazy(() => import("@/pages/OverOnsPage").then((m) => ({ default: m.OverOnsPage })));
 
 function PageLoader() {
   return (
@@ -101,7 +100,6 @@ function Router() {
       <Route path="/wachtwoord-vergeten" component={() => <AnimatedRoute component={ForgotPasswordPage} />} />
       <Route path="/wachtwoord-instellen" component={() => <AnimatedRoute component={ResetPasswordPage} />} />
       <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
-      <Route path="/over-ons" component={() => <AnimatedRoute component={OverOnsPage} />} />
       <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
       <Route component={NotFound} />
     </Switch>
