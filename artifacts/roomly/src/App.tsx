@@ -10,6 +10,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { useLastActive } from "@/hooks/useLastActive";
+import { EmailVerificationHandler } from "@/components/EmailVerificationHandler";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -24,6 +25,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
+import { EmailVerifiedPage } from "@/pages/EmailVerifiedPage";
 
 const ListingDetailPage = lazy(() => import("@/pages/ListingDetailPage").then((m) => ({ default: m.ListingDetailPage })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
@@ -97,6 +99,7 @@ function Router() {
       <Route path="/wachtwoord-vergeten" component={() => <AnimatedRoute component={ForgotPasswordPage} />} />
       <Route path="/wachtwoord-instellen" component={() => <AnimatedRoute component={ResetPasswordPage} />} />
       <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
+      <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -109,6 +112,7 @@ export default function App() {
         <div className="flex min-h-screen flex-col bg-stone-50">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <ActivityTracker />
+            <EmailVerificationHandler />
             <Header />
             <main className="flex-1">
               <Router />

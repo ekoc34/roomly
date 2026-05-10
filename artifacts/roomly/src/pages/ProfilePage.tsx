@@ -13,11 +13,21 @@ export function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
+  const [showVerifiedBanner, setShowVerifiedBanner] = useState(false);
   const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "sending" | "code" | "verified">("idle");
   const [pendingPhone, setPendingPhone] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyTimer, setVerifyTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    if (sessionStorage.getItem("emailJustVerified")) {
+      setShowVerifiedBanner(true);
+      sessionStorage.removeItem("emailJustVerified");
+      const t = setTimeout(() => setShowVerifiedBanner(false), 5000);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -186,6 +196,26 @@ export function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      {showVerifiedBanner && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <svg className="h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm font-medium text-emerald-800">Je e-mailadres is geverifieerd! Je profiel is nu completer.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowVerifiedBanner(false)}
+            className="shrink-0 rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-100"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+
       <nav className="mb-6 text-sm text-stone-500">
         <Link href="/dashboard" className="transition hover:text-rose-600">Dashboard</Link>
         <span className="mx-2">›</span>
