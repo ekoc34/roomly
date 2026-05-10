@@ -14,7 +14,7 @@ export function Footer() {
   return (
     <footer className="mt-auto border-t border-stone-200/80 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="grid gap-10 sm:grid-cols-4">
           <div className="sm:col-span-1">
             <div className="flex items-center gap-2">
               <img src="/logo.svg" alt="Welkthuis logo" className="h-10 w-10" />
@@ -45,6 +45,7 @@ export function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
+              <Link href="/over-ons" className="hover:text-rose-600">Over ons</Link>
               {user && (
                 <>
                   <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
@@ -62,10 +63,7 @@ export function Footer() {
               {user ? (
                 <>
                   <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-left hover:text-rose-600"
-                  >
+                  <button onClick={handleSignOut} className="text-left hover:text-rose-600">
                     Uitloggen
                   </button>
                 </>
