@@ -45,6 +45,7 @@ export function Footer() {
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
+              <Link href="/contact" className="hover:text-rose-600">Contact</Link>
               {user && (
                 <>
                   <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>

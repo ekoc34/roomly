@@ -1,0 +1,44 @@
+We are adding a "Contact" feature to the Welkthuis platform, allowing users to send feedback, suggestions, or complaints. These messages will be viewable in the Admin Dashboard.
+
+TASK 1 — Create the database table
+1. Create a new migration file for a `contact_messages` table in `supabase/schema.sql` with the following structure:
+   - id: UUID, primary key, default uuid_generate_v4()
+   - name: TEXT, not null
+   - email: TEXT, not null
+   - category: TEXT, not null, check constraint (category IN ('suggestie', 'klacht', 'vraag', 'overig'))
+   - subject: TEXT, not null
+   - message: TEXT, not null
+   - is_read: BOOLEAN, not null, default FALSE
+   - created_at: TIMESTAMPTZ, not null, default NOW()
+   - Enable RLS: Allow authenticated users to INSERT, and only admins to SELECT.
+2. Provide the exact SQL command I need to run in the Supabase SQL Editor.
+
+TASK 2 — Create the Contact page
+1. Create a new page at `src/pages/ContactPage.tsx`.
+2. Add the route `/contact` in `App.tsx` (lazy-loaded).
+3. The page should display a friendly contact form with the following Dutch fields:
+   - "Je naam" (text input)
+   - "Je e-mailadres" (email input)
+   - "Categorie" (select dropdown with: Suggestie, Klacht, Vraag, Overig)
+   - "Onderwerp" (text input)
+   - "Je bericht" (textarea)
+4. All form fields are required. Show inline validation errors.
+5. On successful submission, insert the message into the `contact_messages` table and show a success toast: "Je bericht is verzonden. We nemen zo snel mogelijk contact met je op!"
+6. On error, show an appropriate error toast.
+7. The page must be fully styled with the existing Tailwind v4 design system (rounded-2xl, rose-500 accent, stone colors).
+
+TASK 3 — Add "Contact" link to the footer
+1. Open `Footer.tsx`. Add a new "Contact" link to the "Platform" section, navigated to `/contact`. Style it identically to the existing links.
+
+TASK 4 — Add contact messages to the Admin Dashboard
+1. Open `AdminDashboardPage.tsx`. Add a new section "Contactberichten" (Contact Messages).
+2. Fetch all messages from the `contact_messages` table, ordered by `created_at` DESC.
+3. Display each message as a card showing: name, email, category badge (colored: suggesstie=green, klacht=red, vraag=blue, overig=stone), subject, message body, and date.
+4. Add a "Markeer als gelezen" (Mark as Read) button that sets `is_read = TRUE`. Unread messages should have a subtle rose background highlight.
+5. Update the Quick Stats section on the admin dashboard to show the count of unread contact messages.
+
+TASK 5 — Finalize
+1. Keep all user-facing text in Dutch.
+2. Use existing Tailwind v4 styling.
+3. Do not break any existing functionality.
+4. Commit with message: "Add Contact page, footer link, and admin dashboard integration" and push.

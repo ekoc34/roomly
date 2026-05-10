@@ -13,7 +13,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning, Home } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning, Home, Mail, CheckCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -36,10 +36,36 @@ type ScamReport = {
   reporter_name: string | null;
 };
 
+type ContactMessage = {
+  id: string;
+  name: string;
+  email: string;
+  category: string;
+  subject: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+};
+
 type Stats = {
   flaggedCount: number;
   scamReportCount: number;
   totalListings: number;
+  unreadContactCount: number;
+};
+
+const CATEGORY_STYLES: Record<string, string> = {
+  suggestie: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  klacht: "bg-rose-100 text-rose-700 border-rose-200",
+  vraag: "bg-blue-100 text-blue-700 border-blue-200",
+  overig: "bg-stone-100 text-stone-600 border-stone-200",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  suggestie: "Suggestie",
+  klacht: "Klacht",
+  vraag: "Vraag",
+  overig: "Overig",
 };
 
 export function AdminDashboardPage() {
@@ -49,14 +75,13 @@ export function AdminDashboardPage() {
   const [roleLoading, setRoleLoading] = useState(true);
   const [landlords, setLandlords] = useState<FlaggedLandlord[]>([]);
   const [reports, setReports] = useState<ScamReport[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // ── 1. Fetch role ──────────────────────────────────────────────────────────
-  // Wait for auth to settle first — while authLoading is true, user is null
-  // even for logged-in users, which would cause a false "not logged in" result.
   useEffect(() => {
-    if (authLoading) return;                       // auth not ready yet
+    if (authLoading) return;
     if (!user || !supabase) { setRoleLoading(false); return; }
     supabase
       .from("profiles")
@@ -71,7 +96,6 @@ export function AdminDashboardPage() {
   }, [user, authLoading]);
 
   // ── 2. Redirect non-admins ─────────────────────────────────────────────────
-  // Both auth AND role must be fully resolved before we evaluate access.
   useEffect(() => {
     if (authLoading || roleLoading) return;
     console.log("[Admin] role check → role:", role, "user id:", user?.id);
@@ -145,16 +169,33 @@ export function AdminDashboardPage() {
       setReports(mapped);
     }
 
+    // Contact messages
+    const { data: contactRows } = await supabase
+      .from("contact_messages")
+      .select("id, name, email, category, subject, message, is_read, created_at")
+      .order("created_at", { ascending: false });
+
+    if (contactRows) {
+      setContactMessages(contactRows as ContactMessage[]);
+    }
+
     // Quick stats
-    const [{ count: flaggedCount }, { count: scamCount }, { count: listingsCount }] = await Promise.all([
+    const [
+      { count: flaggedCount },
+      { count: scamCount },
+      { count: listingsCount },
+      { count: unreadContact },
+    ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }).eq("scam_flagged", true),
       supabase.from("listing_reports").select("*", { count: "exact", head: true }).eq("category", "scam"),
       supabase.from("listings").select("*", { count: "exact", head: true }),
+      supabase.from("contact_messages").select("*", { count: "exact", head: true }).eq("is_read", false),
     ]);
     setStats({
       flaggedCount: flaggedCount ?? 0,
       scamReportCount: scamCount ?? 0,
       totalListings: listingsCount ?? 0,
+      unreadContactCount: unreadContact ?? 0,
     });
   }
 
@@ -167,15 +208,12 @@ export function AdminDashboardPage() {
     startTransition(async () => {
       if (!supabase) return;
 
-      // Step 1: get current email/phone verification state
       const { data: prof } = await supabase
         .from("profiles")
         .select("email_auto_verified, phone_verified")
         .eq("id", landlordId)
         .maybeSingle();
 
-      // Step 2: clear scam flag; badge is restored by sync_verification_badge trigger
-      // if email_auto_verified AND phone_verified remain true
       const { error: updateErr } = await supabase
         .from("profiles")
         .update({ scam_flagged: false })
@@ -183,8 +221,6 @@ export function AdminDashboardPage() {
 
       if (updateErr) { toast.error("Herstellen mislukt."); return; }
 
-      // Step 3: if both verifications were still set (they were revoked by the trigger —
-      // so they'll be false). Re-enable both so the badge sync trigger can fire.
       if (prof && !prof.email_auto_verified && !prof.phone_verified) {
         await supabase
           .from("profiles")
@@ -192,7 +228,6 @@ export function AdminDashboardPage() {
           .eq("id", landlordId);
       }
 
-      // Step 4: delete all scam reports for this landlord's listings
       const { data: theirListings } = await supabase
         .from("listings")
         .select("id")
@@ -223,6 +258,21 @@ export function AdminDashboardPage() {
     });
   };
 
+  const handleMarkRead = (messageId: string) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase
+        .from("contact_messages")
+        .update({ is_read: true })
+        .eq("id", messageId);
+      if (error) { toast.error("Bijwerken mislukt."); return; }
+      setContactMessages((prev) =>
+        prev.map((m) => m.id === messageId ? { ...m, is_read: true } : m)
+      );
+      setStats((s) => s ? { ...s, unreadContactCount: Math.max(0, s.unreadContactCount - 1) } : s);
+    });
+  };
+
   // ── 5. Render guards ───────────────────────────────────────────────────────
   if (authLoading || roleLoading) {
     return (
@@ -249,13 +299,13 @@ export function AdminDashboardPage() {
         </span>
         <div>
           <h1 className="text-2xl font-bold text-stone-900">Admin Dashboard</h1>
-          <p className="text-sm text-stone-500">Beheer gemelde verhuurders en fraudemeldingen.</p>
+          <p className="text-sm text-stone-500">Beheer gemelde verhuurders, fraudemeldingen en contactberichten.</p>
         </div>
       </div>
 
-      {/* ── Section C: Quick Stats ── */}
+      {/* ── Quick Stats ── */}
       {stats && (
-        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
             icon={<AlertTriangle className="h-5 w-5 text-amber-500" />}
             bg="bg-amber-50 border-amber-200"
@@ -273,6 +323,12 @@ export function AdminDashboardPage() {
             bg="bg-emerald-50 border-emerald-200"
             label="Totaal advertenties"
             value={stats.totalListings}
+          />
+          <StatCard
+            icon={<Mail className="h-5 w-5 text-blue-500" />}
+            bg="bg-blue-50 border-blue-200"
+            label="Ongelezen contactberichten"
+            value={stats.unreadContactCount}
           />
         </div>
       )}
@@ -335,7 +391,7 @@ export function AdminDashboardPage() {
       </section>
 
       {/* ── Section B: Scam Reports List ── */}
-      <section>
+      <section className="mb-8">
         <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-stone-900">
           <FileWarning className="h-4 w-4 text-rose-500" />
           Scam-meldingen
@@ -395,6 +451,60 @@ export function AdminDashboardPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+      </section>
+
+      {/* ── Section C: Contact Messages ── */}
+      <section className="mb-8">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-stone-900">
+          <Mail className="h-4 w-4 text-blue-500" />
+          Contactberichten
+          {contactMessages.filter((m) => !m.is_read).length > 0 && (
+            <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
+              {contactMessages.filter((m) => !m.is_read).length} ongelezen
+            </span>
+          )}
+        </h2>
+        {contactMessages.length === 0 ? (
+          <div className="rounded-2xl border border-stone-100 bg-white px-6 py-10 text-center text-sm text-stone-400 shadow-sm">
+            Geen contactberichten ontvangen.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {contactMessages.map((msg) => (
+              <div
+                key={msg.id}
+                className={`rounded-2xl border px-5 py-4 shadow-sm transition ${msg.is_read ? "border-stone-100 bg-white" : "border-rose-100 bg-rose-50/50"}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-semibold text-stone-900">{msg.name}</p>
+                    <span className="text-stone-300">·</span>
+                    <p className="text-xs text-stone-500">{msg.email}</p>
+                    <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${CATEGORY_STYLES[msg.category] ?? CATEGORY_STYLES.overig}`}>
+                      {CATEGORY_LABELS[msg.category] ?? msg.category}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-xs text-stone-400 whitespace-nowrap">{new Date(msg.created_at).toLocaleDateString("nl-NL")}</p>
+                    {!msg.is_read && (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => handleMarkRead(msg.id)}
+                        className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-semibold text-stone-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 active:scale-95"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
+                        Markeer als gelezen
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-2 text-sm font-medium text-stone-800">{msg.subject}</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">{msg.message}</p>
+              </div>
+            ))}
           </div>
         )}
       </section>

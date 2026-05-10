@@ -530,3 +530,54 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- ============================================================
+-- CONTACT MESSAGES
+-- Run in Supabase SQL Editor
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.contact_messages (
+  id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name        TEXT        NOT NULL,
+  email       TEXT        NOT NULL,
+  category    TEXT        NOT NULL CHECK (category IN ('suggestie', 'klacht', 'vraag', 'overig')),
+  subject     TEXT        NOT NULL,
+  message     TEXT        NOT NULL,
+  is_read     BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Enable Row Level Security
+ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
+
+-- Any authenticated user may INSERT a contact message
+CREATE POLICY "authenticated_insert_contact_messages"
+  ON public.contact_messages
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Only admins may SELECT contact messages
+CREATE POLICY "admin_select_contact_messages"
+  ON public.contact_messages
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Only admins may UPDATE contact messages (e.g. mark as read)
+CREATE POLICY "admin_update_contact_messages"
+  ON public.contact_messages
+  FOR UPDATE
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (true);
