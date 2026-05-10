@@ -127,7 +127,7 @@ export function MessagesPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <h1 className="text-xl font-semibold text-stone-900">Log in om je berichten te zien</h1>
-        <Link href="/inloggen" data-testid="messages-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
+        <Link href="/inloggen?next=/berichten" data-testid="messages-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
       </div>
     );
   }

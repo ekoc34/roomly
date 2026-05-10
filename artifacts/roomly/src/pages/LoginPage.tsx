@@ -16,8 +16,8 @@ export function LoginPage() {
   const [oauthLoading, setOauthLoading] = useState<"google" | "facebook" | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/dashboard");
-  }, [user, authLoading, navigate]);
+    if (!authLoading && user) navigate(nextParam);
+  }, [user, authLoading, navigate, nextParam]);
 
   if (!authLoading && user) return null;
 
@@ -151,7 +151,7 @@ export function LoginPage() {
           </p>
           <p className="mt-3 text-center text-sm text-stone-500">
             Nog geen account?{" "}
-            <Link href="/registreren" data-testid="login-register-link" className="font-medium text-rose-600 hover:underline">Aanmelden →</Link>
+            <Link href={nextParam !== "/dashboard" ? `/registreren?next=${encodeURIComponent(nextParam)}` : "/registreren"} data-testid="login-register-link" className="font-medium text-rose-600 hover:underline">Aanmelden →</Link>
           </p>
         </div>
       </div>

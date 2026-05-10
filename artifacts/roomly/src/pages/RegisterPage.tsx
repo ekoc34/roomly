@@ -1,6 +1,6 @@
 import { useState, useTransition, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,14 +8,16 @@ import { useAuth } from "@/hooks/useAuth";
 export function RegisterPage() {
   const [, navigate] = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const searchStr = useSearch();
+  const nextParam = new URLSearchParams(searchStr).get("next") ?? "/dashboard";
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [oauthLoading, setOauthLoading] = useState<"google" | "facebook" | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user) navigate("/dashboard");
-  }, [user, authLoading, navigate]);
+    if (!authLoading && user) navigate(nextParam);
+  }, [user, authLoading, navigate, nextParam]);
 
   if (!authLoading && user) return null;
 
@@ -47,7 +49,7 @@ export function RegisterPage() {
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}${nextParam}`,
       },
     });
     if (err) {
@@ -147,7 +149,7 @@ export function RegisterPage() {
 
           <p className="mt-5 text-center text-sm text-stone-500">
             Al een account?{" "}
-            <Link href="/inloggen" data-testid="register-login-link" className="font-medium text-rose-600 hover:underline">Inloggen →</Link>
+            <Link href={nextParam !== "/dashboard" ? `/inloggen?next=${encodeURIComponent(nextParam)}` : "/inloggen"} data-testid="register-login-link" className="font-medium text-rose-600 hover:underline">Inloggen →</Link>
           </p>
         </div>
       </div>

@@ -102,7 +102,7 @@ export function NotificationsPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { navigate("/inloggen"); return; }
+    if (!user) { navigate("/inloggen?next=/notificaties"); return; }
     fetchAll();
 
     if (!supabase) return;

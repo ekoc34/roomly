@@ -45,7 +45,7 @@ export function FavoritesPage() {
         </div>
         <h1 className="mt-4 text-xl font-semibold text-stone-900">Log in om favorieten te zien</h1>
         <p className="mt-2 text-sm text-stone-500">Sla woningen op en bekijk ze later terug.</p>
-        <Link href="/inloggen" data-testid="favorites-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
+        <Link href="/inloggen?next=/favorieten" data-testid="favorites-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
       </div>
     );
   }
