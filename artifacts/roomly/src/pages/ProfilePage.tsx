@@ -224,6 +224,14 @@ export function ProfilePage() {
     }
   };
 
+  function getPasswordStrength(pw: string): 0 | 1 | 2 | 3 {
+    if (!pw) return 0;
+    const types = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^a-zA-Z0-9]/].filter((r) => r.test(pw)).length;
+    if (pw.length >= 10 && types >= 3) return 3;
+    if (pw.length >= 8 && types >= 2) return 2;
+    return 1;
+  }
+
   const handlePasswordChange = async () => {
     const errs: { current?: string; new?: string; confirm?: string } = {};
     if (!pwCurrent) errs.current = "Voer je huidige wachtwoord in.";
@@ -693,6 +701,30 @@ export function ProfilePage() {
                   className={pwErrors.new ? "border-rose-400 bg-rose-50" : ""}
                 />
               </div>
+              {pwNew && (() => {
+                const strength = getPasswordStrength(pwNew);
+                const segments = [
+                  strength >= 1
+                    ? strength === 1 ? "bg-rose-500" : strength === 2 ? "bg-amber-400" : "bg-emerald-500"
+                    : "bg-stone-200",
+                  strength >= 2
+                    ? strength === 2 ? "bg-amber-400" : "bg-emerald-500"
+                    : "bg-stone-200",
+                  strength >= 3 ? "bg-emerald-500" : "bg-stone-200",
+                ];
+                const label = strength === 1 ? "Zwak" : strength === 2 ? "Matig" : "Sterk";
+                const labelColor = strength === 1 ? "text-rose-500" : strength === 2 ? "text-amber-500" : "text-emerald-600";
+                return (
+                  <div className="mt-2">
+                    <div className="flex gap-1">
+                      {segments.map((cls, i) => (
+                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${cls}`} />
+                      ))}
+                    </div>
+                    <p className={`mt-1 text-xs font-medium ${labelColor}`}>{label}</p>
+                  </div>
+                );
+              })()}
               {pwErrors.new && <p className="mt-1 text-xs text-rose-500">{pwErrors.new}</p>}
             </div>
             <div>
