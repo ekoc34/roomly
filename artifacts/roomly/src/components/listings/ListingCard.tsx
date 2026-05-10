@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { Users } from "lucide-react";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { CompareButton } from "@/components/listings/CompareButton";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
@@ -76,9 +77,16 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge }:
           </p>
 
           <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <span className="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
-              {typeLabel}
-            </span>
+            {listing.type === "roommate_search" ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                <Users className="h-3 w-3 shrink-0" />
+                Huisgenoot gezocht
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
+                {typeLabel}
+              </span>
+            )}
             {listing.rooms != null && (
               <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
