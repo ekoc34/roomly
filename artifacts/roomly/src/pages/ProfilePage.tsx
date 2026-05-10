@@ -163,6 +163,9 @@ export function ProfilePage() {
         return;
       }
 
+      // Capture session JWT before sign-out — needed for the Edge Function call
+      const { data: { session } } = await supabase.auth.getSession();
+
       // Anonymise listings so existing conversations aren't broken for the other party
       await supabase.from("listings").update({ user_id: null }).eq("user_id", user.id);
 
@@ -181,8 +184,32 @@ export function ProfilePage() {
         verification_badge: null,
       }).eq("id", user.id);
 
-      toast.success("Je account is definitief verwijderd.");
+      // Call the Edge Function to permanently delete the auth.users record
+      // so the user can re-register with the same e-mail address later.
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      let edgeFnOk = false;
+      try {
+        const resp = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token ?? ""}`,
+          },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        edgeFnOk = resp.ok;
+      } catch {
+        edgeFnOk = false;
+      }
+
       await supabase.auth.signOut();
+
+      if (edgeFnOk) {
+        toast.success("Je account is definitief verwijderd. Je kunt nu opnieuw registreren met hetzelfde e-mailadres.");
+      } else {
+        toast.warning("Je account is verwijderd maar er is een fout opgetreden. Neem contact op met support.");
+      }
+
       navigate("/");
     } catch {
       toast.error("Er is iets misgegaan. Probeer het later opnieuw.");
