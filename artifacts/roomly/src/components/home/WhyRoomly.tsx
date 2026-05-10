@@ -6,7 +6,7 @@ const ITEMS = [
       </svg>
     ),
     title: "Geverifieerde gebruikers",
-    description: "Universiteitsmailadressen worden automatisch geverifieerd. Voor verhuurders komt er telefoonverificatie. Je weet met wie je praat.",
+    description: "E-mailadressen en telefoonnummers kunnen worden geverifieerd voor extra veiligheid. Je weet met wie je praat.",
   },
   {
     icon: (
@@ -23,8 +23,8 @@ const ITEMS = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
       </svg>
     ),
-    title: "Gratis — altijd",
-    description: "Geen abonnementen, geen verborgen kosten voor huurders of verhuurders. Plaats en reageer zo vaak je wilt.",
+    title: "Zonder abonnement",
+    description: "Geen verborgen kosten voor huurders of verhuurders. Plaats en reageer zo vaak je wilt.",
   },
 ];
 
@@ -36,7 +36,7 @@ export function WhyRoomly() {
           <p className="text-xs font-semibold uppercase tracking-widest text-rose-500">Waarom Welkthuis</p>
           <h2 className="mt-2 text-2xl font-bold text-stone-900 sm:text-3xl">Huizen vinden, eerlijk en simpel</h2>
           <p className="mt-3 text-sm leading-relaxed text-stone-500 sm:text-base">
-            Een platform waar studenten, professionals, expats en families hun volgende woonplek vinden — met vertrouwde tools en zonder abonnement.
+            Een platform waar studenten, professionals, expats, families en alleenstaanden hun volgende woonplek vinden — of het nu gaat om kamerverhuur, een appartement of een huisgenoot. Zonder abonnement, met vertrouwde tools.
           </p>
         </div>
         <div className="mt-10 grid gap-6 sm:grid-cols-3">
