@@ -249,6 +249,32 @@ export function ListingFilters() {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
+        <label className="text-xs font-medium text-stone-700">Snelfilter:</label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => push({ type: type === "roommate_search" ? "" : "roommate_search" })}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${type === "roommate_search" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Huisgenoot gezocht
+          </button>
+          <button
+            type="button"
+            onClick={() => push({ verified: verified === "1" ? "" : "1" })}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${verified === "1" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Geverifieerde verhuurders
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <label className="text-xs font-medium text-stone-700">Sorteren:</label>
         <div className="flex flex-wrap gap-2">
           {SORT_OPTIONS.map((opt) => (
@@ -261,16 +287,6 @@ export function ListingFilters() {
               {opt.label}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={() => push({ verified: verified === "1" ? "" : "1" })}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${verified === "1" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            Geverifieerde verhuurders
-          </button>
         </div>
       </div>
 
