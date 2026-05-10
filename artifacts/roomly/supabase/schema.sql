@@ -34,7 +34,7 @@ begin
   values (
     new.id,
     new.email,
-    new.email like '%@%.edu' or new.email like '%@%.ac.nl' or new.email like '%@student.%',
+    false,
     false,
     false
   )
