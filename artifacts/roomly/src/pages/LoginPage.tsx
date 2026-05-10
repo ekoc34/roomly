@@ -1,17 +1,25 @@
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation, useSearch } from "wouter";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PasswordInput } from "@/components/ui/password-input";
+import { useAuth } from "@/hooks/useAuth";
 
 export function LoginPage() {
   const [, navigate] = useLocation();
+  const { user, loading: authLoading } = useAuth();
   const searchStr = useSearch();
   const nextParam = new URLSearchParams(searchStr).get("next") ?? "/dashboard";
   const [error, setError] = useState<string | null>(null);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [oauthLoading, setOauthLoading] = useState<"google" | "facebook" | null>(null);
+
+  useEffect(() => {
+    if (!authLoading && user) navigate("/dashboard");
+  }, [user, authLoading, navigate]);
+
+  if (!authLoading && user) return null;
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
