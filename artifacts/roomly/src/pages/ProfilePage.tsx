@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { MessageSquare, Bell, Search } from "lucide-react";
+import { MessageSquare, Bell, Search, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
@@ -10,6 +10,7 @@ import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
 export function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
+  const [, navigate] = useLocation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -19,6 +20,11 @@ export function ProfilePage() {
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyTimer, setVerifyTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem("emailJustVerified")) {
@@ -141,6 +147,36 @@ export function ProfilePage() {
     }
     toast.success(`Verificatielink verzonden naar ${user.email}. Check je inbox!`);
     setEmailCooldown(60);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!supabase || !user?.email) return;
+    setIsDeleting(true);
+    try {
+      const { error: reAuthErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: deletePassword,
+      });
+      if (reAuthErr) {
+        toast.error("Ongeldig wachtwoord. Probeer opnieuw.");
+        setIsDeleting(false);
+        return;
+      }
+
+      // Anonymise listings so existing conversations aren't broken
+      await supabase.from("listings").update({ user_id: null }).eq("user_id", user.id);
+
+      // Delete profile — cascades to conversations, messages, applications,
+      // favorites, saved_searches, listing_views, listing_reports
+      await supabase.from("profiles").delete().eq("id", user.id);
+
+      toast.success("Je account is definitief verwijderd.");
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch {
+      toast.error("Er is iets misgegaan. Probeer het later opnieuw.");
+      setIsDeleting(false);
+    }
   };
 
   const [showEmail, setShowEmail] = useState(false);
@@ -547,6 +583,109 @@ export function ProfilePage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Danger zone — account deletion */}
+      {!loading && user && (
+        <div className="mt-6 rounded-3xl border border-red-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
+            <p className="text-base font-semibold text-stone-900">Account verwijderen</p>
+          </div>
+          <p className="mt-2 text-sm text-stone-500">
+            Je account permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt. Al je gegevens worden definitief verwijderd volgens de AVG/GDPR richtlijnen.
+          </p>
+          <button
+            type="button"
+            onClick={() => { setDeleteEmail(""); setDeletePassword(""); setShowDeleteModal(true); }}
+            className="mt-4 rounded-2xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-600 active:scale-[0.98]"
+          >
+            Account verwijderen
+          </button>
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-8">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-stone-900">Weet je zeker dat je je account wilt verwijderen?</h2>
+                <p className="mt-1.5 text-sm text-stone-500">
+                  Dit is permanent. Je verliest al je listings, berichten, favorieten, en verificaties. Deze actie kan <span className="font-semibold text-red-600">NIET</span> ongedaan worden gemaakt.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="delete-email" className="text-xs font-medium text-stone-700">
+                  Bevestig je e-mailadres
+                </label>
+                <input
+                  id="delete-email"
+                  type="email"
+                  value={deleteEmail}
+                  onChange={(e) => setDeleteEmail(e.target.value)}
+                  placeholder={user?.email ?? "jij@example.nl"}
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-password" className="text-xs font-medium text-stone-700">
+                  Wachtwoord ter bevestiging
+                </label>
+                <input
+                  id="delete-password"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full rounded-2xl border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 sm:w-auto"
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isDeleting ||
+                  deleteEmail.trim().toLowerCase() !== (user?.email ?? "").toLowerCase() ||
+                  deletePassword.length === 0
+                }
+                onClick={handleDeleteAccount}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50 active:scale-[0.98] sm:w-auto"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Verwijderen…
+                  </>
+                ) : "Verwijder mijn account"}
+              </button>
+            </div>
           </div>
         </div>
       )}
