@@ -198,7 +198,7 @@ export const CITY_DISTRICTS: Record<string, string[]> = {
 
 export const LISTING_TYPE_LABELS: Record<ListingType, string> = {
   room_for_rent: "Kamer te huur",
-  roommate_search: "Mede-huurder gezocht",
+  roommate_search: "Huisgenoot gezocht",
   short_stay: "Kort verblijf",
 };
 
