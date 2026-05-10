@@ -11,6 +11,7 @@ import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { useLastActive } from "@/hooks/useLastActive";
 import { EmailVerificationHandler } from "@/components/EmailVerificationHandler";
+import { OAuthProfileHandler } from "@/components/OAuthProfileHandler";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -113,6 +114,7 @@ export default function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <ActivityTracker />
             <EmailVerificationHandler />
+            <OAuthProfileHandler />
             <Header />
             <main className="flex-1">
               <Router />
