@@ -1,6 +1,16 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 
 export function Footer() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+
+  const handleSignOut = async () => {
+    if (supabase) await supabase.auth.signOut();
+    navigate("/inloggen");
+  };
+
   return (
     <footer className="mt-auto border-t border-stone-200/80 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
@@ -30,22 +40,41 @@ export function Footer() {
               </span>
             </div>
           </div>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
-              <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
-              <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
-              <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
-              <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
+              {user && (
+                <>
+                  <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
+                  <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
+                  <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
+                  <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
+                </>
+              )}
             </nav>
           </div>
+
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
-              <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
-              <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
-              <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
+              {user ? (
+                <>
+                  <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="text-left hover:text-rose-600"
+                  >
+                    Uitloggen
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
+                  <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
+                </>
+              )}
             </nav>
           </div>
         </div>
