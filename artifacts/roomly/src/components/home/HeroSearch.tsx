@@ -31,7 +31,7 @@ export function HeroSearch() {
         <p className="mt-4 text-base leading-relaxed text-stone-600 sm:text-lg">
           {selectedCity
             ? `Bekijk alle beschikbare kamers en appartementen in ${selectedCity}.`
-            : "Kamers, appartementen en mede-huurders in heel Nederland. Zoek, reageer en chat direct met de verhuurder. Gratis — altijd."}
+            : "Kamerverhuur, appartementen en huisgenoot in heel Nederland. Zoek, reageer en chat direct met de verhuurder."}
         </p>
 
         {/* Autocomplete search bar */}
