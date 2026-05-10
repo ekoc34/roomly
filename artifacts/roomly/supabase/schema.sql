@@ -581,3 +581,10 @@ CREATE POLICY "admin_update_contact_messages"
     )
   )
   WITH CHECK (true);
+
+-- ============================================================
+-- MIGRATION: hidden_by_landlord on applications
+-- Run in Supabase SQL Editor to apply this migration
+-- ============================================================
+ALTER TABLE public.applications
+  ADD COLUMN IF NOT EXISTS hidden_by_landlord BOOLEAN NOT NULL DEFAULT FALSE;
