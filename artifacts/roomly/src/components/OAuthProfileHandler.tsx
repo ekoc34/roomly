@@ -44,6 +44,11 @@ export function OAuthProfileHandler() {
         student_verified: false,
       });
 
+      sessionStorage.setItem(
+        "oauthNewUser",
+        JSON.stringify({ provider, name, avatar_url })
+      );
+
       setLocation("/welkom");
     });
 
