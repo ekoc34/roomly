@@ -1,10 +1,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { MessageSquare, Bell, Search, AlertTriangle } from "lucide-react";
+import { MessageSquare, Bell, Search, AlertTriangle, KeyRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
+import { PasswordInput } from "@/components/ui/password-input";
 import type { Profile } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
@@ -25,6 +26,12 @@ export function ProfilePage() {
   const [deleteEmail, setDeleteEmail] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwErrors, setPwErrors] = useState<{ current?: string; new?: string; confirm?: string }>({});
+  const [pwPending, setPwPending] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem("emailJustVerified")) {
@@ -215,6 +222,36 @@ export function ProfilePage() {
       toast.error("Er is iets misgegaan. Probeer het later opnieuw.");
       setIsDeleting(false);
     }
+  };
+
+  const handlePasswordChange = async () => {
+    const errs: { current?: string; new?: string; confirm?: string } = {};
+    if (!pwCurrent) errs.current = "Voer je huidige wachtwoord in.";
+    if (!pwNew) errs.new = "Voer een nieuw wachtwoord in.";
+    else if (pwNew.length < 8) errs.new = "Nieuw wachtwoord moet minimaal 8 tekens bevatten.";
+    if (!pwConfirm) errs.confirm = "Bevestig je nieuwe wachtwoord.";
+    else if (pwNew && pwNew !== pwConfirm) errs.confirm = "Wachtwoorden komen niet overeen.";
+    if (Object.keys(errs).length > 0) { setPwErrors(errs); return; }
+    if (!supabase || !user?.email) { toast.error("Niet ingelogd."); return; }
+
+    setPwPending(true);
+    const { error: reAuthErr } = await supabase.auth.signInWithPassword({ email: user.email, password: pwCurrent });
+    if (reAuthErr) {
+      toast.error("Huidig wachtwoord is onjuist.");
+      setPwErrors({ current: "Huidig wachtwoord is onjuist." });
+      setPwPending(false);
+      return;
+    }
+
+    const { error: updateErr } = await supabase.auth.updateUser({ password: pwNew });
+    setPwPending(false);
+    if (updateErr) {
+      toast.error("Wachtwoord bijwerken mislukt: " + updateErr.message);
+      return;
+    }
+
+    setPwCurrent(""); setPwNew(""); setPwConfirm(""); setPwErrors({});
+    toast.success("Wachtwoord succesvol bijgewerkt.");
   };
 
   const [showEmail, setShowEmail] = useState(false);
@@ -621,6 +658,78 @@ export function ProfilePage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Wachtwoord wijzigen */}
+      {!loading && user && (
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex items-center gap-2.5">
+            <KeyRound className="h-5 w-5 shrink-0 text-stone-500" />
+            <p className="text-base font-semibold text-stone-900">Wachtwoord wijzigen</p>
+          </div>
+          <p className="mt-1 mb-5 text-sm text-stone-500">Werk je wachtwoord bij voor extra beveiliging. Gebruik minimaal 8 tekens.</p>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-stone-700">Huidig wachtwoord</label>
+              <div className="mt-1.5">
+                <PasswordInput
+                  value={pwCurrent}
+                  onChange={(e) => { setPwCurrent(e.target.value); setPwErrors((p) => ({ ...p, current: undefined })); }}
+                  placeholder="••••••••"
+                  className={pwErrors.current ? "border-rose-400 bg-rose-50" : ""}
+                />
+              </div>
+              {pwErrors.current && <p className="mt-1 text-xs text-rose-500">{pwErrors.current}</p>}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-stone-700">Nieuw wachtwoord</label>
+              <div className="mt-1.5">
+                <PasswordInput
+                  value={pwNew}
+                  onChange={(e) => { setPwNew(e.target.value); setPwErrors((p) => ({ ...p, new: undefined })); }}
+                  placeholder="Minimaal 8 tekens"
+                  className={pwErrors.new ? "border-rose-400 bg-rose-50" : ""}
+                />
+              </div>
+              {pwErrors.new && <p className="mt-1 text-xs text-rose-500">{pwErrors.new}</p>}
+            </div>
+            <div>
+              <label className="text-xs font-medium text-stone-700">Bevestig nieuw wachtwoord</label>
+              <div className="mt-1.5">
+                <PasswordInput
+                  value={pwConfirm}
+                  onChange={(e) => { setPwConfirm(e.target.value); setPwErrors((p) => ({ ...p, confirm: undefined })); }}
+                  placeholder="Herhaal nieuw wachtwoord"
+                  className={pwErrors.confirm ? "border-rose-400 bg-rose-50" : ""}
+                />
+              </div>
+              {pwErrors.confirm && <p className="mt-1 text-xs text-rose-500">{pwErrors.confirm}</p>}
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              type="button"
+              disabled={pwPending}
+              onClick={handlePasswordChange}
+              className="flex items-center gap-2 rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-stone-700 disabled:opacity-50 active:scale-[0.98]"
+            >
+              {pwPending ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Bijwerken…
+                </>
+              ) : (
+                <>
+                  <KeyRound className="h-4 w-4" />
+                  Wachtwoord bijwerken
+                </>
+              )}
+            </button>
           </div>
         </div>
       )}
