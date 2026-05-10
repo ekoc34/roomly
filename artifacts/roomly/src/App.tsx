@@ -125,7 +125,7 @@ export default function App() {
             <MobileBottomNav />
             <CompareBar />
           </WouterRouter>
-          <Toaster position="bottom-right" richColors closeButton />
+          <Toaster position="bottom-right" richColors closeButton toastOptions={{ classNames: { closeButton: "!left-auto !right-0 !translate-x-1/2 !-translate-y-1/2" } }} />
         </div>
       </CompareProvider>
     </SelectedCityProvider>

@@ -27,7 +27,7 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge }:
 
   return (
     <div className="group relative">
-      <FavoriteButton listingId={listing.id} initialFavorited={isFavorited} />
+      <FavoriteButton listingId={listing.id} initialFavorited={isFavorited} ownerUserId={listing.user_id} />
       <Link
         href={`/kamers/${listing.id}`}
         data-testid={`listing-card-${listing.id}`}

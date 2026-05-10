@@ -8,13 +8,16 @@ type Props = {
   listingId: string;
   initialFavorited: boolean;
   variant?: "card" | "detail";
+  ownerUserId?: string;
 };
 
-export function FavoriteButton({ listingId, initialFavorited, variant = "card" }: Props) {
+export function FavoriteButton({ listingId, initialFavorited, variant = "card", ownerUserId }: Props) {
   const [favorited, setFavorited] = useState(initialFavorited);
   const [isPending, startTransition] = useTransition();
   const { user } = useAuth();
   const [, navigate] = useLocation();
+
+  if (ownerUserId && user?.id === ownerUserId) return null;
 
   const onClick = (e: React.MouseEvent) => {
     e.preventDefault();

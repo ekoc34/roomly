@@ -108,7 +108,7 @@ export function ListingDetailPage() {
         <div className="space-y-6">
           <div className="relative">
             <DetailGallery images={listing.images} title={listing.title} />
-            <FavoriteButton listingId={listing.id} initialFavorited={favorited} variant="detail" />
+            <FavoriteButton listingId={listing.id} initialFavorited={favorited} variant="detail" ownerUserId={listing.user_id} />
           </div>
 
           <div>
