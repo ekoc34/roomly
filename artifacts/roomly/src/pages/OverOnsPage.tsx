@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet-async";
-import { Search, ShieldCheck, MessageSquare } from "lucide-react";
+import { ShieldCheck, MessageSquare, Heart } from "lucide-react";
 
 const FEATURES = [
   {
@@ -15,7 +15,7 @@ const FEATURES = [
       "Chat direct met de verhuurder in het platform. Geen WhatsApp-links, geen e-mailadres delen, geen gedoe.",
   },
   {
-    icon: Search,
+    icon: Heart,
     title: "Zonder abonnement",
     description:
       "Geen verborgen kosten voor huurders of verhuurders. Plaats en reageer zo vaak je wilt.",
@@ -34,8 +34,8 @@ export function OverOnsPage() {
       </Helmet>
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
         <div className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-rose-500">
-            Over Welkthuis
+          <p className="text-xs font-semibold uppercase tracking-widest text-rose-500">
+            Waarom Welkthuis
           </p>
           <h1 className="mt-3 text-4xl font-black text-stone-900 sm:text-5xl">
             Woningen vinden in Nederland —{" "}
@@ -49,7 +49,7 @@ export function OverOnsPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-1">
+        <div className="mt-12 grid gap-5">
           {FEATURES.map(({ icon: Icon, title, description }) => (
             <div
               key={title}
