@@ -616,8 +616,79 @@ export function ProfilePage() {
       {/* Profieltype — one-time selector for users who skipped onboarding */}
       {!loading && (
         <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-base font-semibold text-stone-900">Je profieltype</p>
-          {profile?.user_type ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-base font-semibold text-stone-900">Je profieltype</p>
+            {profile?.role === "admin" && (
+              <span className="flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                Admin — testmodus
+              </span>
+            )}
+          </div>
+          {profile?.role === "admin" ? (
+            <>
+              <p className="mt-1 mb-4 text-sm text-stone-500">
+                Als admin kun je je profieltype op elk moment wisselen voor testdoeleinden.
+              </p>
+              <div
+                className="grid gap-3 transition-opacity duration-200"
+                style={{ opacity: personaAnimating ? 0 : 1 }}
+              >
+                {(Object.entries(PROFILE_PERSONAS) as [UserType, typeof PROFILE_PERSONAS[UserType]][]).map(([key, persona]) => {
+                  const isActive = profile?.user_type === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      disabled={savingPersona || isActive}
+                      onClick={async () => {
+                        if (!supabase || !user) return;
+                        setSavingPersona(true);
+                        setPersonaAnimating(true);
+                        const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
+                        setSavingPersona(false);
+                        setTimeout(() => setPersonaAnimating(false), 200);
+                        if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
+                        setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
+                        toast.success(`Profieltype gewijzigd naar "${persona.label}".`);
+                      }}
+                      className={`group flex items-center gap-4 rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] disabled:cursor-default ${
+                        isActive
+                          ? "border-rose-400 bg-rose-50"
+                          : "border-stone-200 bg-white hover:border-rose-300 hover:shadow-md disabled:opacity-50"
+                      }`}
+                    >
+                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl leading-none transition ${
+                        isActive ? "bg-rose-100" : "bg-stone-100 group-hover:bg-rose-50"
+                      }`}>
+                        {persona.icon}
+                      </div>
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className={`text-sm font-bold ${isActive ? "text-rose-700" : "text-stone-900 group-hover:text-rose-600"}`}>
+                          {persona.label}
+                        </p>
+                        <p className="mt-0.5 text-xs text-stone-500">{persona.description}</p>
+                      </div>
+                      {isActive ? (
+                        <svg className="h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      ) : savingPersona ? (
+                        <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : profile?.user_type ? (
             <>
               <p className="mt-1 mb-4 text-sm text-stone-500">Je profieltype is ingesteld en kan niet worden gewijzigd.</p>
               {(() => {
