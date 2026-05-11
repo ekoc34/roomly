@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -52,6 +52,9 @@ export function DashboardPage() {
   const [confirmDeleteTenantId, setConfirmDeleteTenantId] = useState<string | null>(null);
   const [recentApplicationsCount, setRecentApplicationsCount] = useState<number | null>(null);
   const [recentLandlordApplicationsCount, setRecentLandlordApplicationsCount] = useState<number | null>(null);
+
+  const listingIdsRef = useRef<string[]>([]);
+  useEffect(() => { listingIdsRef.current = myListings.map((l) => l.id); }, [myListings]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -135,6 +138,35 @@ export function DashboardPage() {
     }
     fetchData();
   }, [user, authLoading]);
+
+  useEffect(() => {
+    if (!supabase || !user) return;
+    const channel = supabase
+      .channel(`landlord-applications-rt-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "applications" },
+        (payload) => {
+          const row = payload.new as {
+            id: string; listing_id: string; applicant_id: string;
+            message: string; budget: number | null; status: string;
+            hidden_by_landlord: boolean; contact_revealed: boolean; created_at: string;
+          };
+          if (!listingIdsRef.current.includes(row.listing_id)) return;
+          if (row.hidden_by_landlord) return;
+          const newApp: ApplicationWithDetails = {
+            ...row,
+            status: row.status as ApplicationWithDetails["status"],
+            profiles: null,
+            listings: null,
+          };
+          setReceivedApplications((prev) => [newApp, ...prev]);
+          setRecentLandlordApplicationsCount((prev) => (prev !== null ? prev + 1 : 1));
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   async function handleApplicationStatus(appId: string, status: "accepted" | "rejected", replyText?: string) {
     if (!supabase || !user) return;
