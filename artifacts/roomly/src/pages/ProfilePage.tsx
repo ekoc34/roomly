@@ -10,11 +10,11 @@ import type { Profile, UserType } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
 const PROFILE_PERSONAS: Record<UserType, { label: string; icon: string; description: string; color: string }> = {
-  student:      { label: "Student",             icon: "🎓", description: "Ik studeer en zoek een kamer of mede-huurder",   color: "rose"    },
-  tenant:       { label: "Huurder",             icon: "🏠", description: "Ik zoek een woning om te huren",                 color: "rose"    },
-  professional: { label: "Professional / Expat",icon: "💼", description: "Ik werk en zoek een appartement of kamer",       color: "blue"    },
-  family:       { label: "Familie",             icon: "🏡", description: "Wij zoeken een woning samen als gezin",          color: "emerald" },
-  landlord:     { label: "Verhuurder",          icon: "🔑", description: "Ik wil een kamer of woning verhuren",           color: "amber"   },
+  student:       { label: "Student",             icon: "🎓", description: "Ik studeer en zoek een kamer of studio",        color: "rose"    },
+  professional:  { label: "Professional / Expat",icon: "💼", description: "Ik werk en zoek een appartement of kamer",      color: "blue"    },
+  alleenstaande: { label: "Alleenstaande",        icon: "🧍", description: "Ik zoek een woning voor mezelf",               color: "rose"    },
+  family:        { label: "Familie",             icon: "🏡", description: "Wij zoeken een woning als gezin",               color: "emerald" },
+  landlord:      { label: "Verhuurder",          icon: "🔑", description: "Ik wil een kamer of woning verhuren",           color: "amber"   },
 };
 
 const PERSONA_BG: Record<string, string> = {
@@ -43,6 +43,8 @@ export function ProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [savingPersona, setSavingPersona] = useState(false);
+  const [personaStep, setPersonaStep] = useState<1 | 2>(1);
+  const [personaAnimating, setPersonaAnimating] = useState(false);
 
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -636,38 +638,130 @@ export function ProfilePage() {
               <p className="mt-1 mb-5 text-sm text-stone-500">
                 Je hebt je profieltype nog niet ingesteld. Kies wat het beste bij je past — dit kan daarna niet meer worden gewijzigd.
               </p>
-              <div className="grid gap-3">
-                {(Object.entries(PROFILE_PERSONAS) as [UserType, typeof PROFILE_PERSONAS[UserType]][]).map(([key, persona]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    disabled={savingPersona}
-                    onClick={async () => {
-                      if (!supabase || !user) return;
-                      setSavingPersona(true);
-                      const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
-                      setSavingPersona(false);
-                      if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-                      setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
-                      toast.success("Je profieltype is opgeslagen.");
-                    }}
-                    className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                  >
-                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${PERSONA_BG[persona.color] ?? PERSONA_BG.rose}`}>
-                      <span className="text-2xl leading-none">{persona.icon}</span>
-                    </div>
-                    <div className="min-w-0 flex-1 text-left">
-                      <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">{persona.label}</p>
-                      <p className="mt-0.5 text-xs text-stone-500">{persona.description}</p>
-                    </div>
-                    {savingPersona && (
-                      <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+
+              <div
+                className="transition-opacity duration-200"
+                style={{ opacity: personaAnimating ? 0 : 1 }}
+              >
+                {personaStep === 1 && (
+                  <div className="grid gap-3">
+                    {/* Huurder */}
+                    <button
+                      type="button"
+                      disabled={savingPersona}
+                      onClick={() => {
+                        setPersonaAnimating(true);
+                        setTimeout(() => { setPersonaStep(2); setPersonaAnimating(false); }, 200);
+                      }}
+                      className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+                    >
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">Huurder</p>
+                        <p className="mt-0.5 text-xs text-stone-500">Ik zoek een woning om te huren</p>
+                      </div>
+                      <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                       </svg>
-                    )}
-                  </button>
-                ))}
+                    </button>
+                    {/* Verhuurder */}
+                    <button
+                      type="button"
+                      disabled={savingPersona}
+                      onClick={async () => {
+                        if (!supabase || !user) return;
+                        setSavingPersona(true);
+                        const { error } = await supabase.from("profiles").update({ user_type: "landlord" }).eq("id", user.id);
+                        setSavingPersona(false);
+                        if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
+                        setProfile((prev) => prev ? { ...prev, user_type: "landlord" } : prev);
+                        toast.success("Je profieltype is opgeslagen.");
+                      }}
+                      className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+                    >
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500 transition group-hover:bg-amber-100">
+                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="text-sm font-bold text-stone-900 group-hover:text-amber-600">Verhuurder</p>
+                        <p className="mt-0.5 text-xs text-stone-500">Ik wil een kamer of woning verhuren</p>
+                      </div>
+                      {savingPersona ? (
+                        <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                {personaStep === 2 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPersonaAnimating(true);
+                        setTimeout(() => { setPersonaStep(1); setPersonaAnimating(false); }, 200);
+                      }}
+                      className="mb-4 inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Terug
+                    </button>
+                    <p className="mb-3 text-sm font-semibold text-stone-700">Hoe wil je wonen?</p>
+                    <div className="grid gap-3">
+                      {([
+                        { key: "student" as UserType,       label: "Student",             desc: "Ik studeer en zoek een kamer of studio" },
+                        { key: "professional" as UserType,  label: "Professional / Expat",desc: "Ik werk en zoek een appartement of kamer" },
+                        { key: "alleenstaande" as UserType, label: "Alleenstaande",        desc: "Ik zoek een woning voor mezelf" },
+                        { key: "family" as UserType,        label: "Familie",             desc: "Wij zoeken een woning als gezin" },
+                      ]).map(({ key, label, desc }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={savingPersona}
+                          onClick={async () => {
+                            if (!supabase || !user) return;
+                            setSavingPersona(true);
+                            const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
+                            setSavingPersona(false);
+                            if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
+                            setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
+                            toast.success("Je profieltype is opgeslagen.");
+                          }}
+                          className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+                        >
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
+                            <span className="text-xl leading-none">{PROFILE_PERSONAS[key]?.icon}</span>
+                          </div>
+                          <div className="min-w-0 flex-1 text-left">
+                            <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">{label}</p>
+                            <p className="mt-0.5 text-xs text-stone-500">{desc}</p>
+                          </div>
+                          {savingPersona && (
+                            <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             </>
           )}

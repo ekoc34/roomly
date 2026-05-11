@@ -5,11 +5,11 @@ export type ApplicationStatus = "pending" | "accepted" | "rejected";
 export type UserRole = "student" | "landlord" | "admin";
 
 export type UserType =
-  | "tenant"
-  | "landlord"
   | "student"
   | "professional"
-  | "family";
+  | "alleenstaande"
+  | "family"
+  | "landlord";
 
 export type Profile = {
   id: string;

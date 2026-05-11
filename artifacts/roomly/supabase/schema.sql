@@ -17,7 +17,7 @@ create table if not exists public.profiles (
   bio           text,
   phone         text,
   role          text not null default 'student' check (role in ('student','landlord','admin')),
-  user_type     text default null check (user_type in ('tenant','landlord','student','professional','family')),
+  user_type     text default null check (user_type in ('student','professional','alleenstaande','family','landlord')),
   phone_verified          boolean not null default false,
   email_auto_verified     boolean not null default false,
   student_verified        boolean not null default false,
@@ -635,3 +635,19 @@ ALTER TABLE public.profiles
 -- set automatically on skip (makes existing test accounts neutral)
 -- UPDATE public.profiles SET user_type = NULL WHERE user_type = 'tenant';
 -- Uncomment the line above only if you want to reset existing accounts.
+
+-- ============================================================
+-- MIGRATION: Two-step persona — add 'alleenstaande', drop 'tenant'
+-- Run this in the Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_user_type_check
+  CHECK (user_type IN ('student','professional','alleenstaande','family','landlord'));
+
+-- Optional: migrate any existing 'tenant' rows to NULL so users
+-- re-select their type via the new two-step flow on their profile page.
+-- UPDATE public.profiles SET user_type = NULL WHERE user_type = 'tenant';
+-- Uncomment the line above only if you want existing 'tenant' accounts to re-choose.

@@ -1,0 +1,52 @@
+Redesign the onboarding persona selection into a two-step flow on the /welkom page. This improves UX by reducing cognitive load and enables cleaner database segmentation.
+
+TASK 1 — Restructure the onboarding page into two steps
+1. Open the onboarding/welcome page component (likely UserPersonaSelector.tsx or the /welkom page).
+
+2. Replace the current single-screen grid of all options with a two-step wizard:
+
+   STEP 1 — "Je profieltype" (Role Selection)
+   Show only two cards:
+   - Huurder: "Ik zoek een woning om te huren" (Search icon)
+   - Verhuurder: "Ik wil een kamer of woning verhuren" (Key or Building icon)
+
+   STEP 2 — "Hoe wil je wonen?" (Living Situation)
+   Only shown when user selects "Huurder" in Step 1. Show four cards:
+   - Student: "Ik studeer en zoek een kamer of studio" (GraduationCap icon)
+   - Professional / Expat: "Ik werk en zoek een appartement of kamer" (Briefcase icon)
+   - Alleenstaande: "Ik zoek een woning voor mezelf" (User icon)
+   - Familie: "Wij zoeken een woning als gezin" (Users or Heart icon)
+
+   If user selects "Verhuurder" in Step 1, skip Step 2 and save user_type = 'landlord' directly.
+
+3. Add a subtle transition animation between steps (opacity fade or slide).
+
+4. Keep the "Liever later kiezen? Sla over" option visible in Step 1. If skipped, user_type remains NULL.
+
+TASK 2 — Save the selection correctly
+1. If user selects "Verhuurder" in Step 1:
+   - Save user_type = 'landlord' to the profiles table.
+
+2. If user selects "Huurder" in Step 1 and a living situation in Step 2:
+   - Save user_type = '[selected value]' (student, professional, alleenstaande, or family) to the profiles table.
+
+3. The selection is permanent — once saved, the onboarding page should redirect to /dashboard and not show again.
+
+TASK 3 — Update database constraint
+Provide the SQL to update the CHECK constraint on profiles.user_type:
+   ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+   ALTER TABLE profiles ADD CONSTRAINT profiles_user_type_check CHECK (user_type IN ('student','professional','alleenstaande','family','landlord'));
+
+TASK 4 — Update ProfilePage persona selector
+1. In ProfilePage.tsx, update the one-time persona selector to match the new two-step logic:
+   - Step 1: Huurder or Verhuurder
+   - Step 2 (if Huurder): Student, Professional/Expat, Alleenstaande, Familie
+   - If Verhuurder: save directly as 'landlord'
+
+2. The read-only view should show the correct label for the saved user_type.
+
+TASK 5 — Keep everything else intact
+1. All text in Dutch.
+2. Use existing Tailwind v4 styling (rounded-2xl, rose-500 accent, stone colors).
+3. Do not break any existing functionality.
+4. Commit with message: "Redesign onboarding into two-step persona selection with Alleenstaande option" and push.
