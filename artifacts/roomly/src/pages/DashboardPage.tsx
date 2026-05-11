@@ -50,6 +50,7 @@ export function DashboardPage() {
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteTenantId, setConfirmDeleteTenantId] = useState<string | null>(null);
+  const [recentApplicationsCount, setRecentApplicationsCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -86,6 +87,16 @@ export function DashboardPage() {
       setRecentViews((recentViewsData as RecentView[] | null) ?? []);
       setMyApplications((myApps as MyApplication[] | null) ?? []);
       setTenantConversations((tenantConvData as ConvSummary[] | null) ?? []);
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { count: recentCount, error: recentErr } = await supabase!
+        .from("applications")
+        .select("id", { count: "exact", head: true })
+        .eq("applicant_id", user!.id)
+        .eq("hidden_by_tenant", false)
+        .gte("created_at", thirtyDaysAgo.toISOString());
+      if (!recentErr) setRecentApplicationsCount(recentCount ?? 0);
 
       const listings = (ls as Listing[] | null) ?? [];
       setMyListings(listings);
@@ -340,6 +351,9 @@ export function DashboardPage() {
                   value: loading ? "…" : myApplications.length,
                   href: "#aanvragen",
                   icon: <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+                  sub: loading ? null : recentApplicationsCount !== null
+                    ? (recentApplicationsCount > 0 ? `+${recentApplicationsCount} in 30 dagen` : null)
+                    : undefined,
                 },
                 {
                   label: "Opgeslagen zoekopdrachten",
@@ -353,6 +367,13 @@ export function DashboardPage() {
                   <div>
                     <p className="text-xs font-medium text-stone-500">{stat.label}</p>
                     <p className="text-2xl font-black text-stone-900">{stat.value}</p>
+                    {"sub" in stat && (
+                      stat.sub === null
+                        ? <span className="mt-0.5 block h-3 w-24 animate-pulse rounded-full bg-stone-100" />
+                        : stat.sub !== undefined && (
+                          <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>
+                        )
+                    )}
                   </div>
                 </a>
               ))}
