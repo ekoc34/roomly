@@ -151,17 +151,48 @@ export function DashboardPage() {
             id: string; listing_id: string; applicant_id: string;
             message: string; budget: number | null; status: string;
             hidden_by_landlord: boolean; contact_revealed: boolean; created_at: string;
+            landlord_reply?: string | null;
           };
           if (!listingIdsRef.current.includes(row.listing_id)) return;
           if (row.hidden_by_landlord) return;
           const newApp: ApplicationWithDetails = {
             ...row,
+            landlord_reply: row.landlord_reply ?? null,
             status: row.status as ApplicationWithDetails["status"],
             profiles: null,
             listings: null,
           };
-          setReceivedApplications((prev) => [newApp, ...prev]);
+          setReceivedApplications((prev) => {
+            if (prev.some((a) => a.id === row.id)) return prev;
+            return [newApp, ...prev];
+          });
           setRecentLandlordApplicationsCount((prev) => (prev !== null ? prev + 1 : 1));
+          if (supabase) {
+            Promise.all([
+              supabase
+                .from("profiles")
+                .select("name, email, avatar_url, phone_verified, email_auto_verified, student_verified, verification_badge")
+                .eq("id", row.applicant_id)
+                .maybeSingle(),
+              supabase
+                .from("listings")
+                .select("title")
+                .eq("id", row.listing_id)
+                .maybeSingle(),
+            ]).then(([{ data: profile }, { data: listing }]) => {
+              setReceivedApplications((prev) =>
+                prev.map((a) =>
+                  a.id === row.id
+                    ? {
+                        ...a,
+                        profiles: profile as ApplicationWithDetails["profiles"] ?? null,
+                        listings: listing ? { title: listing.title } : null,
+                      }
+                    : a
+                )
+              );
+            });
+          }
         }
       )
       .subscribe();
