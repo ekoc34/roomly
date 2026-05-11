@@ -6,61 +6,43 @@ import type { Notification } from "@/types/database";
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
-    if (!user || !supabase) return;
-    const { data, error } = await supabase
+    console.log("🛎️ [useNotifications] HOOK ÇALIŞTI, user:", user?.email);
+    if (!user || !supabase) {
+      console.warn("🛎️ [useNotifications] user veya supabase yok, çıkıyorum.");
+      return;
+    }
+    const { data, error: fetchError } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(10);
 
-    if (error) {
-      console.error("[useNotifications] fetch error:", error.message, error.code);
+    if (fetchError) {
+      console.error("🛎️ [useNotifications] TABLO HATASI:", fetchError.message, "Kod:", fetchError.code);
+      setError(fetchError.message);
       return;
     }
 
     const list = (data as Notification[]) ?? [];
     const unread = list.filter((n) => !n.read).length;
-    console.log(`[useNotifications] fetched ${list.length} notifications, ${unread} unread`);
+    console.log(`🛎️ [useNotifications] BAŞARILI: ${list.length} bildirim, ${unread} okunmamış`);
     setNotifications(list);
+    setError(null);
   }, [user]);
 
   useEffect(() => {
-    if (!user || !supabase) return;
     fetchNotifications();
-
-    let channel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
-    try {
-      channel = supabase
-        .channel(`notifications:${user.id}:${Date.now()}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `user_id=eq.${user.id}`,
-          },
-          () => fetchNotifications()
-        )
-        .subscribe();
-    } catch (e) {
-      console.warn("[useNotifications] Realtime channel error:", e);
-    }
-
-    return () => {
-      if (channel && supabase) supabase.removeChannel(channel);
-    };
-  }, [user, fetchNotifications]);
+  }, [fetchNotifications]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markRead = async (id: string) => {
     if (!supabase) return;
-    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
-    if (error) { console.error("[useNotifications] markRead error:", error); return; }
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
@@ -68,14 +50,13 @@ export function useNotifications() {
 
   const markAllRead = async () => {
     if (!supabase || !user) return;
-    const { error } = await supabase
+    await supabase
       .from("notifications")
       .update({ read: true })
       .eq("user_id", user.id)
       .eq("read", false);
-    if (error) { console.error("[useNotifications] markAllRead error:", error); return; }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  return { notifications, unreadCount, markRead, markAllRead };
+  return { notifications, unreadCount, markRead, markAllRead, error };
 }
