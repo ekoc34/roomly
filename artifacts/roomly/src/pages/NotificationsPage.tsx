@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
@@ -83,6 +83,178 @@ function NotificationsSkeleton() {
   );
 }
 
+const REVEAL_WIDTH = 88;
+const SWIPE_THRESHOLD = 55;
+
+interface SwipeableRowProps {
+  n: Notification;
+  onNavigate: (n: Notification) => void;
+  onMarkUnread: (id: string) => void;
+  onDelete: (id: string) => void;
+}
+
+function SwipeableNotificationRow({ n, onNavigate, onMarkUnread, onDelete }: SwipeableRowProps) {
+  const slideRef = useRef<HTMLDivElement>(null);
+  const startXRef = useRef(0);
+  const startYRef = useRef(0);
+  const committedXRef = useRef(0);
+  const directionLockedRef = useRef<"none" | "horiz" | "vert">("none");
+  const [isOpen, setIsOpen] = useState(false);
+  const isOpenRef = useRef(false);
+
+  const applyTranslate = (x: number, animated: boolean) => {
+    const el = slideRef.current;
+    if (!el) return;
+    el.style.transition = animated ? "transform 0.25s cubic-bezier(0.25,0.46,0.45,0.94)" : "none";
+    el.style.transform = `translateX(${x}px)`;
+  };
+
+  const snapOpen = () => {
+    applyTranslate(-REVEAL_WIDTH, true);
+    committedXRef.current = -REVEAL_WIDTH;
+    isOpenRef.current = true;
+    setIsOpen(true);
+  };
+
+  const snapClosed = () => {
+    applyTranslate(0, true);
+    committedXRef.current = 0;
+    isOpenRef.current = false;
+    setIsOpen(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startXRef.current = e.touches[0].clientX;
+    startYRef.current = e.touches[0].clientY;
+    directionLockedRef.current = "none";
+    applyTranslate(committedXRef.current, false);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - startXRef.current;
+    const dy = e.touches[0].clientY - startYRef.current;
+
+    if (directionLockedRef.current === "none") {
+      if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+      directionLockedRef.current = Math.abs(dy) > Math.abs(dx) ? "vert" : "horiz";
+    }
+
+    if (directionLockedRef.current === "vert") return;
+
+    e.preventDefault();
+    const rawX = committedXRef.current + dx;
+    const clampedX = Math.min(0, Math.max(-REVEAL_WIDTH, rawX));
+    applyTranslate(clampedX, false);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (directionLockedRef.current !== "horiz") return;
+    const dx = e.changedTouches[0].clientX - startXRef.current;
+    const finalX = committedXRef.current + dx;
+
+    if (isOpenRef.current) {
+      dx > SWIPE_THRESHOLD ? snapClosed() : snapOpen();
+    } else {
+      finalX < -SWIPE_THRESHOLD ? snapOpen() : snapClosed();
+    }
+  };
+
+  const handleMainClick = () => {
+    if (isOpenRef.current) {
+      snapClosed();
+      return;
+    }
+    onNavigate(n);
+  };
+
+  return (
+    <div className="relative overflow-hidden">
+      {/* Red action panel revealed behind the row on swipe */}
+      <div
+        className="absolute inset-y-0 right-0 flex items-stretch"
+        style={{ width: REVEAL_WIDTH }}
+        aria-hidden="true"
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => { snapClosed(); onDelete(n.id); }}
+          className="flex flex-1 flex-col items-center justify-center gap-1 bg-rose-500 text-white transition active:bg-rose-600"
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span className="text-xs font-semibold">Verwijder</span>
+        </button>
+      </div>
+
+      {/* Sliding row — touch events are attached here */}
+      <div
+        ref={slideRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className={`group relative flex w-full items-center gap-2 pr-3 ${
+          !n.read ? "bg-rose-50/50" : "bg-white"
+        } hover:bg-stone-50`}
+        style={{ willChange: "transform" }}
+      >
+        {/* Main clickable area */}
+        <button
+          type="button"
+          onClick={handleMainClick}
+          className="flex flex-1 items-start gap-4 px-5 py-4 text-left"
+        >
+          {notifDot(n.type)}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className={`truncate text-sm text-stone-900 ${!n.read ? "font-bold" : "font-semibold"}`}>
+                {n.title}
+              </p>
+              {!n.read && (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+              )}
+            </div>
+            {n.body && (
+              <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{n.body}</p>
+            )}
+            <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at)}</p>
+          </div>
+          <svg className="mt-1 h-4 w-4 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Desktop hover: mark unread (only for read notifications) */}
+        {n.read && (
+          <button
+            type="button"
+            aria-label="Markeer als ongelezen"
+            onClick={() => { snapClosed(); onMarkUnread(n.id); }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-amber-50 hover:text-amber-500 group-hover:opacity-100"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </button>
+        )}
+
+        {/* Desktop hover: delete */}
+        <button
+          type="button"
+          aria-label="Melding verwijderen"
+          onClick={() => onDelete(n.id)}
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function NotificationsPage() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -135,7 +307,7 @@ export function NotificationsPage() {
     };
   }, [user, authLoading, fetchAll, navigate]);
 
-  const handleClick = async (n: Notification) => {
+  const handleNavigate = async (n: Notification) => {
     if (!n.read && supabase) {
       await supabase.from("notifications").update({ read: true }).eq("id", n.id);
       setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, read: true } : x));
@@ -241,7 +413,7 @@ export function NotificationsPage() {
               </button>
             )}
             {confirmDeleteAll && (
-              <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2">
+              <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2">
                 <p className="text-sm font-medium text-rose-800">
                   Weet je zeker dat je alle gelezen meldingen wilt verwijderen?
                 </p>
@@ -279,59 +451,13 @@ export function NotificationsPage() {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y divide-stone-100">
             {notifications.map((n) => (
-              <div
+              <SwipeableNotificationRow
                 key={n.id}
-                className={`group flex w-full items-center gap-2 pr-3 transition hover:bg-stone-50 ${
-                  !n.read ? "bg-rose-50/50" : ""
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleClick(n)}
-                  className="flex flex-1 items-start gap-4 px-5 py-4 text-left active:scale-[0.998]"
-                >
-                  {notifDot(n.type)}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className={`truncate text-sm text-stone-900 ${!n.read ? "font-bold" : "font-semibold"}`}>
-                        {n.title}
-                      </p>
-                      {!n.read && (
-                        <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
-                      )}
-                    </div>
-                    {n.body && (
-                      <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{n.body}</p>
-                    )}
-                    <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at)}</p>
-                  </div>
-                  <svg className="mt-1 h-4 w-4 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-                {n.read && (
-                  <button
-                    type="button"
-                    aria-label="Markeer als ongelezen"
-                    onClick={() => handleMarkUnread(n.id)}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-amber-50 hover:text-amber-500 group-hover:opacity-100"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                  </button>
-                )}
-                <button
-                  type="button"
-                  aria-label="Melding verwijderen"
-                  onClick={() => handleDeleteOne(n.id)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+                n={n}
+                onNavigate={handleNavigate}
+                onMarkUnread={handleMarkUnread}
+                onDelete={handleDeleteOne}
+              />
             ))}
           </div>
         )}
