@@ -17,7 +17,7 @@ create table if not exists public.profiles (
   bio           text,
   phone         text,
   role          text not null default 'student' check (role in ('student','landlord','admin')),
-  user_type     text not null default 'tenant' check (user_type in ('tenant','landlord','student','professional','family')),
+  user_type     text default null check (user_type in ('tenant','landlord','student','professional','family')),
   phone_verified          boolean not null default false,
   email_auto_verified     boolean not null default false,
   student_verified        boolean not null default false,
@@ -618,3 +618,20 @@ CREATE POLICY "Users can update their own listing_views"
 
 CREATE INDEX IF NOT EXISTS listing_views_user_viewed_idx
   ON public.listing_views (user_id, viewed_at DESC);
+
+-- ============================================================
+-- MIGRATION: Allow user_type to be NULL (one-time selection)
+-- Run this in the Supabase SQL Editor to apply to existing DB
+-- ============================================================
+-- Remove the NOT NULL constraint and default value so that
+-- users who skip onboarding keep user_type = NULL until they
+-- choose once from their profile page.
+ALTER TABLE public.profiles
+  ALTER COLUMN user_type DROP NOT NULL,
+  ALTER COLUMN user_type DROP DEFAULT,
+  ALTER COLUMN user_type SET DEFAULT NULL;
+
+-- Optional: clear any existing 'tenant' defaults that were
+-- set automatically on skip (makes existing test accounts neutral)
+-- UPDATE public.profiles SET user_type = NULL WHERE user_type = 'tenant';
+-- Uncomment the line above only if you want to reset existing accounts.

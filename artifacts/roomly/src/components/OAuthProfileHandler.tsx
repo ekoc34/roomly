@@ -38,7 +38,6 @@ export function OAuthProfileHandler() {
         name,
         avatar_url,
         role: "student",
-        user_type: "tenant",
         phone_verified: false,
         email_auto_verified: true,
         student_verified: false,
