@@ -6,7 +6,6 @@ import type { Notification } from "@/types/database";
 export function useNotifications() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [tableExists, setTableExists] = useState(true);
 
   const fetchNotifications = useCallback(async () => {
     if (!user || !supabase) return;
@@ -18,12 +17,14 @@ export function useNotifications() {
       .limit(10);
 
     if (error) {
-      console.error("[useNotifications] fetch error — has the notifications table been created in Supabase?", error);
-      setTableExists(false);
+      console.error("[useNotifications] fetch error:", error.message, error.code);
       return;
     }
-    setTableExists(true);
-    setNotifications((data as Notification[]) ?? []);
+
+    const list = (data as Notification[]) ?? [];
+    const unread = list.filter((n) => !n.read).length;
+    console.log(`[useNotifications] fetched ${list.length} notifications, ${unread} unread`);
+    setNotifications(list);
   }, [user]);
 
   useEffect(() => {
@@ -76,5 +77,5 @@ export function useNotifications() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
-  return { notifications, unreadCount, markRead, markAllRead, tableExists };
+  return { notifications, unreadCount, markRead, markAllRead };
 }
