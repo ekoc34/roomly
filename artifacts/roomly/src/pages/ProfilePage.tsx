@@ -6,8 +6,23 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { PasswordInput } from "@/components/ui/password-input";
-import type { Profile } from "@/types/database";
+import type { Profile, UserType } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
+
+const PROFILE_PERSONAS: Record<UserType, { label: string; icon: string; description: string; color: string }> = {
+  student:      { label: "Student",             icon: "🎓", description: "Ik studeer en zoek een kamer of mede-huurder",   color: "rose"    },
+  tenant:       { label: "Huurder",             icon: "🏠", description: "Ik zoek een woning om te huren",                 color: "rose"    },
+  professional: { label: "Professional / Expat",icon: "💼", description: "Ik werk en zoek een appartement of kamer",       color: "blue"    },
+  family:       { label: "Familie",             icon: "🏡", description: "Wij zoeken een woning samen als gezin",          color: "emerald" },
+  landlord:     { label: "Verhuurder",          icon: "🔑", description: "Ik wil een kamer of woning verhuren",           color: "amber"   },
+};
+
+const PERSONA_BG: Record<string, string> = {
+  rose:    "bg-rose-50 group-hover:bg-rose-100",
+  blue:    "bg-blue-50 group-hover:bg-blue-100",
+  emerald: "bg-emerald-50 group-hover:bg-emerald-100",
+  amber:   "bg-amber-50 group-hover:bg-amber-100",
+};
 
 export function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -26,6 +41,8 @@ export function ProfilePage() {
   const [deleteEmail, setDeleteEmail] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [savingPersona, setSavingPersona] = useState(false);
 
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -592,6 +609,70 @@ export function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Profieltype — one-time selector for users who skipped onboarding */}
+      {!loading && (
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-base font-semibold text-stone-900">Je profieltype</p>
+          {profile?.user_type ? (
+            <>
+              <p className="mt-1 mb-4 text-sm text-stone-500">Je profieltype is ingesteld en kan niet worden gewijzigd.</p>
+              {(() => {
+                const persona = PROFILE_PERSONAS[profile.user_type as UserType];
+                if (!persona) return null;
+                return (
+                  <div className="inline-flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
+                    <span className="text-2xl leading-none">{persona.icon}</span>
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">{persona.label}</p>
+                      <p className="text-xs text-stone-500">{persona.description}</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </>
+          ) : (
+            <>
+              <p className="mt-1 mb-5 text-sm text-stone-500">
+                Je hebt je profieltype nog niet ingesteld. Kies wat het beste bij je past — dit kan daarna niet meer worden gewijzigd.
+              </p>
+              <div className="grid gap-3">
+                {(Object.entries(PROFILE_PERSONAS) as [UserType, typeof PROFILE_PERSONAS[UserType]][]).map(([key, persona]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={savingPersona}
+                    onClick={async () => {
+                      if (!supabase || !user) return;
+                      setSavingPersona(true);
+                      const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
+                      setSavingPersona(false);
+                      if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
+                      setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
+                      toast.success("Je profieltype is opgeslagen.");
+                    }}
+                    className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition ${PERSONA_BG[persona.color] ?? PERSONA_BG.rose}`}>
+                      <span className="text-2xl leading-none">{persona.icon}</span>
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">{persona.label}</p>
+                      <p className="mt-0.5 text-xs text-stone-500">{persona.description}</p>
+                    </div>
+                    {savingPersona && (
+                      <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Notification preferences — separate card, saves immediately on toggle */}
       {!loading && profile && (
