@@ -386,9 +386,11 @@ export function DashboardPage() {
             <Link href="/profiel" className="rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700" data-testid="dashboard-edit-profile">
               Profiel bewerken
             </Link>
-            <Link href="/kamers/nieuw" className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95" data-testid="dashboard-new-listing">
-              + Advertentie plaatsen
-            </Link>
+            {VERHUUR_TYPES.includes(profile?.user_type ?? "") && (
+              <Link href="/kamers/nieuw" className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95" data-testid="dashboard-new-listing">
+                + Advertentie plaatsen
+              </Link>
+            )}
           </div>
         </div>
 

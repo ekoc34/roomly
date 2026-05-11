@@ -138,7 +138,13 @@ export function NewListingPage() {
   useEffect(() => {
     if (!user || !supabase) return;
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => {
-      setProfile(data as Profile | null);
+      const p = data as Profile | null;
+      setProfile(p);
+      const allowed = ["verhuurder", "huisgenoot_zoeker"];
+      if (p && p.user_type && !allowed.includes(p.user_type)) {
+        toast.error("Je hebt geen toegang om advertenties te plaatsen.");
+        navigate("/dashboard");
+      }
     });
   }, [user]);
 

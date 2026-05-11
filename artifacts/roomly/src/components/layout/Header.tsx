@@ -35,6 +35,7 @@ export function Header() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userType, setUserType] = useState<string | null>(null);
   const [imgError, setImgError] = useState(false);
 
   const isKamers = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
@@ -61,7 +62,7 @@ export function Header() {
     if (!user || !supabase) return;
     supabase
       .from("profiles")
-      .select("avatar_url, name, role")
+      .select("avatar_url, name, role, user_type")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -69,6 +70,7 @@ export function Header() {
           setAvatarUrl(data.avatar_url ?? null);
           setDisplayName(data.name ?? null);
           setUserRole(data.role ?? null);
+          setUserType(data.user_type ?? null);
         }
       });
   }, [user]);
@@ -200,15 +202,17 @@ export function Header() {
                     <LayoutDashboard className="h-4 w-4 text-stone-400" />
                     Dashboard
                   </Link>
-                  <Link
-                    href="/kamers/nieuw"
-                    data-testid="header-new-listing-link"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
-                  >
-                    <Plus className="h-4 w-4 text-stone-400" />
-                    Advertentie plaatsen
-                  </Link>
+                  {(userType === "verhuurder" || userType === "huisgenoot_zoeker") && (
+                    <Link
+                      href="/kamers/nieuw"
+                      data-testid="header-new-listing-link"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
+                    >
+                      <Plus className="h-4 w-4 text-stone-400" />
+                      Advertentie plaatsen
+                    </Link>
+                  )}
 
                   <div className="my-1.5 border-t border-stone-100" />
 
