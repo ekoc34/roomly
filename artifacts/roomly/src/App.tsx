@@ -10,8 +10,10 @@ import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 import { CompareProvider } from "@/contexts/CompareContext";
 import { useLastActive } from "@/hooks/useLastActive";
+import { useAuth } from "@/hooks/useAuth";
 import { EmailVerificationHandler } from "@/components/EmailVerificationHandler";
 import { OAuthProfileHandler } from "@/components/OAuthProfileHandler";
+import { EmailVerificationGate } from "@/components/EmailVerificationGate";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -108,22 +110,44 @@ function Router() {
   );
 }
 
+function AppContent() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-stone-50">
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500" />
+      </div>
+    );
+  }
+
+  if (user && !user.email_confirmed_at) {
+    return <EmailVerificationGate user={user} />;
+  }
+
+  return (
+    <>
+      <ActivityTracker />
+      <EmailVerificationHandler />
+      <OAuthProfileHandler />
+      <Header />
+      <main className="flex-1">
+        <Router />
+      </main>
+      <Footer />
+      <MobileBottomNav />
+      <CompareBar />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <SelectedCityProvider>
       <CompareProvider>
         <div className="flex min-h-screen flex-col bg-stone-50">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <ActivityTracker />
-            <EmailVerificationHandler />
-            <OAuthProfileHandler />
-            <Header />
-            <main className="flex-1">
-              <Router />
-            </main>
-            <Footer />
-            <MobileBottomNav />
-            <CompareBar />
+            <AppContent />
           </WouterRouter>
           <Toaster position="bottom-right" richColors closeButton toastOptions={{ classNames: { closeButton: "!left-auto !right-0 !translate-x-1/2 !-translate-y-1/2" } }} />
         </div>

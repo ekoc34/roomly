@@ -31,6 +31,8 @@ export function RegisterPage() {
     const confirm = String(fd.get("confirm") ?? "");
     if (password !== confirm) { setError("Wachtwoorden komen niet overeen."); return; }
     if (password.length < 8) { setError("Wachtwoord moet minimaal 8 tekens zijn."); return; }
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!EMAIL_RE.test(email)) { setError("Voer een geldig e-mailadres in (bijv. naam@voorbeeld.nl)."); return; }
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
