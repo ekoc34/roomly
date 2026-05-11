@@ -449,6 +449,76 @@ export function DashboardPage() {
 
         {activeTab === "zoektocht" && (
           <div className="mt-6 space-y-8">
+
+            {/* ── Profile completion ── */}
+            {!loading && profile && (() => {
+              const fields: { key: string; pct: number; label: string; missing: string }[] = [
+                { key: "name",      pct: 20, label: "naam",            missing: "Voeg je naam toe" },
+                { key: "email",     pct: 20, label: "e-mail",          missing: "Voeg je e-mailadres toe" },
+                { key: "phone",     pct: 20, label: "telefoon",        missing: "Voeg je telefoonnummer toe" },
+                { key: "user_type", pct: 20, label: "woonsituatie",    missing: "Kies je woonsituatie" },
+                { key: "bio",       pct: 10, label: "bio",             missing: "Schrijf een korte bio" },
+                { key: "avatar_url",pct: 10, label: "profielfoto",     missing: "Voeg een profielfoto toe" },
+              ];
+
+              const pct = fields.reduce((sum, f) => {
+                const val = profile[f.key as keyof typeof profile];
+                return sum + (val ? f.pct : 0);
+              }, 0);
+
+              const missing = fields.filter((f) => {
+                const val = profile[f.key as keyof typeof profile];
+                return !val;
+              });
+
+              const isComplete = pct === 100;
+
+              return (
+                <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-stone-900">Profiel voltooiing</p>
+                    {isComplete ? (
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Je profiel is compleet!
+                      </span>
+                    ) : (
+                      <span className="text-xs font-medium text-stone-500">
+                        <span className="font-semibold text-stone-800">{pct}%</span> compleet
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-stone-200">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${isComplete ? "bg-emerald-500" : "bg-rose-500"}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  {!isComplete && missing.length > 0 && (
+                    <ul className="mt-4 flex flex-col gap-2">
+                      {missing.map((f) => (
+                        <li key={f.key} className="flex items-center justify-between gap-3 text-sm text-stone-600">
+                          <span className="flex items-center gap-2">
+                            <svg className="h-3.5 w-3.5 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            {f.missing}
+                          </span>
+                          <Link href="/profiel" className="shrink-0 text-xs font-medium text-rose-600 hover:underline">
+                            Toevoegen
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
               {[
                 {
