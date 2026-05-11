@@ -140,7 +140,17 @@ export function ApplicantProfilePanel({
 
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
   const isLandlord = mode === "landlord";
-  const panelTitle = isLandlord ? "Verhuurder profiel" : "Aanvrager profiel";
+  const USER_TYPE_TITLES: Record<string, string> = {
+    verhuurder:        "Verhuurder profiel",
+    huisgenoot_zoeker: "Huisgenoot zoeker profiel",
+    student:           "Student profiel",
+    professional:      "Professional / Expat profiel",
+    alleenstaande:     "Alleenstaande profiel",
+    family:            "Familie profiel",
+  };
+  const panelTitle = profile
+    ? (USER_TYPE_TITLES[profile.user_type ?? ""] ?? "Gebruiker profiel")
+    : (isLandlord ? "Verhuurder profiel" : "Aanvrager profiel");
 
   const canSeeEmail = hasConversation && (profile?.show_email === true);
   const canSeePhone = hasConversation && (profile?.show_phone === true);
