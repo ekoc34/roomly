@@ -52,6 +52,8 @@ export function DashboardPage() {
   const [confirmDeleteTenantId, setConfirmDeleteTenantId] = useState<string | null>(null);
   const [recentApplicationsCount, setRecentApplicationsCount] = useState<number | null>(null);
   const [recentLandlordApplicationsCount, setRecentLandlordApplicationsCount] = useState<number | null>(null);
+  const [confirmClearViews, setConfirmClearViews] = useState(false);
+  const [clearingViews, setClearingViews] = useState(false);
 
   const listingIdsRef = useRef<string[]>([]);
   useEffect(() => { listingIdsRef.current = myListings.map((l) => l.id); }, [myListings]);
@@ -550,7 +552,52 @@ export function DashboardPage() {
             </div>
 
             <div>
-              <h2 className="mb-4 text-lg font-bold text-stone-900">Recent bekeken</h2>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-bold text-stone-900">Recent bekeken</h2>
+                {!loading && recentViews.length > 0 && !confirmClearViews && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmClearViews(true)}
+                    className="text-xs font-medium text-stone-400 transition hover:text-rose-500"
+                  >
+                    Alles wissen
+                  </button>
+                )}
+                {confirmClearViews && (
+                  <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5">
+                    <p className="text-xs font-medium text-rose-800">
+                      Weet je zeker dat je je recent bekeken geschiedenis wilt wissen?
+                    </p>
+                    <button
+                      type="button"
+                      disabled={clearingViews}
+                      onClick={async () => {
+                        if (!supabase || !user) return;
+                        setClearingViews(true);
+                        const { error } = await supabase.from("listing_views").delete().eq("user_id", user.id);
+                        setClearingViews(false);
+                        if (error) {
+                          toast.error("Wissen mislukt. Probeer het opnieuw.");
+                        } else {
+                          setRecentViews([]);
+                          setConfirmClearViews(false);
+                          toast.success("Recent bekeken geschiedenis gewist.");
+                        }
+                      }}
+                      className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-95"
+                    >
+                      {clearingViews ? "Bezig…" : "Ja, wissen"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmClearViews(false)}
+                      className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95"
+                    >
+                      Annuleren
+                    </button>
+                  </div>
+                )}
+              </div>
               {loading ? (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {[1, 2, 3, 4].map((n) => (
