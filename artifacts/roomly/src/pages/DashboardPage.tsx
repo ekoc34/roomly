@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { UserCircle, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import type { Listing, Profile, ApplicationWithDetails } from "@/types/database";
+
+const BANNER_KEY = "roomly_profile_banner_dismissed";
 
 type Tab = "zoektocht" | "verhuur";
 
@@ -54,6 +57,8 @@ export function DashboardPage() {
   const [recentLandlordApplicationsCount, setRecentLandlordApplicationsCount] = useState<number | null>(null);
   const [confirmClearViews, setConfirmClearViews] = useState(false);
   const [clearingViews, setClearingViews] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(() => localStorage.getItem(BANNER_KEY) === "1");
+  const [, navigate] = useLocation();
 
   const listingIdsRef = useRef<string[]>([]);
   useEffect(() => { listingIdsRef.current = myListings.map((l) => l.id); }, [myListings]);
@@ -379,6 +384,40 @@ export function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {/* Profile completion banner — shown only when user_type is NULL and not yet dismissed */}
+        {!loading && !profile?.user_type && !bannerDismissed && (
+          <div className="mt-6 flex items-start justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 sm:items-center">
+            <div className="flex items-start gap-3 sm:items-center">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                <UserCircle className="h-5 w-5 text-amber-600" />
+              </div>
+              <p className="text-sm leading-relaxed text-amber-900">
+                Maak je profiel compleet door je woonsituatie te kiezen. Zo kunnen we je beter helpen.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={() => navigate("/profiel")}
+                className="rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 active:scale-95"
+              >
+                Profiel aanvullen
+              </button>
+              <button
+                type="button"
+                aria-label="Sluiten"
+                onClick={() => {
+                  localStorage.setItem(BANNER_KEY, "1");
+                  setBannerDismissed(true);
+                }}
+                className="rounded-lg p-1 text-amber-500 transition hover:bg-amber-100 hover:text-amber-700"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 flex gap-2 border-b border-stone-200">
           <button
