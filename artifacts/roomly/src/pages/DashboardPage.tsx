@@ -70,7 +70,7 @@ export function DashboardPage() {
         { data: myApps },
         { data: tenantConvData },
         { count: savedCount },
-        { data: recentViewsData },
+        { data: recentViewsData, error: recentViewsError },
       ] = await Promise.all([
         supabase!.from("profiles").select("*").eq("id", user!.id).maybeSingle(),
         supabase!.from("listings").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
@@ -83,6 +83,7 @@ export function DashboardPage() {
         supabase!.from("listing_views").select("listing_id, viewed_at, listing:listings(id, title, price, location, images)").eq("user_id", user!.id).order("viewed_at", { ascending: false }).limit(5),
       ]);
 
+      if (recentViewsError) console.error("[listing_views] select failed:", recentViewsError.message);
       setProfile(p as Profile | null);
       setFavoritesCount(favCount ?? 0);
       setTenantConvsCount(tenantConvCount ?? 0);

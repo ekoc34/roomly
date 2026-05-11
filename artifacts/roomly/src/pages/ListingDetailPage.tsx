@@ -40,12 +40,17 @@ export function ListingDetailPage() {
       setFavorited(!!fav);
       setLoading(false);
 
-      // Fire-and-forget: track this view for the "Recent bekeken" section
+      // Track this view for the "Recent bekeken" section in the dashboard
       if (user && supabase) {
-        supabase.from("listing_views").upsert(
-          { user_id: user.id, listing_id: params.id, viewed_at: new Date().toISOString() },
-          { onConflict: "user_id,listing_id" }
-        );
+        supabase
+          .from("listing_views")
+          .upsert(
+            { user_id: user.id, listing_id: params.id, viewed_at: new Date().toISOString() },
+            { onConflict: "user_id,listing_id" }
+          )
+          .then(({ error }) => {
+            if (error) console.error("[listing_views] upsert failed:", error.message);
+          });
       }
     }
     fetchData();

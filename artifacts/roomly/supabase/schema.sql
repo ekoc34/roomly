@@ -588,3 +588,33 @@ CREATE POLICY "admin_update_contact_messages"
 -- ============================================================
 ALTER TABLE public.applications
   ADD COLUMN IF NOT EXISTS hidden_by_landlord BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- ============================================================
+-- LISTING VIEWS: "Recent bekeken" tracking
+-- Run in Supabase SQL Editor
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.listing_views (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  listing_id  UUID        NOT NULL REFERENCES public.listings(id) ON DELETE CASCADE,
+  viewed_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT listing_views_user_listing_unique UNIQUE (user_id, listing_id)
+);
+
+ALTER TABLE public.listing_views ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can select their own listing_views"
+  ON public.listing_views FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own listing_views"
+  ON public.listing_views FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own listing_views"
+  ON public.listing_views FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS listing_views_user_viewed_idx
+  ON public.listing_views (user_id, viewed_at DESC);
