@@ -51,6 +51,7 @@ export function DashboardPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteTenantId, setConfirmDeleteTenantId] = useState<string | null>(null);
   const [recentApplicationsCount, setRecentApplicationsCount] = useState<number | null>(null);
+  const [recentLandlordApplicationsCount, setRecentLandlordApplicationsCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -117,6 +118,17 @@ export function DashboardPage() {
         ]);
         setReceivedApplications((apps as ApplicationWithDetails[] | null) ?? []);
         setLandlordConversations((landlordConvData as ConvSummary[] | null) ?? []);
+
+        const thirtyDaysAgoLandlord = new Date();
+        thirtyDaysAgoLandlord.setDate(thirtyDaysAgoLandlord.getDate() - 30);
+        const { count: recentLandlordCount, error: recentLandlordErr } = await supabase!
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .in("listing_id", listingIds)
+          .eq("status", "pending")
+          .eq("hidden_by_landlord", false)
+          .gte("created_at", thirtyDaysAgoLandlord.toISOString());
+        if (!recentLandlordErr) setRecentLandlordApplicationsCount(recentLandlordCount ?? 0);
       }
 
       setLoading(false);
@@ -568,6 +580,9 @@ export function DashboardPage() {
                   value: loading ? "…" : pendingCount,
                   href: "#aanvragen",
                   icon: <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>,
+                  sub: loading ? null : recentLandlordApplicationsCount !== null
+                    ? (recentLandlordApplicationsCount > 0 ? `+${recentLandlordApplicationsCount} in 30 dagen` : null)
+                    : undefined,
                 },
               ].map((stat) => (
                 <a key={stat.label} href={stat.href} className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
@@ -575,6 +590,13 @@ export function DashboardPage() {
                   <div>
                     <p className="text-xs font-medium text-stone-500">{stat.label}</p>
                     <p className="text-2xl font-black text-stone-900">{stat.value}</p>
+                    {"sub" in stat && (
+                      stat.sub === null
+                        ? <span className="mt-0.5 block h-3 w-24 animate-pulse rounded-full bg-stone-100" />
+                        : stat.sub !== undefined && (
+                          <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>
+                        )
+                    )}
                   </div>
                 </a>
               ))}
