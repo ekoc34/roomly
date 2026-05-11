@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { Notification } from "@/types/database";
@@ -88,6 +89,8 @@ export function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const fetchAll = useCallback(async () => {
     if (!supabase || !user) return;
@@ -152,7 +155,42 @@ export function NotificationsPage() {
     setMarkingAll(false);
   };
 
+  const handleDeleteOne = async (id: string) => {
+    if (!supabase || !user) return;
+    const previous = notifications;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (error) {
+      setNotifications(previous);
+      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+    } else {
+      toast.success("Melding verwijderd.");
+    }
+  };
+
+  const handleDeleteAllRead = async () => {
+    if (!supabase || !user) return;
+    setDeletingAll(true);
+    const previous = notifications;
+    const readIds = notifications.filter((n) => n.read).map((n) => n.id);
+    setNotifications((prev) => prev.filter((n) => !n.read));
+    setConfirmDeleteAll(false);
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("read", true);
+    setDeletingAll(false);
+    if (error) {
+      setNotifications(previous);
+      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+    } else {
+      toast.success(`${readIds.length} melding${readIds.length !== 1 ? "en" : ""} verwijderd.`);
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const readCount = notifications.filter((n) => n.read).length;
 
   return (
     <>
@@ -161,27 +199,58 @@ export function NotificationsPage() {
         <meta name="description" content="Bekijk al je meldingen op één plek." />
       </Helmet>
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        {/* Page header */}
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-stone-900">Notificatiecentrum</h1>
             <p className="mt-0.5 text-sm text-stone-500">
               {unreadCount > 0 ? `${unreadCount} ongelezen melding${unreadCount !== 1 ? "en" : ""}` : "Alle meldingen gelezen"}
             </p>
           </div>
-          {unreadCount > 0 && (
-            <button
-              type="button"
-              onClick={handleMarkAllRead}
-              disabled={markingAll}
-              className="shrink-0 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
-            >
-              {markingAll ? "Bezig…" : "Alles als gelezen markeren"}
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={markingAll}
+                className="shrink-0 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+              >
+                {markingAll ? "Bezig…" : "Alles als gelezen markeren"}
+              </button>
+            )}
+            {readCount > 0 && !confirmDeleteAll && (
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteAll(true)}
+                disabled={deletingAll}
+                className="shrink-0 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+              >
+                Verwijder alle gelezen meldingen
+              </button>
+            )}
+            {confirmDeleteAll && (
+              <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2">
+                <p className="text-sm font-medium text-rose-800">
+                  Weet je zeker dat je alle gelezen meldingen wilt verwijderen?
+                </p>
+                <button
+                  type="button"
+                  onClick={handleDeleteAllRead}
+                  className="rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95"
+                >
+                  Ja, verwijderen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmDeleteAll(false)}
+                  className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95"
+                >
+                  Annuleren
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Content */}
         {loading ? (
           <NotificationsSkeleton />
         ) : notifications.length === 0 ? (
@@ -197,33 +266,47 @@ export function NotificationsPage() {
         ) : (
           <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y divide-stone-100">
             {notifications.map((n) => (
-              <button
+              <div
                 key={n.id}
-                type="button"
-                onClick={() => handleClick(n)}
-                className={`flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-stone-50 active:scale-[0.995] ${
+                className={`group flex w-full items-center gap-2 pr-3 transition hover:bg-stone-50 ${
                   !n.read ? "bg-rose-50/50" : ""
                 }`}
               >
-                {notifDot(n.type)}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className={`truncate text-sm font-semibold text-stone-900 ${!n.read ? "font-bold" : ""}`}>
-                      {n.title}
-                    </p>
-                    {!n.read && (
-                      <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                <button
+                  type="button"
+                  onClick={() => handleClick(n)}
+                  className="flex flex-1 items-start gap-4 px-5 py-4 text-left active:scale-[0.998]"
+                >
+                  {notifDot(n.type)}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`truncate text-sm text-stone-900 ${!n.read ? "font-bold" : "font-semibold"}`}>
+                        {n.title}
+                      </p>
+                      {!n.read && (
+                        <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                      )}
+                    </div>
+                    {n.body && (
+                      <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{n.body}</p>
                     )}
+                    <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at)}</p>
                   </div>
-                  {n.body && (
-                    <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{n.body}</p>
-                  )}
-                  <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at)}</p>
-                </div>
-                <svg className="mt-1 h-4 w-4 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                  <svg className="mt-1 h-4 w-4 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Melding verwijderen"
+                  onClick={() => handleDeleteOne(n.id)}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
         )}
