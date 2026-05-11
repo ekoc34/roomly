@@ -1,0 +1,34 @@
+Refactor the onboarding, profile page, and dashboard to align with three clear user roles based on the three listing types. Update database constraints accordingly.
+
+ROLE DEFINITIONS:
+- **Verhuurder**: Can create "Kamer te huur" and "Kort verblijf" listings. Dashboard shows "Mijn verhuur" tab.
+- **Woningzoekende**: Cannot create listings. Can only search and apply. Dashboard shows "Mijn zoektocht" tab. Subtypes: student, professional, alleenstaande, family.
+- **Huisgenoot zoeker**: Can ONLY create "Huisgenoot gezocht" listings. Dashboard shows appropriate management tab.
+
+TASK 1 — Update Onboarding (UserPersonaSelector.tsx)
+1. Replace the current two-step wizard with a single screen showing three role cards:
+   - **Verhuurder**: "Ik verhuur kamers of woningen" (Building icon). Subtext: "Plaats advertenties voor kamerverhuur en kort verblijf."
+   - **Woningzoekende**: "Ik zoek een woning voor mezelf" (Search icon). Subtext: "Vind kamers, appartementen en meer."
+   - **Huisgenoot zoeker**: "Ik zoek een huisgenoot" (Users icon). Subtext: "Ik heb een woning en zoek iemand om mee te delen."
+2. If "Woningzoekende" is selected, show a second step with subtypes: Student, Professional/Expat, Alleenstaande, Familie (as currently designed).
+3. If "Verhuurder" or "Huisgenoot zoeker" is selected, save the role directly and redirect to /dashboard.
+4. Keep the "Liever later kiezen? Sla over" skip option. Skipping should leave user_type = NULL.
+
+TASK 2 — Update Profile Page (ProfilePage.tsx)
+1. Update the one-time persona selector to use the new three-role structure.
+2. The read-only view must display the correct role label and description.
+
+TASK 3 — Update Dashboard (DashboardPage.tsx)
+1. If user_type is 'verhuurder', show only the "Mijn verhuur" tab (no tab selector needed, or set it as default).
+2. If user_type is 'huisgenoot_zoeker', show a management tab for their "Huisgenoot gezocht" listings.
+3. If user_type is one of the woningzoekende subtypes (student, professional, alleenstaande, family), show only "Mijn zoektocht" tab.
+4. If user_type is NULL, show a prompt to complete the persona selection (the existing banner).
+
+TASK 4 — Update Database
+Provide the SQL to update the CHECK constraint:
+   ALTER TABLE profiles DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+   ALTER TABLE profiles ADD CONSTRAINT profiles_user_type_check CHECK (user_type IN ('verhuurder', 'huisgenoot_zoeker', 'student', 'professional', 'alleenstaande', 'family'));
+
+TASK 5 — Keep everything else intact
+1. All text in Dutch. Use existing Tailwind v4 styling.
+2. Commit with message: "Refactor roles for listing creation alignment and dashboard logic" and push.

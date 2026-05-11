@@ -651,3 +651,18 @@ ALTER TABLE public.profiles
 -- re-select their type via the new two-step flow on their profile page.
 -- UPDATE public.profiles SET user_type = NULL WHERE user_type = 'tenant';
 -- Uncomment the line above only if you want existing 'tenant' accounts to re-choose.
+
+-- ============================================================
+-- MIGRATION: Three-role system — verhuurder, huisgenoot_zoeker, woningzoekende subtypes
+-- Run this in the Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_user_type_check;
+
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_user_type_check
+  CHECK (user_type IN ('verhuurder','huisgenoot_zoeker','student','professional','alleenstaande','family'));
+
+-- Optional: migrate any existing 'landlord' rows to 'verhuurder'
+-- UPDATE public.profiles SET user_type = 'verhuurder' WHERE user_type = 'landlord';
+-- Uncomment the line above to remap existing landlord accounts to the new role name.

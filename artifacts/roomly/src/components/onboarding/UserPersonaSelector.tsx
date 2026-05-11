@@ -4,14 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { UserType } from "@/types/database";
 
-type Step1Choice = "huurder" | "landlord";
+type Step1Choice = "woningzoekende" | "verhuurder" | "huisgenoot_zoeker";
 
-const STEP2_OPTIONS: {
-  key: UserType;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-}[] = [
+const STEP2_OPTIONS: { key: UserType; label: string; description: string; icon: React.ReactNode }[] = [
   {
     key: "student",
     label: "Student",
@@ -57,7 +52,6 @@ const STEP2_OPTIONS: {
 
 export function UserPersonaSelector() {
   const [step, setStep] = useState<1 | 2>(1);
-  const [step1Choice, setStep1Choice] = useState<Step1Choice | null>(null);
   const [animating, setAnimating] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [, navigate] = useLocation();
@@ -73,51 +67,57 @@ export function UserPersonaSelector() {
   };
 
   const handleStep1 = (choice: Step1Choice) => {
-    if (choice === "landlord") {
-      saveAndRedirect("landlord");
-      return;
-    }
-    setStep1Choice(choice);
+    if (choice === "verhuurder") { saveAndRedirect("verhuurder"); return; }
+    if (choice === "huisgenoot_zoeker") { saveAndRedirect("huisgenoot_zoeker"); return; }
     setAnimating(true);
-    setTimeout(() => {
-      setStep(2);
-      setAnimating(false);
-    }, 220);
-  };
-
-  const handleStep2 = (userType: UserType) => {
-    saveAndRedirect(userType);
+    setTimeout(() => { setStep(2); setAnimating(false); }, 220);
   };
 
   const goBack = () => {
     setAnimating(true);
-    setTimeout(() => {
-      setStep(1);
-      setStep1Choice(null);
-      setAnimating(false);
-    }, 220);
+    setTimeout(() => { setStep(1); setAnimating(false); }, 220);
   };
 
   return (
     <div className="w-full max-w-lg" data-testid="persona-selector">
-      <div
-        className="transition-opacity duration-200"
-        style={{ opacity: animating ? 0 : 1 }}
-      >
+      <div className="transition-opacity duration-200" style={{ opacity: animating ? 0 : 1 }}>
+
         {step === 1 && (
           <>
             <div className="text-center">
               <span className="text-4xl">👋</span>
               <h1 className="mt-4 text-3xl font-black text-stone-900 sm:text-4xl">Welkom bij Welkthuis</h1>
-              <p className="mt-2 text-sm font-semibold uppercase tracking-widest text-rose-500">Stap 1 van 2</p>
               <p className="mt-2 text-base leading-relaxed text-stone-500">Wat is je rol? Zo personaliseren we je ervaring.</p>
             </div>
 
             <div className="mt-8 grid gap-4">
+              {/* Verhuurder */}
               <button
-                onClick={() => handleStep1("huurder")}
+                onClick={() => handleStep1("verhuurder")}
                 disabled={isPending}
-                data-testid="persona-huurder"
+                data-testid="persona-verhuurder"
+                className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+              >
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 transition group-hover:bg-amber-100">
+                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-lg font-bold text-stone-900 group-hover:text-amber-600">Verhuurder</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik verhuur kamers of woningen</p>
+                  <p className="mt-1 text-xs text-stone-400">Plaats advertenties voor kamerverhuur en kort verblijf.</p>
+                </div>
+                <svg className="ml-auto h-5 w-5 shrink-0 text-stone-300 transition group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Woningzoekende */}
+              <button
+                onClick={() => handleStep1("woningzoekende")}
+                disabled={isPending}
+                data-testid="persona-woningzoekende"
                 className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
               >
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
@@ -126,30 +126,33 @@ export function UserPersonaSelector() {
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="text-lg font-bold text-stone-900 group-hover:text-rose-600">Huurder</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik zoek een woning om te huren</p>
+                  <p className="text-lg font-bold text-stone-900 group-hover:text-rose-600">Woningzoekende</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik zoek een woning voor mezelf</p>
+                  <p className="mt-1 text-xs text-stone-400">Vind kamers, appartementen en meer.</p>
                 </div>
                 <svg className="ml-auto h-5 w-5 shrink-0 text-stone-300 transition group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
 
+              {/* Huisgenoot zoeker */}
               <button
-                onClick={() => handleStep1("landlord")}
+                onClick={() => handleStep1("huisgenoot_zoeker")}
                 disabled={isPending}
-                data-testid="persona-landlord"
-                className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                data-testid="persona-huisgenoot_zoeker"
+                className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-blue-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 transition group-hover:bg-amber-100">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 transition group-hover:bg-blue-100">
                   <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="text-lg font-bold text-stone-900 group-hover:text-amber-600">Verhuurder</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik wil een kamer of woning verhuren</p>
+                  <p className="text-lg font-bold text-stone-900 group-hover:text-blue-600">Huisgenoot zoeker</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik zoek een huisgenoot</p>
+                  <p className="mt-1 text-xs text-stone-400">Ik heb een woning en zoek iemand om mee te delen.</p>
                 </div>
-                <svg className="ml-auto h-5 w-5 shrink-0 text-stone-300 transition group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg className="ml-auto h-5 w-5 shrink-0 text-stone-300 transition group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
               </button>
@@ -189,7 +192,7 @@ export function UserPersonaSelector() {
               {STEP2_OPTIONS.map(({ key, label, description, icon }) => (
                 <button
                   key={key}
-                  onClick={() => handleStep2(key)}
+                  onClick={() => saveAndRedirect(key)}
                   disabled={isPending}
                   data-testid={`persona-${key}`}
                   className="group flex items-center gap-4 rounded-3xl border-2 border-stone-200 bg-white p-5 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"

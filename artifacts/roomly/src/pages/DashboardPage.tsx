@@ -341,6 +341,13 @@ export function DashboardPage() {
   const initial = (profile?.name ?? profile?.email ?? user?.email ?? "?").slice(0, 1).toUpperCase();
   const pendingCount = receivedApplications.filter((a) => a.status === "pending").length;
 
+  const VERHUUR_TYPES = ["verhuurder", "huisgenoot_zoeker"];
+  const ZOEK_TYPES = ["student", "professional", "alleenstaande", "family"];
+  const effectiveTab: Tab = !loading && profile?.user_type
+    ? (VERHUUR_TYPES.includes(profile.user_type) ? "verhuur" : "zoektocht")
+    : activeTab;
+  const showTabBar = !loading && !profile?.user_type;
+
   const statusMap = {
     pending: { label: "In behandeling", cls: "bg-amber-50 text-amber-700 border-amber-200" },
     accepted: { label: "Geaccepteerd", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -419,35 +426,37 @@ export function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-8 flex gap-2 border-b border-stone-200">
-          <button
-            onClick={() => setActiveTab("zoektocht")}
-            className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${
-              activeTab === "zoektocht" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Mijn zoektocht
-          </button>
-          <button
-            onClick={() => setActiveTab("verhuur")}
-            className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${
-              activeTab === "verhuur" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Mijn verhuur
-            {!loading && pendingCount > 0 && (
-              <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">{pendingCount}</span>
-            )}
-          </button>
-        </div>
+        {showTabBar && (
+          <div className="mt-8 flex gap-2 border-b border-stone-200">
+            <button
+              onClick={() => setActiveTab("zoektocht")}
+              className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "zoektocht" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Mijn zoektocht
+            </button>
+            <button
+              onClick={() => setActiveTab("verhuur")}
+              className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${
+                activeTab === "verhuur" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+              Mijn verhuur
+              {!loading && pendingCount > 0 && (
+                <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">{pendingCount}</span>
+              )}
+            </button>
+          </div>
+        )}
 
-        {activeTab === "zoektocht" && (
+        {effectiveTab === "zoektocht" && (
           <div className="mt-6 space-y-8">
 
             {/* ── Profile completion ── */}
@@ -779,7 +788,7 @@ export function DashboardPage() {
           </div>
         )}
 
-        {activeTab === "verhuur" && (
+        {effectiveTab === "verhuur" && (
           <div className="mt-6 space-y-8">
             <div className="grid gap-4 sm:grid-cols-3">
               {[
