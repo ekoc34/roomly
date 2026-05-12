@@ -55,7 +55,7 @@ export function Footer() {
             </div>
           </div>
 
-          {/* Platform links */}
+          {/* Ontdekken */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Ontdekken</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
@@ -67,11 +67,9 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Account links — title changes based on role */}
+          {/* Account */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
-              {canPost ? "Verhuren" : "Mijn account"}
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               {user ? (
                 <>
