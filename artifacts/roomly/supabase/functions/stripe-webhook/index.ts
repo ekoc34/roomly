@@ -2,7 +2,8 @@
 // Deployed with --no-verify-jwt so Stripe can POST without an Authorization header.
 //
 // ── DEPLOYMENT ───────────────────────────────────────────────────────────────
-//   supabase functions deploy stripe-webhook --no-verify-jwt
+//   1. Run migration_stripe_idempotency.sql in the Supabase SQL Editor first.
+//   2. supabase functions deploy stripe-webhook --no-verify-jwt
 //
 // ── REQUIRED SECRETS (set via Supabase Dashboard › Settings › Edge Functions) ─
 //   STRIPE_SECRET_KEY       →  sk_test_...
@@ -59,6 +60,38 @@ Deno.serve(async (req) => {
 
     console.log(`Received Stripe event: ${event.type} (${event.id})`);
 
+    // ── Idempotency check ─────────────────────────────────────────────────────
+    // Attempt to record this event ID. If the INSERT hits a conflict (duplicate
+    // primary key) it inserts nothing and returns an empty array. We treat that
+    // as "already processed" and return 200 immediately — safe for Stripe retries.
+    const adminClient = createClient(supabaseUrl, serviceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const { data: inserted, error: idempotencyErr } = await adminClient
+      .from("stripe_processed_events")
+      .insert({ event_id: event.id, event_type: event.type })
+      .select("event_id");
+
+    if (idempotencyErr) {
+      console.error("Idempotency check failed:", idempotencyErr);
+      // Fail open: if we cannot check, return 500 so Stripe retries later.
+      return new Response(JSON.stringify({ error: "Idempotency check failed." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!inserted || inserted.length === 0) {
+      // Duplicate event — already handled. Acknowledge without processing.
+      console.log(`Duplicate event skipped: ${event.id}`);
+      return new Response(JSON.stringify({ received: true, duplicate: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.user_id;
@@ -73,10 +106,6 @@ Deno.serve(async (req) => {
       }
 
       // Use the service role client (bypasses RLS) to atomically credit the user.
-      const adminClient = createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
-
       const { error: rpcErr } = await adminClient.rpc("system_add_boost_credits", {
         p_user_id: userId,
         p_credits: credits,
