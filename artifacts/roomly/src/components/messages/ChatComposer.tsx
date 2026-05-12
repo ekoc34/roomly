@@ -8,13 +8,69 @@ import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 type Props = {
   conversationId: string;
   recipientId?: string;
+  landlordId?: string;
+  tenantId?: string;
   onSent?: () => void;
   isLocked?: boolean;
   blockedMessage?: string;
   onTyping?: (isTyping: boolean) => void;
 };
 
-export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false, blockedMessage, onTyping }: Props) {
+async function maybeUpdateResponseTime(
+  conversationId: string,
+  landlordId: string,
+  tenantId: string,
+) {
+  if (!supabase) return;
+
+  // Fetch all messages in this conversation, oldest first
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("sender_id, created_at")
+    .eq("conversation_id", conversationId)
+    .order("created_at", { ascending: true });
+
+  if (!msgs || msgs.length === 0) return;
+
+  const landlordMsgs = msgs.filter((m) => m.sender_id === landlordId);
+  const tenantMsgs   = msgs.filter((m) => m.sender_id === tenantId);
+
+  // Only count if this is the landlord's FIRST reply and tenant has at least one message
+  if (landlordMsgs.length !== 1 || tenantMsgs.length === 0) return;
+
+  const tenantFirstAt = new Date(tenantMsgs[0].created_at).getTime();
+  const responseHours = (Date.now() - tenantFirstAt) / (1000 * 60 * 60);
+
+  // Fetch existing avg
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("avg_response_time_hours")
+    .eq("id", landlordId)
+    .maybeSingle();
+
+  const existing = (profileData as { avg_response_time_hours: number | null } | null)
+    ?.avg_response_time_hours ?? null;
+
+  const newAvg = existing != null
+    ? (existing + responseHours) / 2
+    : responseHours;
+
+  await supabase
+    .from("profiles")
+    .update({ avg_response_time_hours: Math.round(newAvg * 10) / 10 })
+    .eq("id", landlordId);
+}
+
+export function ChatComposer({
+  conversationId,
+  recipientId,
+  landlordId,
+  tenantId,
+  onSent,
+  isLocked = false,
+  blockedMessage,
+  onTyping,
+}: Props) {
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
@@ -79,6 +135,11 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
       formRef.current?.reset();
       setRows(1);
       onSent?.();
+
+      // Fire-and-forget: update landlord's avg response time on first reply
+      if (landlordId && tenantId && user.id === landlordId) {
+        maybeUpdateResponseTime(conversationId, landlordId, tenantId).catch(() => {});
+      }
     });
   };
 

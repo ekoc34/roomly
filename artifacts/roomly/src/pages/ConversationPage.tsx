@@ -451,6 +451,8 @@ export function ConversationPage() {
             <ChatComposer
               conversationId={conversation.id}
               recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
+              landlordId={conversation.landlord_id}
+              tenantId={conversation.tenant_id}
               onSent={fetchMessages}
               isLocked={isLocked}
               blockedMessage={blockedMessage}
