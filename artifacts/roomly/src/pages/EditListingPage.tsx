@@ -118,7 +118,9 @@ export function EditListingPage() {
     if (!title || !description || !location || price <= 0) { setError("Vul alle verplichte velden in."); return; }
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
-      const { error: err } = await supabase.rpc("update_listing", {
+
+      // Step 1: save listing fields (never includes boost — handled separately below)
+      const { error: updateErr } = await supabase.rpc("update_listing", {
         p_listing_id: params.id,
         p_data: {
           title,
@@ -135,7 +137,22 @@ export function EditListingPage() {
           surface_area: surface_area != null ? String(surface_area) : "",
         },
       });
-      if (err) { setError(mapRpcError(err, "Opslaan mislukt. Probeer opnieuw.")); return; }
+      if (updateErr) { setError(mapRpcError(updateErr, "Opslaan mislukt. Probeer opnieuw.")); return; }
+
+      // Step 2: if the boost toggle is ON and the listing wasn't already boosted,
+      // call boost_listing separately so a credits failure doesn't block the save.
+      if (boosted && !listing?.boosted) {
+        const { error: boostErr } = await supabase.rpc("boost_listing", {
+          p_listing_id: params.id,
+        });
+        if (boostErr) {
+          // Listing was saved successfully — only the boost failed.
+          toast.success("Wijzigingen opgeslagen!");
+          setError(mapRpcError(boostErr, "Advertentie uitlichten mislukt. Controleer je boost-credits."));
+          return;
+        }
+      }
+
       toast.success("Wijzigingen opgeslagen!");
       navigate(`/kamers/${params.id}`);
     });
