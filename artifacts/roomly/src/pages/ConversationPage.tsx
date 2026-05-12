@@ -220,16 +220,12 @@ export function ConversationPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <button
-          type="button"
-          onClick={() => setShowOtherPanel(true)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 transition hover:ring-2 hover:ring-rose-300"
-        >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
           {other?.avatar_url
             ? <img src={other.avatar_url} alt="" className="h-full w-full object-cover" />
             : <span className="text-sm font-semibold text-stone-500">{initial}</span>
           }
-        </button>
+        </div>
         <div className="min-w-0 flex-1">
           <button
             type="button"
