@@ -142,3 +142,12 @@ export type ReportCategory =
   | "fake_photos"
   | "duplicate"
   | "other";
+
+export type UserReport = {
+  id: string;
+  reporter_id: string;
+  reported_id: string;
+  reason: "blocked" | "reported";
+  resolved: boolean;
+  created_at: string;
+};

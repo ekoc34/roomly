@@ -746,3 +746,46 @@ BEGIN
   RETURN v_conv_id;
 END;
 $$;
+
+-- ============================================================
+-- USER REPORTS (block / report another user from chat)
+-- ============================================================
+create table if not exists public.user_reports (
+  id          uuid primary key default uuid_generate_v4(),
+  reporter_id uuid not null references public.profiles(id) on delete cascade,
+  reported_id uuid not null references public.profiles(id) on delete cascade,
+  reason      text not null check (reason in ('blocked','reported')),
+  resolved    boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.user_reports enable row level security;
+
+-- Any authenticated user can file a report
+create policy "authenticated users can insert user_reports"
+  on public.user_reports for insert
+  to authenticated
+  with check (auth.uid() = reporter_id);
+
+-- Only admins can read all reports
+create policy "admins can select user_reports"
+  on public.user_reports for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  );
+
+-- Only admins can update (mark resolved)
+create policy "admins can update user_reports"
+  on public.user_reports for update
+  to authenticated
+  using (
+    exists (
+      select 1 from public.profiles
+      where id = auth.uid() and role = 'admin'
+    )
+  )
+  with check (true);

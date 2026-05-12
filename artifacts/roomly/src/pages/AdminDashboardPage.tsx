@@ -13,7 +13,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning, Home, Mail, CheckCheck } from "lucide-react";
+import { ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning, Home, Mail, CheckCheck, MessageSquareWarning } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -47,11 +47,21 @@ type ContactMessage = {
   created_at: string;
 };
 
+type UserReportRow = {
+  id: string;
+  reason: "blocked" | "reported";
+  resolved: boolean;
+  created_at: string;
+  reporter_name: string | null;
+  reported_name: string | null;
+};
+
 type Stats = {
   flaggedCount: number;
   scamReportCount: number;
   totalListings: number;
   unreadContactCount: number;
+  userReportCount: number;
 };
 
 const CATEGORY_STYLES: Record<string, string> = {
@@ -76,6 +86,7 @@ export function AdminDashboardPage() {
   const [landlords, setLandlords] = useState<FlaggedLandlord[]>([]);
   const [reports, setReports] = useState<ScamReport[]>([]);
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [userReports, setUserReports] = useState<UserReportRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -179,23 +190,56 @@ export function AdminDashboardPage() {
       setContactMessages(contactRows as ContactMessage[]);
     }
 
+    // User reports (block / report)
+    const { data: userReportRows } = await supabase
+      .from("user_reports")
+      .select(`
+        id, reason, resolved, created_at,
+        reporter:reporter_id ( name ),
+        reported:reported_id ( name )
+      `)
+      .eq("resolved", false)
+      .order("created_at", { ascending: false });
+
+    if (userReportRows) {
+      const mapped = (userReportRows as {
+        id: string;
+        reason: "blocked" | "reported";
+        resolved: boolean;
+        created_at: string;
+        reporter: { name: string | null } | null;
+        reported: { name: string | null } | null;
+      }[]).map((r) => ({
+        id: r.id,
+        reason: r.reason,
+        resolved: r.resolved,
+        created_at: r.created_at,
+        reporter_name: r.reporter?.name ?? null,
+        reported_name: r.reported?.name ?? null,
+      }));
+      setUserReports(mapped);
+    }
+
     // Quick stats
     const [
       { count: flaggedCount },
       { count: scamCount },
       { count: listingsCount },
       { count: unreadContact },
+      { count: userReportCount },
     ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }).eq("scam_flagged", true),
       supabase.from("listing_reports").select("*", { count: "exact", head: true }).eq("category", "scam"),
       supabase.from("listings").select("*", { count: "exact", head: true }),
       supabase.from("contact_messages").select("*", { count: "exact", head: true }).eq("is_read", false),
+      supabase.from("user_reports").select("*", { count: "exact", head: true }).eq("resolved", false),
     ]);
     setStats({
       flaggedCount: flaggedCount ?? 0,
       scamReportCount: scamCount ?? 0,
       totalListings: listingsCount ?? 0,
       unreadContactCount: unreadContact ?? 0,
+      userReportCount: userReportCount ?? 0,
     });
   }
 
@@ -255,6 +299,20 @@ export function AdminDashboardPage() {
       toast.success("Rapport verwijderd.");
       setReports((prev) => prev.filter((r) => r.id !== reportId));
       setStats((s) => s ? { ...s, scamReportCount: Math.max(0, s.scamReportCount - 1) } : s);
+    });
+  };
+
+  const handleDismissUserReport = (reportId: string) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase
+        .from("user_reports")
+        .update({ resolved: true })
+        .eq("id", reportId);
+      if (error) { toast.error("Bijwerken mislukt."); return; }
+      toast.success("Melding afgehandeld.");
+      setUserReports((prev) => prev.filter((r) => r.id !== reportId));
+      setStats((s) => s ? { ...s, userReportCount: Math.max(0, s.userReportCount - 1) } : s);
     });
   };
 
@@ -329,6 +387,12 @@ export function AdminDashboardPage() {
             bg="bg-blue-50 border-blue-200"
             label="Ongelezen contactberichten"
             value={stats.unreadContactCount}
+          />
+          <StatCard
+            icon={<MessageSquareWarning className="h-5 w-5 text-violet-500" />}
+            bg="bg-violet-50 border-violet-200"
+            label="Openstaande gebruikersmeldingen"
+            value={stats.userReportCount}
           />
         </div>
       )}
@@ -505,6 +569,69 @@ export function AdminDashboardPage() {
                 <p className="mt-1 text-sm leading-relaxed text-stone-500">{msg.message}</p>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── Section D: User Reports ── */}
+      <section className="mb-8">
+        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold text-stone-900">
+          <MessageSquareWarning className="h-4 w-4 text-violet-500" />
+          Gebruikersmeldingen
+          {userReports.length > 0 && (
+            <span className="ml-1 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">{userReports.length}</span>
+          )}
+        </h2>
+        {userReports.length === 0 ? (
+          <div className="rounded-2xl border border-stone-100 bg-white px-6 py-10 text-center text-sm text-stone-400 shadow-sm">
+            Geen openstaande gebruikersmeldingen.
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead>
+                  <tr className="border-b border-stone-100 bg-stone-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">Melder</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">Gemeld gebruiker</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">Reden</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-stone-500">Datum</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {userReports.map((r) => (
+                    <tr key={r.id} className="hover:bg-stone-50">
+                      <td className="px-4 py-3 font-medium text-stone-800">{r.reporter_name ?? "—"}</td>
+                      <td className="px-4 py-3 text-stone-700">{r.reported_name ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          r.reason === "blocked"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-rose-100 text-rose-700"
+                        }`}>
+                          {r.reason === "blocked" ? "Geblokkeerd" : "Gerapporteerd"}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-stone-500">
+                        {new Date(r.created_at).toLocaleDateString("nl-NL")}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => handleDismissUserReport(r.id)}
+                          className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-1.5 text-xs font-semibold text-stone-600 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 disabled:opacity-50 active:scale-95"
+                        >
+                          <CheckCheck className="h-3.5 w-3.5" />
+                          Markeer als afgehandeld
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </section>

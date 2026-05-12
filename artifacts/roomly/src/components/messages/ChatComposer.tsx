@@ -10,10 +10,11 @@ type Props = {
   recipientId?: string;
   onSent?: () => void;
   isLocked?: boolean;
+  blockedMessage?: string;
   onTyping?: (isTyping: boolean) => void;
 };
 
-export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false, onTyping }: Props) {
+export function ChatComposer({ conversationId, recipientId, onSent, isLocked = false, blockedMessage, onTyping }: Props) {
   const [isPending, startTransition] = useTransition();
   const [rows, setRows] = useState(1);
   const formRef = useRef<HTMLFormElement>(null);
@@ -28,6 +29,25 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
     }
     onTyping?.(false);
   }, [onTyping]);
+
+  if (blockedMessage) {
+    return (
+      <div className="space-y-2">
+        <textarea
+          disabled
+          rows={1}
+          placeholder={blockedMessage}
+          className="w-full resize-none rounded-2xl border border-stone-200 bg-stone-100 px-4 py-2.5 text-sm text-stone-400 placeholder:text-stone-400 cursor-not-allowed opacity-60"
+        />
+        <p className="flex items-center gap-1.5 px-1 text-xs text-stone-500">
+          <svg className="h-3.5 w-3.5 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          {blockedMessage}
+        </p>
+      </div>
+    );
+  }
 
   if (isLocked) {
     return (

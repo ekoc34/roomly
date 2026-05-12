@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
-import { Check, CheckCheck } from "lucide-react";
+import { Ban, Check, CheckCheck, Flag } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
@@ -42,6 +43,8 @@ export function ConversationPage() {
   const [loading, setLoading] = useState(true);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
   const [showOtherPanel, setShowOtherPanel] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
+  const [blockedByOther, setBlockedByOther] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
@@ -96,6 +99,19 @@ export function ConversationPage() {
         .eq("id", otherId)
         .maybeSingle();
       setOther(otherProfile as Profile | null);
+
+      // Check if the other participant has already blocked the current user
+      if (user && otherProfile) {
+        const { data: blockRow } = await supabase!
+          .from("user_reports")
+          .select("id")
+          .eq("reporter_id", otherProfile.id)
+          .eq("reported_id", user.id)
+          .eq("reason", "blocked")
+          .maybeSingle();
+        if (blockRow) setBlockedByOther(true);
+      }
+
       await fetchMessages();
       setLoading(false);
     }
@@ -180,6 +196,21 @@ export function ConversationPage() {
     typingChannelRef.current?.track({ typing: isTyping });
   }, []);
 
+  const handleUserAction = useCallback(async (reason: "blocked" | "reported") => {
+    if (!supabase || !user || !other) return;
+    const { error } = await supabase.from("user_reports").insert({
+      reporter_id: user.id,
+      reported_id: other.id,
+      reason,
+    });
+    if (error) {
+      toast.error("Actie mislukt. Probeer opnieuw.");
+      return;
+    }
+    if (reason === "blocked") setBlockedByMe(true);
+    toast.success(reason === "blocked" ? "Gebruiker geblokkeerd." : "Gebruiker gerapporteerd.");
+  }, [user, other]);
+
   if (loading) return <ConversationSkeleton />;
 
   if (!conversation) {
@@ -231,13 +262,33 @@ export function ConversationPage() {
           }
         </div>
         <div className="min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={() => setShowOtherPanel(true)}
-            className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
-          >
-            {other?.name ?? "Gebruiker"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowOtherPanel(true)}
+              className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
+            >
+              {other?.name ?? "Gebruiker"}
+            </button>
+            <button
+              type="button"
+              title="Blokkeer gebruiker"
+              onClick={() => handleUserAction("blocked")}
+              className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 active:scale-95"
+            >
+              <Ban className="h-3 w-3" />
+              Blokkeer
+            </button>
+            <button
+              type="button"
+              title="Rapporteer gebruiker"
+              onClick={() => handleUserAction("reported")}
+              className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
+            >
+              <Flag className="h-3 w-3" />
+              Rapporteer
+            </button>
+          </div>
           {activeStatus && (
             <p className="mt-0.5 flex items-center gap-1.5">
               <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${activeStatus.dot}`} />
@@ -313,22 +364,30 @@ export function ConversationPage() {
         const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
         const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
+        const blockedMessage = blockedByMe
+          ? "Je hebt deze gebruiker geblokkeerd."
+          : blockedByOther
+            ? "Je kunt geen berichten sturen naar deze gebruiker."
+            : undefined;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
-            {/* Typing indicator */}
-            <div className={`mb-2 flex items-center gap-1.5 transition-opacity duration-300 ${otherIsTyping ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-              <span className="flex gap-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:0ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:150ms]" />
-                <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:300ms]" />
-              </span>
-              <span className="text-xs text-stone-400">… aan het typen</span>
-            </div>
+            {/* Typing indicator — hide when blocked */}
+            {!blockedMessage && (
+              <div className={`mb-2 flex items-center gap-1.5 transition-opacity duration-300 ${otherIsTyping ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+                <span className="flex gap-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:0ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:150ms]" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:300ms]" />
+                </span>
+                <span className="text-xs text-stone-400">… aan het typen</span>
+              </div>
+            )}
             <ChatComposer
               conversationId={conversation.id}
               recipientId={user.id === conversation.tenant_id ? conversation.landlord_id : conversation.tenant_id}
               onSent={fetchMessages}
               isLocked={isLocked}
+              blockedMessage={blockedMessage}
               onTyping={trackTyping}
             />
           </div>
