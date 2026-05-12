@@ -37,6 +37,7 @@ export type Profile = {
   created_at: string;
   updated_at: string;
   lifestyle_tags?: string[] | null;
+  avg_response_time_hours?: number | null;
 };
 
 export type Listing = {

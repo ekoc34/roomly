@@ -1041,6 +1041,7 @@ export function DashboardPage() {
                       verificationBadge={
                         profile?.email_auto_verified && profile?.phone_verified ? "Geverifieerd" : null
                       }
+                      avgResponseTimeHours={profile?.avg_response_time_hours ?? null}
                     />
                   ))}
                 </div>

@@ -13,6 +13,7 @@ type Props = {
   listings: Listing[];
   favoriteIds: string[];
   verificationBadges?: Record<string, string | null>;
+  responseTimeBadges?: Record<string, number | null>;
   roommateListings: Listing[];
   roommateProfiles: Record<string, RoommateProfile>;
 };
@@ -104,7 +105,7 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
   );
 }
 
-export function FeaturedListings({ listings, favoriteIds, verificationBadges, roommateListings, roommateProfiles }: Props) {
+export function FeaturedListings({ listings, favoriteIds, verificationBadges, responseTimeBadges, roommateListings, roommateProfiles }: Props) {
   const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
 
   const tabClass = (tab: "woningen" | "huisgenoten") =>
@@ -167,6 +168,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, ro
                     listing={l}
                     isFavorited={favoriteIds.includes(l.id)}
                     verificationBadge={verificationBadges?.[l.user_id] ?? null}
+                    avgResponseTimeHours={responseTimeBadges?.[l.user_id] ?? null}
                   />
                 </div>
               ))}

@@ -21,6 +21,7 @@ function HomePageContent() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
+  const [responseTimeBadges, setResponseTimeBadges] = useState<Record<string, number | null>>({});
   const [roommateListings, setRoommateListings] = useState<Listing[]>([]);
   const [roommateProfiles, setRoommateProfiles] = useState<Record<string, RoommateProfile>>({});
   const [loading, setLoading] = useState(true);
@@ -75,10 +76,11 @@ function HomePageContent() {
         if (allOwnerIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, email_auto_verified, phone_verified, name, avatar_url, lifestyle_tags")
+            .select("id, email_auto_verified, phone_verified, name, avatar_url, lifestyle_tags, avg_response_time_hours")
             .in("id", allOwnerIds);
 
           const badgeMap: Record<string, string | null> = {};
+          const rtMap: Record<string, number | null> = {};
           const rmProfileMap: Record<string, RoommateProfile> = {};
 
           for (const p of (profiles ?? []) as {
@@ -88,8 +90,10 @@ function HomePageContent() {
             name: string | null;
             avatar_url: string | null;
             lifestyle_tags: string[] | null;
+            avg_response_time_hours: number | null;
           }[]) {
             badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+            rtMap[p.id] = p.avg_response_time_hours ?? null;
             rmProfileMap[p.id] = {
               name: p.name,
               avatar_url: p.avatar_url,
@@ -98,6 +102,7 @@ function HomePageContent() {
           }
 
           setVerificationBadges(badgeMap);
+          setResponseTimeBadges(rtMap);
           setRoommateProfiles(rmProfileMap);
         }
       } catch {
@@ -125,6 +130,7 @@ function HomePageContent() {
           listings={listings}
           favoriteIds={favoriteIds}
           verificationBadges={verificationBadges}
+          responseTimeBadges={responseTimeBadges}
           roommateListings={roommateListings}
           roommateProfiles={roommateProfiles}
         />

@@ -10,6 +10,7 @@ export function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
+  const [responseTimeBadges, setResponseTimeBadges] = useState<Record<string, number | null>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,13 +25,16 @@ export function FavoritesPage() {
       if (ownerIds.length > 0) {
         const { data: profiles } = await supabase!
           .from("profiles")
-          .select("id, email_auto_verified, phone_verified")
+          .select("id, email_auto_verified, phone_verified, avg_response_time_hours")
           .in("id", ownerIds);
         const badgeMap: Record<string, string | null> = {};
-        for (const p of (profiles ?? []) as { id: string; email_auto_verified: boolean; phone_verified: boolean }[]) {
+        const rtMap: Record<string, number | null> = {};
+        for (const p of (profiles ?? []) as { id: string; email_auto_verified: boolean; phone_verified: boolean; avg_response_time_hours: number | null }[]) {
           badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+          rtMap[p.id] = p.avg_response_time_hours ?? null;
         }
         setVerificationBadges(badgeMap);
+        setResponseTimeBadges(rtMap);
       }
       setLoading(false);
     }
@@ -70,7 +74,7 @@ export function FavoritesPage() {
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} isFavorited={true} verificationBadge={verificationBadges[l.user_id] ?? null} />
+            <ListingCard key={l.id} listing={l} isFavorited={true} verificationBadge={verificationBadges[l.user_id] ?? null} avgResponseTimeHours={responseTimeBadges[l.user_id] ?? null} />
           ))}
         </div>
       )}

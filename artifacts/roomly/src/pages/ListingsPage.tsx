@@ -46,6 +46,7 @@ export function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationMap, setVerificationMap] = useState<Map<string, string | null>>(new Map());
+  const [responseTimeMap, setResponseTimeMap] = useState<Map<string, number | null>>(new Map());
   const [loading, setLoading] = useState(true);
   const searchString = useSearch();
   const { user } = useAuth();
@@ -120,13 +121,16 @@ export function ListingsPage() {
       if (ownerIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, verification_badge")
+          .select("id, verification_badge, avg_response_time_hours")
           .in("id", ownerIds);
-        const map = new Map<string, string | null>();
-        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null }[]) {
-          map.set(p.id, p.verification_badge ?? null);
+        const vMap = new Map<string, string | null>();
+        const rtMap = new Map<string, number | null>();
+        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null; avg_response_time_hours: number | null }[]) {
+          vMap.set(p.id, p.verification_badge ?? null);
+          rtMap.set(p.id, p.avg_response_time_hours ?? null);
         }
-        setVerificationMap(map);
+        setVerificationMap(vMap);
+        setResponseTimeMap(rtMap);
       }
 
       setLoading(false);
@@ -266,7 +270,7 @@ export function ListingsPage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationMap.get(l.user_id) ?? null} />
+              <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationMap.get(l.user_id) ?? null} avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null} />
             ))}
           </div>
         )}

@@ -778,6 +778,13 @@ create policy "admins can select user_reports"
     )
   );
 
+-- ============================================================
+-- MIGRATION: avg_response_time_hours on profiles
+-- Run in Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS avg_response_time_hours NUMERIC DEFAULT NULL;
+
 -- Only admins can update (mark resolved)
 create policy "admins can update user_reports"
   on public.user_reports for update

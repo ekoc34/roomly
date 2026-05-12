@@ -10,6 +10,7 @@ type Props = {
   listing: Listing;
   isFavorited?: boolean;
   verificationBadge?: string | null;
+  avgResponseTimeHours?: number | null;
 };
 
 function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
@@ -19,11 +20,20 @@ function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
   return null;
 }
 
-export function ListingCard({ listing, isFavorited = false, verificationBadge }: Props) {
+function getResponseBadge(hours: number | null | undefined): { label: string; cls: string } | null {
+  if (hours == null) return null;
+  if (hours < 1)   return { label: "Reageert binnen 1 uur",  cls: "border-emerald-200 bg-emerald-50 text-emerald-700" };
+  if (hours < 4)   return { label: "Reageert binnen 4 uur",  cls: "border-amber-200 bg-amber-50 text-amber-700" };
+  if (hours <= 24) return { label: "Reageert binnen 24 uur", cls: "border-stone-200 bg-stone-50 text-stone-600" };
+  return null;
+}
+
+export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours }: Props) {
   const isLandlordVerified = !!verificationBadge;
   const img = listing.images[0];
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
   const newLabel = getNewLabel(listing.created_at);
+  const responseBadge = getResponseBadge(avgResponseTimeHours);
 
   return (
     <div className="group relative">
@@ -109,6 +119,17 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge }:
           <div className="mt-3 flex items-center">
             <CompareButton listingId={listing.id} />
           </div>
+
+          {responseBadge && (
+            <div className="mt-2.5">
+              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${responseBadge.cls}`}>
+                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {responseBadge.label}
+              </span>
+            </div>
+          )}
 
           <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
             {listing.availability_date ? (
