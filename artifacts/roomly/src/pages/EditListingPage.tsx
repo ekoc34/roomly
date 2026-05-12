@@ -52,6 +52,8 @@ export function EditListingPage() {
   // Track the boost state at load time so we know if the user toggled it ON during this session.
   // Using a ref avoids stale-closure issues: the value is set once when the listing loads
   // and is always readable inside the async submit handler without re-render dependencies.
+  // Active = boosted_at exists and is within the last 1 hour.
+  const BOOST_WINDOW_MS = 60 * 60 * 1000;
   const originalBoostedRef = useRef<boolean>(false);
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
@@ -79,7 +81,10 @@ export function EditListingPage() {
       setImages(l.images ?? []);
       setPetsAllowed(l.pets_allowed ?? false);
       setSmokingAllowed(l.smoking_allowed ?? false);
-      const initialBoosted = l.boosted ?? false;
+      // Derive active boost status from boosted_at (no boolean column anymore).
+      const initialBoosted = l.boosted_at
+        ? new Date(l.boosted_at) > new Date(Date.now() - BOOST_WINDOW_MS)
+        : false;
       setBoosted(initialBoosted);
       // Record the original state so the submit handler knows if the user toggled it ON.
       originalBoostedRef.current = initialBoosted;

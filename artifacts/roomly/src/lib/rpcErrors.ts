@@ -14,7 +14,7 @@ const RPC_ERROR_MESSAGES: Record<RpcErrorCode, string> = {
   NOT_AUTHORIZED:       "Je hebt geen toegang om deze actie uit te voeren.",
   INVALID_DATA:         "De ingevoerde gegevens zijn ongeldig. Controleer alle velden.",
   INSUFFICIENT_CREDITS: "Je hebt geen boost-credits meer. Koop credits via de Pricing-pagina.",
-  COOLDOWN_ACTIVE:      "Je kunt deze advertentie pas over 24 uur opnieuw uitlichten.",
+  COOLDOWN_ACTIVE:      "Je boost is nog actief. Je kunt deze advertentie pas over 1 uur opnieuw uitlichten.",
   LIMIT_REACHED:        "Je hebt je gratis limiet van 2 advertenties bereikt. Upgrade naar Premium voor onbeperkte advertenties.",
   PROFILE_NOT_FOUND:    "Profiel niet gevonden.",
   LISTING_NOT_FOUND:    "Advertentie niet gevonden.",

@@ -58,7 +58,7 @@ export type Listing = {
   pets_allowed: boolean | null;
   smoking_allowed: boolean | null;
   gender_preference: "vrouw" | "man" | "gemengd" | null;
-  boosted?: boolean;
+  boosted_at?: string | null;
   created_at: string;
   updated_at: string;
 };

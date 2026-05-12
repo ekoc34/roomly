@@ -30,12 +30,14 @@ function HomePageContent() {
     async function fetchData() {
       if (!supabase) { setLoading(false); return; }
       try {
-        // Try boosted ordering first; fall back if the column doesn't exist yet
+        // Order by boosted_at DESC NULLS LAST so actively-boosted listings
+        // (boosted_at within the last hour) float to the top naturally.
+        // Fall back to created_at-only if the column doesn't exist yet.
         let woningenResult = await supabase
           .from("listings")
           .select("*")
           .in("type", ["room_for_rent", "short_stay"])
-          .order("boosted", { ascending: false })
+          .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(8);
 
