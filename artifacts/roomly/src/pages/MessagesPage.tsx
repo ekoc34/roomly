@@ -62,6 +62,60 @@ export function MessagesPage() {
     fetchConvs();
   }, [user, authLoading]);
 
+  // Real-time: pick up new conversations the moment they are created
+  // (e.g. landlord accepts an application while tenant is already on this page).
+  // Supabase postgres_changes only supports a single-column filter, so we use
+  // two channels — one per role.
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    const fetchAndPrepend = async (convId: string) => {
+      const { data } = await supabase!
+        .from("conversations")
+        .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)")
+        .eq("id", convId)
+        .not("hidden_by", "cs", `{${user!.id}}`)
+        .maybeSingle();
+
+      if (!data) return;
+
+      const row: ConvRow = {
+        ...(data as Conversation & { listing: Listing | null; tenant: Profile | null; landlord: Profile | null }),
+        other: (data as { tenant_id: string; tenant: Profile | null; landlord: Profile | null }).tenant_id === user!.id
+          ? (data as { landlord: Profile | null }).landlord
+          : (data as { tenant: Profile | null }).tenant,
+      };
+
+      setConvs((prev) => {
+        if (prev.some((c) => c.id === convId)) return prev;
+        return [row, ...prev];
+      });
+    };
+
+    const tenantCh = supabase
+      .channel(`messages-rt-tenant:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "conversations", filter: `tenant_id=eq.${user.id}` },
+        (payload) => fetchAndPrepend((payload.new as { id: string }).id)
+      )
+      .subscribe();
+
+    const landlordCh = supabase
+      .channel(`messages-rt-landlord:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "conversations", filter: `landlord_id=eq.${user.id}` },
+        (payload) => fetchAndPrepend((payload.new as { id: string }).id)
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tenantCh);
+      supabase.removeChannel(landlordCh);
+    };
+  }, [user]);
+
   async function handleUndo(conv: ConvRow) {
     if (!supabase || !user) return;
 
