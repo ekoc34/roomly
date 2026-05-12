@@ -136,9 +136,39 @@ export function MessagesPage() {
       )
       .subscribe();
 
+    // Real-time preview: when a new message is inserted in any conversation the
+    // user belongs to, update that row's preview text and timestamp instantly and
+    // float it to the top of the list — no extra fetch required.
+    const msgPreviewCh = supabase
+      .channel(`messages-preview-rt:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const { conversation_id, body, created_at } = payload.new as {
+            conversation_id: string;
+            body: string;
+            created_at: string;
+          };
+          setConvs((prev) => {
+            const idx = prev.findIndex((c) => c.id === conversation_id);
+            if (idx === -1) return prev; // not a conversation this user is in
+            const updated: ConvRow = {
+              ...prev[idx],
+              last_message_at: created_at,
+              lastMsg: { body, created_at },
+            };
+            const rest = prev.filter((_, i) => i !== idx);
+            return [updated, ...rest];
+          });
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(tenantCh);
       supabase.removeChannel(landlordCh);
+      supabase.removeChannel(msgPreviewCh);
     };
   }, [user]);
 
