@@ -38,6 +38,8 @@ const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m
 const ComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
 const ContactPage = lazy(() => import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })));
+const PricingPage = lazy(() => import("@/pages/PricingPage").then((m) => ({ default: m.PricingPage })));
+const PaymentSuccessPage = lazy(() => import("@/pages/PaymentSuccessPage").then((m) => ({ default: m.PaymentSuccessPage })));
 
 function PageLoader() {
   return (
@@ -105,6 +107,8 @@ function Router() {
       <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
       <Route path="/contact" component={() => <AnimatedRoute component={ContactPage} />} />
       <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
+      <Route path="/pricing" component={() => <AnimatedRoute component={PricingPage} />} />
+      <Route path="/betaling-succesvol" component={() => <AnimatedRoute component={PaymentSuccessPage} />} />
       <Route component={NotFound} />
     </Switch>
   );

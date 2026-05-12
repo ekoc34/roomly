@@ -509,3 +509,34 @@ GRANT EXECUTE ON FUNCTION public.boost_listing(UUID)                TO authentic
 GRANT EXECUTE ON FUNCTION public.admin_add_boost_credits(UUID, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_profile_sensitive()         TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_admin()                         TO authenticated;
+
+-- ── STEP 16: system_add_boost_credits (webhook-safe) ─────────
+-- Called ONLY from the stripe-webhook Edge Function via service_role.
+-- Does NOT check auth.uid() — trust is established by the service_role JWT.
+-- Not granted to authenticated or anon roles.
+CREATE OR REPLACE FUNCTION public.system_add_boost_credits(p_user_id UUID, p_credits INT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  IF p_credits IS NULL OR p_credits <= 0 THEN
+    RAISE EXCEPTION 'INVALID_DATA';
+  END IF;
+
+  UPDATE public.profiles
+     SET boost_credits = boost_credits + p_credits
+   WHERE id = p_user_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'USER_NOT_FOUND';
+  END IF;
+END;
+$$;
+
+-- Explicitly deny this function to public/authenticated/anon — service_role only
+REVOKE EXECUTE ON FUNCTION public.system_add_boost_credits(UUID, INT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.system_add_boost_credits(UUID, INT) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.system_add_boost_credits(UUID, INT) FROM anon;
+GRANT  EXECUTE ON FUNCTION public.system_add_boost_credits(UUID, INT) TO service_role;

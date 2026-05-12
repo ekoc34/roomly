@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { UserCircle, X } from "lucide-react";
+import { UserCircle, X, ShieldCheck, CreditCard } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -1071,6 +1071,31 @@ export function DashboardPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Admin: Test Betalingen — admin only ── */}
+        {!loading && profile?.role === "admin" && (
+          <div className="mt-8 rounded-3xl border border-amber-200 bg-amber-50/60 p-6 shadow-sm">
+            <div className="mb-4 flex items-start gap-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+                <ShieldCheck className="h-5 w-5 text-amber-600" />
+              </span>
+              <div className="min-w-0">
+                <h2 className="text-base font-bold text-stone-900">Admin: Test Betalingen</h2>
+                <p className="mt-0.5 text-xs text-stone-500">
+                  Test de iDEAL betalingen voor Boost Credits. Alleen zichtbaar voor admins.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate("/pricing")}
+              className="inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+            >
+              <CreditCard className="h-4 w-4" />
+              Test Boost Credits kopen
+            </button>
           </div>
         )}
       </div>

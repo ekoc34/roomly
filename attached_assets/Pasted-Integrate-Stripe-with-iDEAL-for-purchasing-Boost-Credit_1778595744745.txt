@@ -1,0 +1,38 @@
+Integrate Stripe with iDEAL for purchasing Boost Credit packages. The payment flow is ONLY visible and usable by users with role = 'admin' for testing. All transactions run in Stripe Test Mode.
+
+## TASK 1 — Install Packages & Setup Stripe
+1. Install the required packages: `npm install @stripe/stripe-js react-stripe-js`
+2. Create a utility file `src/lib/stripe.ts` that initializes Stripe with the test publishable key. Use a placeholder string like 'pk_test_placeholder'. Provide clear instructions on where to get the real test key from the Stripe Dashboard and how to set it as the environment variable `VITE_STRIPE_PUBLISHABLE_KEY`.
+3. Create a simple pricing page component `src/pages/PricingPage.tsx` that displays the four Boost Credit packages (Starter, Populair, Pro, Max) with their prices in a grid layout. This page is publicly viewable but the purchase button only works for admins.
+
+## TASK 2 — Secure Payment Endpoint (Supabase Edge Function)
+1. Create a new Supabase Edge Function `stripe-checkout` that:
+   a. Accepts a POST request with the desired package ID (e.g., 'starter', 'populair', 'pro', 'max').
+   b. Verifies the caller is authenticated.
+   c. Creates a Stripe Checkout Session in TEST MODE with the corresponding price.
+   d. The session must support iDEAL as a payment method.
+   e. Returns the session URL to the frontend.
+2. The price mapping for test mode should use simple test prices:
+   - starter (1 Boost): €1.99 → price_123_test
+   - populair (5 Boost): €7.99 → price_456_test
+   - pro (15 Boost): €19.99 → price_789_test
+   - max (50 Boost): €49.99 → price_101_test
+3. Provide the exact code for the Edge Function and deployment instructions.
+
+## TASK 3 — Admin-Only UI in Dashboard
+1. In `DashboardPage.tsx`, add a new section "Admin: Test Betalingen" that is ONLY visible when `profile.role === 'admin'`.
+2. Inside this section, show a short description: "Test de iDEAL betalingen voor Boost Credits. Alleen zichtbaar voor admins." and a button "Test Boost Credits Kopen" that navigates to `/pricing`.
+3. On the pricing page, each package card must have a "Koop nu" button. When clicked:
+   a. If the user is admin, it calls the `stripe-checkout` Edge Function and redirects to the Stripe Checkout page.
+   b. If the user is not admin, the buttons are disabled with a tooltip: "Alleen beschikbaar voor admins tijdens de testfase."
+4. Use the `react-stripe-js` Elements provider to wrap the pricing page, enabling a future safe upgrade to a direct Stripe Payment Element.
+
+## TASK 4 — Successful Payment Handler & Webhook
+1. Create a simple success page at `/betaling-succesvol` that shows a green checkmark and a confirmation message: "Betaling succesvol! Je Boost Credits zijn toegevoegd aan je account."
+2. In the Edge Function, configure a webhook that listens to `checkout.session.completed` events from Stripe. When a session is completed, the webhook must call the `admin_add_boost_credits` RPC (which already exists and is admin-only) to add the correct amount of credits to the purchasing user. This ensures credits are only added after a confirmed payment.
+3. Provide the webhook code and instructions on how to set it up in the Stripe Dashboard.
+
+## TASK 5 — Keep Everything Else Intact
+- All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+- Do not break any existing functionality.
+- Commit with message: "Integrate Stripe iDEAL test payments for Boost Credits (admin-only)" and push.
