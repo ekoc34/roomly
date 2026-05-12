@@ -5,9 +5,10 @@ import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 type Props = {
   profile: Profile | null;
   memberSince: string;
+  onNameClick?: () => void;
 };
 
-export function OwnerBadges({ profile, memberSince }: Props) {
+export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
   const joinMonth = new Date(memberSince).toLocaleDateString("nl-NL", { month: "long", year: "numeric" });
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
 
@@ -36,7 +37,17 @@ export function OwnerBadges({ profile, memberSince }: Props) {
         </div>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
-            <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Welkthuis gebruiker"}</p>
+            {onNameClick ? (
+              <button
+                type="button"
+                onClick={onNameClick}
+                className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
+              >
+                {profile?.name ?? "Welkthuis gebruiker"}
+              </button>
+            ) : (
+              <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Welkthuis gebruiker"}</p>
+            )}
             {fullyVerified && (
               <span title="Geverifieerd — e-mail én telefoon bevestigd">
                 <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
