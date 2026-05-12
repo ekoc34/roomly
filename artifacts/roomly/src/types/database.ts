@@ -12,11 +12,14 @@ export type UserType =
   | "alleenstaande"
   | "family";
 
+export type SubscriptionTier = "free" | "premium";
+
 export type Profile = {
   id: string;
   email: string | null;
   role: UserRole;
   user_type: UserType;
+  subscription_tier: SubscriptionTier;
   name: string | null;
   avatar_url: string | null;
   bio: string | null;

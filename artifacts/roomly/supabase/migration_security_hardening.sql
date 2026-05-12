@@ -5,11 +5,19 @@
 
 -- ── STEP 1: Schema additions ─────────────────────────────────
 
--- Boost economy fields on profiles
+-- Boost economy fields + subscription tier on profiles
 ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS boost_credits  INT         NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS last_boost_at  TIMESTAMPTZ DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS last_resend_at TIMESTAMPTZ DEFAULT NULL;
+  ADD COLUMN IF NOT EXISTS boost_credits     INT         NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_boost_at     TIMESTAMPTZ DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS last_resend_at    TIMESTAMPTZ DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS subscription_tier TEXT        NOT NULL DEFAULT 'free';
+
+-- Constrain subscription_tier to known values
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_subscription_tier_check;
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_subscription_tier_check
+  CHECK (subscription_tier IN ('free', 'premium'));
 
 -- boosted_at timestamp on listings (boosted boolean kept for backward compat)
 ALTER TABLE public.listings
@@ -160,7 +168,7 @@ AS $$
 $$;
 
 -- ── STEP 6: create_listing(p_data JSONB) ─────────────────────
--- Validates input, inserts listing, returns new UUID.
+-- Validates input, enforces free-tier listing limit, inserts listing, returns new UUID.
 -- Replaces the direct INSERT that was previously allowed by RLS.
 CREATE OR REPLACE FUNCTION public.create_listing(p_data JSONB)
 RETURNS UUID
@@ -169,14 +177,34 @@ SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
-  v_user_id  UUID    := auth.uid();
-  v_title    TEXT;
-  v_price    NUMERIC;
-  v_location TEXT;
-  v_id       UUID;
+  v_user_id    UUID    := auth.uid();
+  v_title      TEXT;
+  v_price      NUMERIC;
+  v_location   TEXT;
+  v_id         UUID;
+  v_tier       TEXT;
+  v_is_admin   BOOLEAN;
+  v_list_count INT;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'NOT_AUTHENTICATED';
+  END IF;
+
+  -- Free-tier listing cap: max 2 active listings per user.
+  -- Admins and premium users are exempt.
+  SELECT subscription_tier, (role = 'admin')
+    INTO v_tier, v_is_admin
+    FROM public.profiles
+   WHERE id = v_user_id;
+
+  IF NOT v_is_admin AND v_tier = 'free' THEN
+    SELECT COUNT(*) INTO v_list_count
+      FROM public.listings
+     WHERE user_id = v_user_id;
+
+    IF v_list_count >= 2 THEN
+      RAISE EXCEPTION 'LIMIT_REACHED';
+    END IF;
   END IF;
 
   v_title    := trim(p_data->>'title');

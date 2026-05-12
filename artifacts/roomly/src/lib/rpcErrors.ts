@@ -4,6 +4,7 @@ export type RpcErrorCode =
   | "INVALID_DATA"
   | "INSUFFICIENT_CREDITS"
   | "COOLDOWN_ACTIVE"
+  | "LIMIT_REACHED"
   | "PROFILE_NOT_FOUND"
   | "LISTING_NOT_FOUND"
   | "USER_NOT_FOUND";
@@ -14,6 +15,7 @@ const RPC_ERROR_MESSAGES: Record<RpcErrorCode, string> = {
   INVALID_DATA:         "De ingevoerde gegevens zijn ongeldig. Controleer alle velden.",
   INSUFFICIENT_CREDITS: "Je hebt niet genoeg boost-credits. Neem contact op met support.",
   COOLDOWN_ACTIVE:      "Je kunt deze advertentie pas over 24 uur opnieuw uitlichten.",
+  LIMIT_REACHED:        "Je hebt je gratis limiet van 2 advertenties bereikt. Upgrade naar Premium voor onbeperkte advertenties.",
   PROFILE_NOT_FOUND:    "Profiel niet gevonden.",
   LISTING_NOT_FOUND:    "Advertentie niet gevonden.",
   USER_NOT_FOUND:       "Gebruiker niet gevonden.",
