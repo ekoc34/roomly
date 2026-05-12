@@ -666,3 +666,83 @@ ALTER TABLE public.profiles
 -- Optional: migrate any existing 'landlord' rows to 'verhuurder'
 -- UPDATE public.profiles SET user_type = 'verhuurder' WHERE user_type = 'landlord';
 -- Uncomment the line above to remap existing landlord accounts to the new role name.
+
+-- ============================================================
+-- MIGRATION: hidden_by column on conversations (soft-delete per user)
+-- Run in Supabase SQL Editor
+-- ============================================================
+ALTER TABLE public.conversations
+  ADD COLUMN IF NOT EXISTS hidden_by TEXT[] NOT NULL DEFAULT '{}';
+
+-- ============================================================
+-- MIGRATION: Fix conversations RLS — allow landlords to insert
+-- The original policy only allowed auth.uid() = tenant_id, which
+-- blocked landlords from creating conversations when accepting applications.
+-- Run in Supabase SQL Editor
+-- ============================================================
+DROP POLICY IF EXISTS "Authenticated users can start conversations" ON public.conversations;
+CREATE POLICY "Authenticated users can start conversations"
+  ON public.conversations FOR INSERT
+  WITH CHECK (
+    -- Tenant starts a conversation directly
+    auth.uid() = tenant_id
+    -- OR landlord creates it when accepting an application for their own listing
+    OR (
+      auth.uid() = landlord_id
+      AND EXISTS (
+        SELECT 1 FROM public.listings l
+        WHERE l.id = listing_id AND l.user_id = auth.uid()
+      )
+    )
+  );
+
+-- Allow participants to update hidden_by (soft-delete)
+DROP POLICY IF EXISTS "Participants can hide conversations" ON public.conversations;
+CREATE POLICY "Participants can hide conversations"
+  ON public.conversations FOR UPDATE
+  USING (auth.uid() = tenant_id OR auth.uid() = landlord_id);
+
+-- ============================================================
+-- MIGRATION: upsert_conversation RPC (security definer)
+-- Allows a landlord to atomically find-or-create a conversation
+-- without being blocked by the tenant-only INSERT RLS policy.
+-- Run in Supabase SQL Editor
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.upsert_conversation(
+  p_listing_id  UUID,
+  p_tenant_id   UUID,
+  p_landlord_id UUID
+)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_conv_id UUID;
+BEGIN
+  -- Security: caller must be the landlord of the listing
+  IF NOT EXISTS (
+    SELECT 1 FROM public.listings
+    WHERE id = p_listing_id AND user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Not authorized: caller is not the landlord of this listing';
+  END IF;
+
+  -- Try to find an existing conversation for this listing+tenant pair
+  SELECT id INTO v_conv_id
+  FROM public.conversations
+  WHERE listing_id = p_listing_id
+    AND tenant_id  = p_tenant_id
+  LIMIT 1;
+
+  -- Create one if none exists
+  IF v_conv_id IS NULL THEN
+    INSERT INTO public.conversations (listing_id, tenant_id, landlord_id, hidden_by)
+    VALUES (p_listing_id, p_tenant_id, p_landlord_id, '{}')
+    RETURNING id INTO v_conv_id;
+  END IF;
+
+  RETURN v_conv_id;
+END;
+$$;

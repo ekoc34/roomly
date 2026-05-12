@@ -221,40 +221,40 @@ export function DashboardPage() {
     const app = receivedApplications.find((a) => a.id === appId);
     let convId: string | null = null;
 
-    // Always create/find a conversation on accept; also create one on reject if a reply message was given
+    // Always create/find a conversation on accept; also create one on reject if a reply message was given.
+    // Uses the upsert_conversation RPC (security definer) because the default conversations RLS policy
+    // only allows INSERT when auth.uid() = tenant_id — the landlord would be blocked otherwise.
     if (app && (status === "accepted" || (status === "rejected" && replyText?.trim()))) {
-      const { data: existing } = await supabase
-        .from("conversations")
-        .select("id, listing_id, tenant_id")
-        .eq("listing_id", app.listing_id)
-        .eq("tenant_id", app.applicant_id)
-        .maybeSingle();
+      const { data: upsertedId, error: convError } = await supabase.rpc("upsert_conversation", {
+        p_listing_id: app.listing_id,
+        p_tenant_id: app.applicant_id,
+        p_landlord_id: user.id,
+      });
 
-      if (existing) {
-        convId = existing.id;
+      if (convError) {
+        console.error("[DashboardPage] upsert_conversation RPC failed:", convError.code, convError.message, convError.details);
+        toast.error("Gesprek aanmaken mislukt. Controleer of de upsert_conversation functie in Supabase is aangemaakt.");
+        return;
+      }
+
+      if (upsertedId) {
+        convId = upsertedId as string;
         setLandlordConversations((prev) => {
-          if (prev.find((c) => c.id === existing.id)) return prev;
-          return [...prev, existing as ConvSummary];
+          if (prev.find((c) => c.id === convId)) return prev;
+          return [...prev, { id: convId!, listing_id: app.listing_id, tenant_id: app.applicant_id }];
         });
-      } else {
-        const { data: created } = await supabase
-          .from("conversations")
-          .insert({ listing_id: app.listing_id, tenant_id: app.applicant_id, landlord_id: user.id })
-          .select("id, listing_id, tenant_id")
-          .single();
-        if (created) {
-          convId = created.id;
-          setLandlordConversations((prev) => [...prev, created as ConvSummary]);
-        }
       }
 
       // Insert the landlord's reply as the first message in the conversation
       if (replyText?.trim() && convId) {
-        await supabase.from("messages").insert({
+        const { error: msgError } = await supabase.from("messages").insert({
           conversation_id: convId,
           sender_id: user.id,
           body: replyText.trim(),
         });
+        if (msgError) {
+          console.error("[DashboardPage] Message insert failed:", msgError.code, msgError.message);
+        }
       }
     }
 

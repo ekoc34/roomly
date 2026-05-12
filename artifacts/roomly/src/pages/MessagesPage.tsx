@@ -27,7 +27,7 @@ export function MessagesPage() {
             "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
           )
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
-          .not("hidden_by", "cs", `{${user!.id}}`)
+          .or(`hidden_by.is.null,hidden_by.not.cs.{${user!.id}}`)
           .order("last_message_at", { ascending: false, nullsFirst: false });
 
         if (queryError) {
