@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -49,6 +49,11 @@ export function EditListingPage() {
   const [district, setDistrict] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
 
+  // Track the boost state at load time so we know if the user toggled it ON during this session.
+  // Using a ref avoids stale-closure issues: the value is set once when the listing loads
+  // and is always readable inside the async submit handler without re-render dependencies.
+  const originalBoostedRef = useRef<boolean>(false);
+
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -74,7 +79,10 @@ export function EditListingPage() {
       setImages(l.images ?? []);
       setPetsAllowed(l.pets_allowed ?? false);
       setSmokingAllowed(l.smoking_allowed ?? false);
-      setBoosted(l.boosted ?? false);
+      const initialBoosted = l.boosted ?? false;
+      setBoosted(initialBoosted);
+      // Record the original state so the submit handler knows if the user toggled it ON.
+      originalBoostedRef.current = initialBoosted;
       const parsed = parseLocation(l.location ?? "");
       setCity(parsed.city);
       setDistrict(parsed.district);
@@ -119,7 +127,9 @@ export function EditListingPage() {
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
 
-      // Step 1: save listing fields (never includes boost — handled separately below)
+      // ── Step 1: Save listing fields ────────────────────────────────────────
+      // boost is intentionally excluded — it has its own RPC with credit/cooldown logic.
+      console.log("[EditListing] Calling update_listing RPC", { listingId: params.id, title, price, location });
       const { error: updateErr } = await supabase.rpc("update_listing", {
         p_listing_id: params.id,
         p_data: {
@@ -137,20 +147,36 @@ export function EditListingPage() {
           surface_area: surface_area != null ? String(surface_area) : "",
         },
       });
-      if (updateErr) { setError(mapRpcError(updateErr, "Opslaan mislukt. Probeer opnieuw.")); return; }
 
-      // Step 2: if the boost toggle is ON and the listing wasn't already boosted,
-      // call boost_listing separately so a credits failure doesn't block the save.
-      if (boosted && !listing?.boosted) {
+      if (updateErr) {
+        console.error("[EditListing] update_listing failed:", updateErr.code, updateErr.message);
+        setError(mapRpcError(updateErr, "Opslaan mislukt. Probeer opnieuw."));
+        return;
+      }
+      console.log("[EditListing] update_listing succeeded");
+
+      // ── Step 2: Apply boost if user toggled it ON this session ────────────
+      // Condition: toggle is currently ON AND it was OFF when the page loaded.
+      // We use originalBoostedRef (set once on fetch) to avoid stale-closure issues.
+      // The RPC enforces all business rules: credit balance, 24-hour cooldown, ownership.
+      const userToggledBoostOn = boosted && !originalBoostedRef.current;
+      console.log("[EditListing] Boost check", { boosted, originalBoosted: originalBoostedRef.current, userToggledBoostOn });
+
+      if (userToggledBoostOn) {
+        console.log("[EditListing] Calling boost_listing RPC", { listingId: params.id });
         const { error: boostErr } = await supabase.rpc("boost_listing", {
           p_listing_id: params.id,
         });
+
         if (boostErr) {
-          // Listing was saved successfully — only the boost failed.
+          // The listing data was saved — only the boost failed.
+          // Show the success toast AND a specific inline error for the boost.
+          console.error("[EditListing] boost_listing failed:", boostErr.code, boostErr.message);
           toast.success("Wijzigingen opgeslagen!");
-          setError(mapRpcError(boostErr, "Advertentie uitlichten mislukt. Controleer je boost-credits."));
+          setError(mapRpcError(boostErr, "Uitlichten mislukt. Controleer je boost-credits en probeer opnieuw."));
           return;
         }
+        console.log("[EditListing] boost_listing succeeded");
       }
 
       toast.success("Wijzigingen opgeslagen!");

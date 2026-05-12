@@ -67,27 +67,27 @@ export function Footer() {
             </nav>
           </div>
 
-          {/* Account links — only visible to landlords and roommate-seekers */}
-          {canPost && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Verhuren</p>
-              <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
-                {user ? (
-                  <>
-                    <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
-                    <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
-                    <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
-                    <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
-                    <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
-                  </>
-                )}
-              </nav>
-            </div>
-          )}
+          {/* Account links — title changes based on role */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">
+              {canPost ? "Verhuren" : "Mijn account"}
+            </p>
+            <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
+              {user ? (
+                <>
+                  <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
+                  <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
+                  <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
+                  <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
+                  <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
+                </>
+              )}
+            </nav>
+          </div>
 
         </div>
       </div>
