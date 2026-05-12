@@ -9,34 +9,64 @@ export function useNotifications() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
-    console.log("🛎️ [useNotifications] HOOK ÇALIŞTI, user:", user?.email);
-    if (!user || !supabase) {
-      console.warn("🛎️ [useNotifications] user veya supabase yok, çıkıyorum.");
-      return;
-    }
+    if (!user || !supabase) return;
     const { data, error: fetchError } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(50);
 
     if (fetchError) {
-      console.error("🛎️ [useNotifications] TABLO HATASI:", fetchError.message, "Kod:", fetchError.code);
       setError(fetchError.message);
       return;
     }
 
-    const list = (data as Notification[]) ?? [];
-    const unread = list.filter((n) => !n.read).length;
-    console.log(`🛎️ [useNotifications] BAŞARILI: ${list.length} bildirim, ${unread} okunmamış`);
-    setNotifications(list);
+    setNotifications((data as Notification[]) ?? []);
     setError(null);
   }, [user]);
 
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            setNotifications((prev) => [payload.new as Notification, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            setNotifications((prev) =>
+              prev.map((n) =>
+                n.id === (payload.new as Notification).id
+                  ? (payload.new as Notification)
+                  : n
+              )
+            );
+          } else if (payload.eventType === "DELETE") {
+            setNotifications((prev) =>
+              prev.filter((n) => n.id !== (payload.old as Notification).id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
