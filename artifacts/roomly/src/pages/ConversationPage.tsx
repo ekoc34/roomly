@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import { getActiveStatus } from "@/lib/landlordUtils";
+import { pingLastActive } from "@/hooks/useLastActive";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -75,6 +76,7 @@ export function ConversationPage() {
 
     setLoading(true);
     setConversation(null);
+    if (user) pingLastActive(user.id);
 
     async function fetchAll() {
       const { data: conv } = await supabase!

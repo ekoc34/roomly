@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { pingLastActive } from "@/hooks/useLastActive";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 
 type Props = {
@@ -54,6 +55,7 @@ export function ChatComposer({ conversationId, recipientId, onSent, isLocked = f
         .from("messages")
         .insert({ conversation_id: conversationId, sender_id: user.id, body });
       if (err) { toast.error("Versturen mislukt. Probeer opnieuw."); return; }
+      pingLastActive(user.id);
 
       // Notify the other party (if they have new-message notifications enabled)
       if (recipientId && recipientId !== user.id) {
