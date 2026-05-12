@@ -54,7 +54,7 @@ export function RegisterPage() {
         // Always redirect new registrations to /welkom.
         // OAuthProfileHandler handles the new-vs-returning logic;
         // WelcomePage redirects already-onboarded users to /dashboard.
-        redirectTo: `${window.location.origin}/welkom`,
+        redirectTo: `https://welkthuis.nl/welkom`,
       },
     });
     if (err) {
