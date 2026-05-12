@@ -4,6 +4,7 @@ import { Building2, Map, LogIn, Heart, MessageSquare, Bell, LayoutDashboard, Plu
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useCompare } from "@/contexts/CompareContext";
 import { CitySelector } from "@/components/search/CitySelector";
 
@@ -27,6 +28,7 @@ function getInitial(name: string | null, email: string | null): string {
 export function Header() {
   const { user } = useAuth();
   const { unreadCount } = useUnreadMessages();
+  const { unreadCount: unreadNotifCount } = useNotifications();
   const { compareIds } = useCompare();
   const [path, navigate] = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -180,6 +182,11 @@ export function Header() {
                   >
                     <Bell className="h-4 w-4 text-stone-400" />
                     Notificaties
+                    {unreadNotifCount > 0 && (
+                      <span className="ml-auto flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+                        {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                      </span>
+                    )}
                   </Link>
                   {userRole === "admin" && (
                     <Link
