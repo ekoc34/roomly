@@ -4,6 +4,7 @@ import { Check, CheckCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
+import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -38,6 +39,7 @@ export function ConversationPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
+  const [showOtherPanel, setShowOtherPanel] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
@@ -193,9 +195,20 @@ export function ConversationPage() {
   }
 
   const initial = (other?.name ?? other?.email ?? "?").slice(0, 1).toUpperCase();
+  const otherIsLandlord = conversation.tenant_id === user?.id;
+  const panelMode = otherIsLandlord ? "landlord" : "applicant";
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-0 px-4 py-4 sm:px-6">
+      {showOtherPanel && other && (
+        <ApplicantProfilePanel
+          profileId={other.id}
+          mode={panelMode}
+          viewerUserId={user?.id}
+          onClose={() => setShowOtherPanel(false)}
+        />
+      )}
+
       {/* Conversation header */}
       <div className="mb-4 flex items-center gap-3 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm">
         <Link
@@ -207,16 +220,26 @@ export function ConversationPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+        <button
+          type="button"
+          onClick={() => setShowOtherPanel(true)}
+          className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 transition hover:ring-2 hover:ring-rose-300"
+        >
           {other?.avatar_url
             ? <img src={other.avatar_url} alt="" className="h-full w-full object-cover" />
             : <span className="text-sm font-semibold text-stone-500">{initial}</span>
           }
-        </div>
+        </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-stone-900">{other?.name ?? "Gebruiker"}</p>
+          <button
+            type="button"
+            onClick={() => setShowOtherPanel(true)}
+            className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
+          >
+            {other?.name ?? "Gebruiker"}
+          </button>
           {listing && (
-            <Link href={`/kamers/${listing.id}`} className="truncate text-xs text-stone-500 transition hover:text-rose-600">
+            <Link href={`/kamers/${listing.id}`} className="block truncate text-xs text-stone-500 transition hover:text-rose-600">
               {listing.title}
             </Link>
           )}
