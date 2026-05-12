@@ -51,7 +51,10 @@ export function RegisterPage() {
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}${nextParam}`,
+        // Always redirect new registrations to /welkom.
+        // OAuthProfileHandler handles the new-vs-returning logic;
+        // WelcomePage redirects already-onboarded users to /dashboard.
+        redirectTo: `${window.location.origin}/welkom`,
       },
     });
     if (err) {
