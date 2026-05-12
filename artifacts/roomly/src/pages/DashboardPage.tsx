@@ -596,7 +596,7 @@ export function DashboardPage() {
                     const badge = statusMap[app.status as keyof typeof statusMap] ?? statusMap.pending;
                     const conv = tenantConversations.find((c) => c.listing_id === app.listing_id);
                     return (
-                      <div key={app.id} className="relative flex flex-col gap-3 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-center">
+                      <div key={app.id} className="relative flex flex-col gap-3 rounded-2xl border border-stone-200/80 bg-white p-5 pr-10 shadow-sm sm:flex-row sm:items-center">
                         {confirmDeleteTenantId === app.id && (
                           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/95 p-4 text-center backdrop-blur-sm">
                             <p className="text-sm font-medium text-stone-800">Weet je zeker dat je deze aanvraag wilt verwijderen?</p>
@@ -861,7 +861,7 @@ export function DashboardPage() {
                       (c) => c.listing_id === app.listing_id && c.tenant_id === app.applicant_id
                     );
                     return (
-                      <div key={app.id} className="relative flex flex-col gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:flex-row sm:items-start">
+                      <div key={app.id} className="relative flex flex-col gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 pr-10 shadow-sm sm:flex-row sm:items-start">
                         {confirmDeleteId === app.id && (
                           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/95 p-4 text-center backdrop-blur-sm">
                             <p className="text-sm font-medium text-stone-800">Weet je zeker dat je deze aanvraag wilt verwijderen?</p>
