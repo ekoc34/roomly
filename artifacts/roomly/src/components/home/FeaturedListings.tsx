@@ -1,41 +1,206 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { ListingCard } from "@/components/listings/ListingCard";
 import type { Listing } from "@/types/database";
+
+type RoommateProfile = {
+  name: string | null;
+  avatar_url: string | null;
+  lifestyle_tags: string[] | null;
+};
 
 type Props = {
   listings: Listing[];
   favoriteIds: string[];
   verificationBadges?: Record<string, string | null>;
+  roommateListings: Listing[];
+  roommateProfiles: Record<string, RoommateProfile>;
 };
 
-export function FeaturedListings({ listings, favoriteIds, verificationBadges }: Props) {
+function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
+  const diffHours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
+  if (diffHours < 24) return "vandaag";
+  if (diffHours < 72) return "nieuw";
+  return null;
+}
+
+function Initials({ name }: { name: string | null }) {
+  const letters = (name ?? "?")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+  return (
+    <span className="flex h-full w-full items-center justify-center text-lg font-bold text-rose-600">
+      {letters || "?"}
+    </span>
+  );
+}
+
+function RoommateCard({ listing, profile }: { listing: Listing; profile: RoommateProfile | undefined }) {
+  const name = profile?.name ?? "Anoniem";
+  const tags = profile?.lifestyle_tags ?? [];
+  const newLabel = getNewLabel(listing.created_at);
+
+  return (
+    <Link
+      href={`/kamers/${listing.id}`}
+      className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex items-center gap-3 border-b border-stone-100 px-4 py-4">
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-rose-50 border border-rose-100">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <Initials name={name} />
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold text-stone-900">{name}</p>
+          <p className="flex items-center gap-1 truncate text-xs text-stone-500">
+            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {listing.location}
+          </p>
+        </div>
+        {newLabel && (
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${newLabel === "vandaag" ? "bg-rose-500 text-white" : "bg-stone-700 text-white"}`}>
+            {newLabel === "vandaag" ? "Nieuw vandaag" : "Nieuw"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 px-4 py-4">
+        <div className="flex items-baseline gap-1">
+          <span className="text-xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
+          <span className="text-xs text-stone-400">/ maand budget</span>
+        </div>
+
+        {listing.description && (
+          <p className="line-clamp-2 text-xs leading-relaxed text-stone-500">{listing.description}</p>
+        )}
+
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {tags.slice(0, 4).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-[11px] font-medium text-violet-700"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
+          Bekijk profiel →
+        </span>
+      </div>
+    </Link>
+  );
+}
+
+export function FeaturedListings({ listings, favoriteIds, verificationBadges, roommateListings, roommateProfiles }: Props) {
+  const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
+
+  const tabClass = (tab: "woningen" | "huisgenoten") =>
+    `flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+      activeTab === tab
+        ? "bg-rose-500 text-white shadow-sm"
+        : "text-stone-600 hover:bg-stone-100"
+    }`;
+
   return (
     <section className="mt-16" data-testid="featured-listings">
-      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Populaire woningen</h2>
-          <p className="mt-1 text-sm text-stone-500">De nieuwste woningen op Welkthuis.</p>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Aanbevolen woningen</h2>
+          <p className="mt-1 text-sm text-stone-500">Ontdek woningen en huisgenoten die nu beschikbaar zijn.</p>
         </div>
         <Link href="/kamers" className="text-sm font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
       </div>
-      {listings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
-            <svg className="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-          </div>
-          <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen uitgelichte woningen</h3>
-          <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
-          <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            Plaats als eerste een advertentie
-          </Link>
-        </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationBadges?.[l.user_id] ?? null} />
-          ))}
-        </div>
+
+      <div className="mb-5 flex items-center gap-2 rounded-2xl bg-stone-100 p-1 w-fit">
+        <button type="button" onClick={() => setActiveTab("woningen")} className={tabClass("woningen")}>
+          🏢 Woningen
+        </button>
+        <button type="button" onClick={() => setActiveTab("huisgenoten")} className={tabClass("huisgenoten")}>
+          🤝 Huisgenoten
+        </button>
+      </div>
+
+      {activeTab === "woningen" && (
+        <>
+          {listings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
+                <svg className="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+              <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen uitgelichte woningen</h3>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
+              <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Plaats als eerste een advertentie
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {listings.map((l) => (
+                <div key={l.id} className="relative">
+                  {l.boosted && (
+                    <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold text-white shadow">
+                      <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      Uitgelicht
+                    </div>
+                  )}
+                  <ListingCard
+                    listing={l}
+                    isFavorited={favoriteIds.includes(l.id)}
+                    verificationBadge={verificationBadges?.[l.user_id] ?? null}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === "huisgenoten" && (
+        <>
+          {roommateListings.length === 0 ? (
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-50">
+                <svg className="h-7 w-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen huisgenotenprofielen</h3>
+              <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
+              <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Profiel aanmaken
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {roommateListings.map((l) => (
+                <RoommateCard key={l.id} listing={l} profile={roommateProfiles[l.user_id]} />
+              ))}
+            </div>
+          )}
+        </>
       )}
     </section>
   );

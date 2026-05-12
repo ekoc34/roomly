@@ -10,37 +10,95 @@ import { OnboardingBanner } from "@/components/home/OnboardingBanner";
 import { SkeletonGrid } from "@/components/listings/SkeletonCard";
 import type { Listing } from "@/types/database";
 
+type RoommateProfile = {
+  name: string | null;
+  avatar_url: string | null;
+  lifestyle_tags: string[] | null;
+};
+
 function HomePageContent() {
   const { user } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
+  const [roommateListings, setRoommateListings] = useState<Listing[]>([]);
+  const [roommateProfiles, setRoommateProfiles] = useState<Record<string, RoommateProfile>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       if (!supabase) { setLoading(false); return; }
       try {
-        const query = supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(8);
-        const [{ data: ls }, { data: favs }] = await Promise.all([
-          query,
-          user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [] },
+        // Try boosted ordering first; fall back if the column doesn't exist yet
+        let woningenResult = await supabase
+          .from("listings")
+          .select("*")
+          .in("type", ["room_for_rent", "short_stay"])
+          .order("boosted", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(8);
+
+        if (woningenResult.error) {
+          woningenResult = await supabase
+            .from("listings")
+            .select("*")
+            .in("type", ["room_for_rent", "short_stay"])
+            .order("created_at", { ascending: false })
+            .limit(8);
+        }
+
+        const [{ data: rmls }, { data: favs }] = await Promise.all([
+          supabase
+            .from("listings")
+            .select("*")
+            .eq("type", "roommate_search")
+            .order("created_at", { ascending: false })
+            .limit(8),
+          user
+            ? supabase.from("favorites").select("listing_id").eq("user_id", user.id)
+            : { data: [] },
         ]);
+
+        const ls = woningenResult.data;
+
         const fetchedListings = (ls as Listing[] | null) ?? [];
+        const fetchedRoommates = (rmls as Listing[] | null) ?? [];
+
         setListings(fetchedListings);
+        setRoommateListings(fetchedRoommates);
         setFavoriteIds(((favs ?? []) as { listing_id: string }[]).map((f) => f.listing_id));
 
         const ownerIds = [...new Set(fetchedListings.map((l) => l.user_id))];
-        if (ownerIds.length > 0) {
+        const roommateOwnerIds = [...new Set(fetchedRoommates.map((l) => l.user_id))];
+        const allOwnerIds = [...new Set([...ownerIds, ...roommateOwnerIds])];
+
+        if (allOwnerIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, email_auto_verified, phone_verified")
-            .in("id", ownerIds);
+            .select("id, email_auto_verified, phone_verified, name, avatar_url, lifestyle_tags")
+            .in("id", allOwnerIds);
+
           const badgeMap: Record<string, string | null> = {};
-          for (const p of (profiles ?? []) as { id: string; email_auto_verified: boolean; phone_verified: boolean }[]) {
+          const rmProfileMap: Record<string, RoommateProfile> = {};
+
+          for (const p of (profiles ?? []) as {
+            id: string;
+            email_auto_verified: boolean;
+            phone_verified: boolean;
+            name: string | null;
+            avatar_url: string | null;
+            lifestyle_tags: string[] | null;
+          }[]) {
             badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+            rmProfileMap[p.id] = {
+              name: p.name,
+              avatar_url: p.avatar_url,
+              lifestyle_tags: p.lifestyle_tags,
+            };
           }
+
           setVerificationBadges(badgeMap);
+          setRoommateProfiles(rmProfileMap);
         }
       } catch {
         // silently fail — show empty state
@@ -56,7 +114,6 @@ function HomePageContent() {
       <HeroSearch />
       {!loading && listings.length === 0 && !user && <OnboardingBanner />}
 
-      {/* Neighborhood section — appears when a city is selected */}
       <NeighborhoodSection />
 
       {loading ? (
@@ -64,7 +121,13 @@ function HomePageContent() {
           <SkeletonGrid count={6} />
         </div>
       ) : (
-        <FeaturedListings listings={listings} favoriteIds={favoriteIds} verificationBadges={verificationBadges} />
+        <FeaturedListings
+          listings={listings}
+          favoriteIds={favoriteIds}
+          verificationBadges={verificationBadges}
+          roommateListings={roommateListings}
+          roommateProfiles={roommateProfiles}
+        />
       )}
 
       <WhyRoomly />

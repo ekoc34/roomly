@@ -1,0 +1,29 @@
+Refactor the homepage "Populaire woningen" section into a premium, tabbed marketplace called "Aanbevolen woningen". This is the platform's economic engine, separating the two core user intents.
+
+TASK 1 — Rename and add tab structure
+1. Change the section title from "Populaire woningen" to "Aanbevolen woningen".
+2. Change the subtitle to "Ontdek woningen en huisgenoten die nu beschikbaar zijn."
+3. Replace the single listing grid with a two-tab system: "🏢 Woningen" and "🤝 Huisgenoten".
+4. The "Woningen" tab is active by default.
+
+TASK 2 — Implement the "Woningen" tab content
+1. Fetch and display rental listings (`type` = 'room_for_rent', 'short_stay').
+2. Add a `boosted` column (boolean, default false) to the `listings` table. Provide the SQL.
+3. Create a "Promotie" section on the listing creation/edit page where verhuurders can boost their listing (future paid feature). For now, just a toggle to set `boosted = true`.
+4. Boosted listings must appear FIRST in the grid, with a distinct visual indicator (e.g., an amber "Uitgelicht" badge).
+5. The listing cards here should show: price, location, a verified badge (if applicable), and a "Nieuw" tag if recently added.
+
+TASK 3 — Implement the "Huisgenoten" tab content
+1. Fetch and display roommate listings (`type` = 'roommate_search').
+2. Design a distinct, more social card for this tab. It should show:
+   - The seeker's name and age (if available in profile)
+   - City/Location
+   - Budget
+   - Lifestyle tags (e.g., "Niet roken", "Student", "Werkend", "Rustig", "Internationaal"). Create a simple JSONB column `lifestyle_tags` on `profiles` if needed. Provide the SQL.
+3. The card should feel more personal and less like a rental ad.
+
+TASK 4 — Keep everything else intact
+1. All text in Dutch. Use existing Tailwind v4 styling.
+2. Do not break any existing functionality on the homepage or listings.
+3. Commit with message: "Refactor homepage section into tabbed Aanbevolen woningen marketplace" and push.
+4. Provide all necessary SQL commands to run in Supabase SQL Editor.

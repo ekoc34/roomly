@@ -36,6 +36,7 @@ export type Profile = {
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  lifestyle_tags?: string[] | null;
 };
 
 export type Listing = {
@@ -53,6 +54,7 @@ export type Listing = {
   pets_allowed: boolean | null;
   smoking_allowed: boolean | null;
   gender_preference: "vrouw" | "man" | "gemengd" | null;
+  boosted?: boolean;
   created_at: string;
   updated_at: string;
 };

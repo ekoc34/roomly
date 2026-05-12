@@ -134,6 +134,7 @@ export function NewListingPage() {
   const [images, setImages] = useState<string[]>([]);
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
+  const [boosted, setBoosted] = useState(false);
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -207,6 +208,7 @@ export function NewListingPage() {
         .insert({
           title, description, price, location, type, availability_date, images, user_id: user.id,
           pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
+          boosted: profile?.user_type === "verhuurder" ? boosted : false,
         })
         .select("id")
         .single();
@@ -381,6 +383,33 @@ export function NewListingPage() {
             <textarea id="nl-desc" name="description" required rows={6} maxLength={4000} placeholder="Omschrijf de woning, huurder, voorzieningen en buurt…" className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-description" />
           </div>
           <ListingImageUpload value={images} onChange={setImages} />
+
+          {profile?.user_type === "verhuurder" && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Promotie</p>
+              </div>
+              <label className="flex cursor-pointer items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-amber-900">Advertentie uitlichten</p>
+                  <p className="mt-0.5 text-xs text-amber-700">Jouw advertentie verschijnt bovenaan de aanbevolen woningen op de homepage.</p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={boosted}
+                  onClick={() => setBoosted((v) => !v)}
+                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${boosted ? "bg-amber-500" : "bg-stone-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${boosted ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </label>
+            </div>
+          )}
+
           {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
           <div className="flex gap-3">
             <button type="submit" disabled={isPending} data-testid="new-listing-submit" className="flex-1 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
