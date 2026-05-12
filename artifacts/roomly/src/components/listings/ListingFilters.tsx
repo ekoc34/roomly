@@ -149,28 +149,6 @@ export function ListingFilters() {
         </div>
       </form>
 
-      {/* Trust badges */}
-      <div className="mb-4 flex flex-wrap gap-3">
-        <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-medium text-emerald-700">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          Geverifieerde gebruikers
-        </span>
-        <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-medium text-blue-700">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          In-app chat
-        </span>
-        <span className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-600 shadow-sm">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-          </svg>
-          Geen spam
-        </span>
-      </div>
-
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-stone-900">Filters</span>
@@ -273,6 +251,16 @@ export function ListingFilters() {
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <label className="text-xs font-medium text-stone-700">Snelfilter:</label>
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => push({ type: type === "room_for_rent" ? "" : "room_for_rent" })}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${type === "room_for_rent" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
+          >
+            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Kamers
+          </button>
           <button
             type="button"
             onClick={() => { const next = currentQ === "appartement" ? "" : "appartement"; setSearchInput(next); push({ q: next }); }}
