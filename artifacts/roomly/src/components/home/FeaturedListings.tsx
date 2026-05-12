@@ -88,7 +88,7 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
             {tags.slice(0, 4).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-[11px] font-medium text-violet-700"
+                className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs text-stone-600"
               >
                 {tag}
               </span>

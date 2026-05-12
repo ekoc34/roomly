@@ -287,6 +287,18 @@ export function ProfilePage() {
   const [notifyNewMessage, setNotifyNewMessage] = useState(true);
   const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
   const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
+  const [lifestyleTags, setLifestyleTags] = useState<string[]>([]);
+
+  const LIFESTYLE_TAGS = [
+    "Student",
+    "Niet roken",
+    "Werkend",
+    "Rustig",
+    "Internationaal",
+    "Sportief",
+    "Houd van koken",
+    "Huisdier vriendelijk",
+  ];
 
   useEffect(() => {
     if (profile) {
@@ -295,8 +307,18 @@ export function ProfilePage() {
       setNotifyNewMessage(profile.notify_new_message ?? true);
       setNotifyApplicationUpdate(profile.notify_application_update ?? true);
       setNotifyMatchingListing(profile.notify_matching_listing ?? true);
+      setLifestyleTags(profile.lifestyle_tags ?? []);
     }
   }, [profile]);
+
+  const handleTagToggle = async (tag: string) => {
+    if (!supabase || !user) return;
+    const next = lifestyleTags.includes(tag)
+      ? lifestyleTags.filter((t) => t !== tag)
+      : [...lifestyleTags, tag];
+    setLifestyleTags(next);
+    await supabase.from("profiles").update({ lifestyle_tags: next }).eq("id", user.id);
+  };
 
   const handleNotifToggle = async (
     field: "notify_new_message" | "notify_application_update" | "notify_matching_listing",
@@ -949,6 +971,50 @@ export function ProfilePage() {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* Levensstijl tags — only for huisgenoot_zoeker */}
+      {!loading && user && profile?.user_type === "huisgenoot_zoeker" && (
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <div className="flex items-center gap-2.5">
+            <svg className="h-5 w-5 shrink-0 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+            </svg>
+            <p className="text-base font-semibold text-stone-900">Levensstijl tags</p>
+          </div>
+          <p className="mt-1 mb-5 text-sm text-stone-500">
+            Selecteer tags die jouw levensstijl omschrijven. Ze verschijnen op jouw huisgenotenkaart op de homepage.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {LIFESTYLE_TAGS.map((tag) => {
+              const active = lifestyleTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => handleTagToggle(tag)}
+                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition active:scale-95 ${
+                    active
+                      ? "bg-rose-500 text-white shadow-sm"
+                      : "border border-stone-200 bg-white text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                  }`}
+                >
+                  {active && (
+                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {tag}
+                </button>
+              );
+            })}
+          </div>
+          {lifestyleTags.length > 0 && (
+            <p className="mt-4 text-xs text-stone-400">
+              {lifestyleTags.length} tag{lifestyleTags.length !== 1 ? "s" : ""} geselecteerd — automatisch opgeslagen.
+            </p>
+          )}
         </div>
       )}
 
