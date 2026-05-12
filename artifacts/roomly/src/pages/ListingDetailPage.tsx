@@ -207,12 +207,6 @@ export function ListingDetailPage() {
 
         <div className="space-y-4 lg:sticky lg:top-24 lg:h-fit">
           <OwnerBadges profile={owner} memberSince={owner?.created_at ?? listing.created_at} onNameClick={owner ? () => setShowLandlordPanel(true) : undefined} />
-          {isOwner && (
-            <Link href={`/kamers/${listing.id}/bewerken`} className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-4 py-3 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              Bewerk mijn advertentie
-            </Link>
-          )}
         </div>
       </div>
 
