@@ -118,7 +118,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, ro
     <section className="mt-16" data-testid="featured-listings">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Aanbevolen woningen</h2>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Nieuw op Welkthuis</h2>
           <p className="mt-1 text-sm text-stone-500">Ontdek woningen en huisgenoten die nu beschikbaar zijn.</p>
         </div>
         <Link href="/kamers" className="text-sm font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
