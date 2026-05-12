@@ -3,14 +3,20 @@ import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 
 /**
- * Mounted globally in App.tsx. Listens for every SIGNED_IN event from a
- * Google or Facebook OAuth provider and decides what to do next:
+ * Mounted globally in App.tsx. Listens for auth state changes from Google or
+ * Facebook OAuth and decides what to do next:
  *
  *   - New user  (user_type is NULL)  → upsert display name + avatar from OAuth
  *                                      metadata, store info for WelcomePage,
  *                                      then navigate to /welkom.
  *   - Returning user (user_type set) → do nothing; let the redirectTo URL
  *                                      supplied at sign-in time take effect.
+ *
+ * WHY we handle both SIGNED_IN and INITIAL_SESSION:
+ *   After an OAuth redirect the browser performs a full page load at the
+ *   redirectTo URL. On that fresh load Supabase fires INITIAL_SESSION (not
+ *   SIGNED_IN) when it detects the access_token in the URL hash. If we only
+ *   listen for SIGNED_IN we miss Google OAuth entirely on the first load.
  *
  * WHY we check user_type and not profile existence:
  *   The handle_new_user Postgres trigger auto-creates a minimal profile row
@@ -28,7 +34,12 @@ export function OAuthProfileHandler() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event !== "SIGNED_IN" || !session?.user) return;
+      // Handle both the initial page-load session (INITIAL_SESSION — fired when
+      // the access_token hash is detected on a fresh load after OAuth redirect)
+      // and normal sign-ins (SIGNED_IN — fired on subsequent tab-focus refreshes
+      // or when signing in without a page reload).
+      if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+      if (!session?.user) return;
 
       const user = session.user;
       const provider = user.app_metadata?.provider;
@@ -45,15 +56,39 @@ export function OAuthProfileHandler() {
       const isNewUser = !profile?.user_type;
 
       if (isNewUser) {
-        // Enrich the minimal profile row that the DB trigger created with the
-        // OAuth display name and avatar. We only do this once — returning users
-        // may have edited their profile manually, so we leave them alone.
+        // Resolve the display name. Supabase surfaces provider data in two
+        // places; we check both to maximise compatibility across providers and
+        // account configurations.
+        //
+        //   user.user_metadata  = raw_user_meta_data — contains fields the
+        //                         provider returned (varies by provider/scope)
+        //   user.identities[0].identity_data — raw provider payload; usually
+        //                         more complete, especially for Facebook.
         const meta = user.user_metadata ?? {};
-        const name =
-          meta.full_name ?? meta.name ?? meta.given_name ?? user.email?.split("@")[0] ?? "";
-        const email = user.email ?? "";
-        const avatar_url = meta.avatar_url ?? meta.picture ?? null;
+        const identityData = user.identities?.[0]?.identity_data ?? {};
 
+        const name =
+          meta.full_name ??
+          meta.name ??
+          identityData.full_name ??
+          identityData.name ??
+          meta.given_name ??
+          identityData.given_name ??
+          user.email?.split("@")[0] ??
+          "";
+
+        const avatar_url =
+          meta.avatar_url ??
+          meta.picture ??
+          identityData.avatar_url ??
+          identityData.picture ??
+          null;
+
+        const email = user.email ?? "";
+
+        // Enrich the minimal profile row the DB trigger created with the real
+        // OAuth display name and avatar. We do this only once for new users —
+        // returning users may have manually edited their profile.
         await supabase.from("profiles").upsert(
           {
             id: user.id,
