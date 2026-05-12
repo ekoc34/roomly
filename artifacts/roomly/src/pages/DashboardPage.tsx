@@ -833,6 +833,30 @@ export function DashboardPage() {
               ))}
             </div>
 
+            {/* ── Reactietijd insight — verhuurder only ── */}
+            {!loading && profile?.user_type === "verhuurder" && (
+              <div className="flex items-start gap-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+                  <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-400">Mijn reactietijd</p>
+                  <p className="mt-1 text-2xl font-black text-stone-900">
+                    {profile.avg_response_time_hours != null
+                      ? profile.avg_response_time_hours < 1
+                        ? "< 1 uur"
+                        : `${Math.round(profile.avg_response_time_hours)} uur`
+                      : "—"}
+                  </p>
+                  <p className="mt-1 text-xs text-blue-600">
+                    Reageer binnen 1 uur voor meer vertrouwen bij huurders.
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div id="aanvragen">
               <div className="mb-4 flex items-center gap-3">
                 <h2 className="text-lg font-bold text-stone-900">Aanvragen</h2>

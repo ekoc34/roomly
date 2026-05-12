@@ -57,7 +57,7 @@ export function Footer() {
 
           {/* Platform links */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Ontdekken</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
               {canPost && (
@@ -69,7 +69,7 @@ export function Footer() {
 
           {/* Account links */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Mijn account</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Verhuren</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               {user ? (
                 <>
