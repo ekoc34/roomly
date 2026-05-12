@@ -13,42 +13,25 @@ const STEP2_ALL: Step2Option[] = [
     key: "student",
     label: "Student",
     description: "Ik studeer en zoek een kamer of studio",
-    icon: (
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.422A12.083 12.083 0 0112 21a12.083 12.083 0 01-6.16-10.422L12 14z" />
-      </svg>
-    ),
+    icon: <span className="text-2xl leading-none">🎓</span>,
   },
   {
     key: "professional",
     label: "Professional / Expat",
     description: "Ik werk en zoek een appartement of kamer",
-    icon: (
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: <span className="text-2xl leading-none">💼</span>,
   },
   {
     key: "alleenstaande",
     label: "Alleenstaande",
     description: "Ik zoek een woning voor mezelf",
-    icon: (
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-      </svg>
-    ),
+    icon: <span className="text-2xl leading-none">🧍</span>,
   },
   {
     key: "family",
     label: "Familie",
     description: "Wij zoeken een woning als gezin",
-    icon: (
-      <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
+    icon: <span className="text-2xl leading-none">🏡</span>,
   },
 ];
 
@@ -122,10 +105,8 @@ export function UserPersonaSelector() {
                 data-testid="persona-verhuurder"
                 className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 transition group-hover:bg-amber-100">
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-50 transition group-hover:bg-amber-100">
+                  <span className="text-3xl leading-none">🏢</span>
                 </div>
                 <div className="text-left">
                   <p className="text-lg font-bold text-stone-900 group-hover:text-amber-600">Verhuurder</p>
@@ -166,10 +147,8 @@ export function UserPersonaSelector() {
                 data-testid="persona-huisgenoot_zoeker"
                 className="group flex items-center gap-5 rounded-3xl border-2 border-stone-200 bg-white p-6 shadow-sm transition hover:border-blue-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
               >
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-500 transition group-hover:bg-blue-100">
-                  <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 transition group-hover:bg-blue-100">
+                  <span className="text-3xl leading-none">🤝</span>
                 </div>
                 <div className="text-left">
                   <p className="text-lg font-bold text-stone-900 group-hover:text-blue-600">Huisgenoot zoeker</p>
@@ -223,7 +202,7 @@ export function UserPersonaSelector() {
                   data-testid={`persona-${key}`}
                   className="group flex items-center gap-4 rounded-3xl border-2 border-stone-200 bg-white p-5 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-50 transition group-hover:bg-rose-100">
                     {icon}
                   </div>
                   <div className="text-left">
