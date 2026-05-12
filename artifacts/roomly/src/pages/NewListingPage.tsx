@@ -208,7 +208,7 @@ export function NewListingPage() {
         .insert({
           title, description, price, location, type, availability_date, images, user_id: user.id,
           pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
-          boosted: profile?.user_type === "verhuurder" ? boosted : false,
+          boosted: (profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") ? boosted : false,
         })
         .select("id")
         .single();
@@ -384,7 +384,7 @@ export function NewListingPage() {
           </div>
           <ListingImageUpload value={images} onChange={setImages} />
 
-          {profile?.user_type === "verhuurder" && (
+          {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <svg className="h-4 w-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
