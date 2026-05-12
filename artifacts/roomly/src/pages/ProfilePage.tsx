@@ -44,7 +44,6 @@ export function ProfilePage() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const [savingPersona, setSavingPersona] = useState(false);
-  const [personaStep, setPersonaStep] = useState<1 | 2>(1);
   const [personaAnimating, setPersonaAnimating] = useState(false);
 
   const [pwCurrent, setPwCurrent] = useState("");
@@ -730,171 +729,18 @@ export function ProfilePage() {
               })()}
             </>
           ) : (
-            <>
-              <p className="mt-1 mb-5 text-sm text-stone-500">
-                Je hebt je profieltype nog niet ingesteld. Kies wat het beste bij je past — dit kan daarna niet meer worden gewijzigd.
-              </p>
-
-              <div
-                className="transition-opacity duration-200"
-                style={{ opacity: personaAnimating ? 0 : 1 }}
-              >
-                {personaStep === 1 && (
-                  <div className="grid gap-3">
-                    {/* Verhuurder */}
-                    <button
-                      type="button"
-                      disabled={savingPersona}
-                      onClick={async () => {
-                        if (!supabase || !user) return;
-                        setSavingPersona(true);
-                        const { error } = await supabase.from("profiles").update({ user_type: "verhuurder" }).eq("id", user.id);
-                        setSavingPersona(false);
-                        if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-                        setProfile((prev) => prev ? { ...prev, user_type: "verhuurder" } : prev);
-                        toast.success("Je profieltype is opgeslagen.");
-                      }}
-                      className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-amber-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-500 transition group-hover:bg-amber-100">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-sm font-bold text-stone-900 group-hover:text-amber-600">Verhuurder</p>
-                        <p className="mt-0.5 text-xs text-stone-500">Ik verhuur kamers of woningen</p>
-                      </div>
-                      {savingPersona ? (
-                        <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                    </button>
-                    {/* Woningzoekende → step 2 */}
-                    <button
-                      type="button"
-                      disabled={savingPersona}
-                      onClick={() => {
-                        setPersonaAnimating(true);
-                        setTimeout(() => { setPersonaStep(2); setPersonaAnimating(false); }, 200);
-                      }}
-                      className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">Woningzoekende</p>
-                        <p className="mt-0.5 text-xs text-stone-500">Ik zoek een woning voor mezelf</p>
-                      </div>
-                      <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                    {/* Huisgenoot zoeker */}
-                    <button
-                      type="button"
-                      disabled={savingPersona}
-                      onClick={async () => {
-                        if (!supabase || !user) return;
-                        setSavingPersona(true);
-                        const { error } = await supabase.from("profiles").update({ user_type: "huisgenoot_zoeker" }).eq("id", user.id);
-                        setSavingPersona(false);
-                        if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-                        setProfile((prev) => prev ? { ...prev, user_type: "huisgenoot_zoeker" } : prev);
-                        toast.success("Je profieltype is opgeslagen.");
-                      }}
-                      className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-blue-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                    >
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500 transition group-hover:bg-blue-100">
-                        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className="text-sm font-bold text-stone-900 group-hover:text-blue-600">Huisgenoot zoeker</p>
-                        <p className="mt-0.5 text-xs text-stone-500">Ik zoek iemand om mee samen te wonen</p>
-                      </div>
-                      {savingPersona ? (
-                        <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {personaStep === 2 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPersonaAnimating(true);
-                        setTimeout(() => { setPersonaStep(1); setPersonaAnimating(false); }, 200);
-                      }}
-                      className="mb-4 inline-flex items-center gap-1.5 rounded-xl px-2 py-1 text-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"
-                    >
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                      </svg>
-                      Terug
-                    </button>
-                    <p className="mb-3 text-sm font-semibold text-stone-700">Hoe wil je wonen?</p>
-                    <div className="grid gap-3">
-                      {([
-                        { key: "student" as UserType,       label: "Student",             desc: "Ik studeer en zoek een kamer of studio" },
-                        { key: "professional" as UserType,  label: "Professional / Expat",desc: "Ik werk en zoek een appartement of kamer" },
-                        { key: "alleenstaande" as UserType, label: "Alleenstaande",        desc: "Ik zoek een woning voor mezelf" },
-                        { key: "family" as UserType,        label: "Familie",             desc: "Wij zoeken een woning als gezin" },
-                      ]).map(({ key, label, desc }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          disabled={savingPersona}
-                          onClick={async () => {
-                            if (!supabase || !user) return;
-                            setSavingPersona(true);
-                            const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
-                            setSavingPersona(false);
-                            if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-                            setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
-                            toast.success("Je profieltype is opgeslagen.");
-                          }}
-                          className="group flex items-center gap-4 rounded-2xl border-2 border-stone-200 bg-white p-4 shadow-sm transition hover:border-rose-300 hover:shadow-md active:scale-[0.99] disabled:opacity-50"
-                        >
-                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-500 transition group-hover:bg-rose-100">
-                            <span className="text-xl leading-none">{PROFILE_PERSONAS[key]?.icon}</span>
-                          </div>
-                          <div className="min-w-0 flex-1 text-left">
-                            <p className="text-sm font-bold text-stone-900 group-hover:text-rose-600">{label}</p>
-                            <p className="mt-0.5 text-xs text-stone-500">{desc}</p>
-                          </div>
-                          {savingPersona && (
-                            <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                            </svg>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+            <div className="mt-2 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-800">Profieltype nog niet ingesteld</p>
+                <p className="mt-0.5 text-xs text-amber-700">Voltooi je registratie om je profiel te activeren.</p>
               </div>
-            </>
+              <Link href="/welkom" className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600">
+                Instellen
+              </Link>
+            </div>
           )}
         </div>
       )}
