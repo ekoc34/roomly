@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
+import { getActiveStatus } from "@/lib/landlordUtils";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -197,6 +198,7 @@ export function ConversationPage() {
   const initial = (other?.name ?? other?.email ?? "?").slice(0, 1).toUpperCase();
   const otherIsLandlord = conversation.tenant_id === user?.id;
   const panelMode = otherIsLandlord ? "landlord" : "applicant";
+  const activeStatus = getActiveStatus(other?.last_active_at);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-0 px-4 py-4 sm:px-6">
@@ -234,6 +236,12 @@ export function ConversationPage() {
           >
             {other?.name ?? "Gebruiker"}
           </button>
+          {activeStatus && (
+            <p className="mt-0.5 flex items-center gap-1.5">
+              <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${activeStatus.dot}`} />
+              <span className="text-xs text-stone-500">{activeStatus.label}</span>
+            </p>
+          )}
           {listing && (
             <Link href={`/kamers/${listing.id}`} className="block truncate text-xs text-stone-500 transition hover:text-rose-600">
               {listing.title}
