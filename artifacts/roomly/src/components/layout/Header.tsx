@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
-import { Building2, Map, LogIn, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut, Scale, ShieldCheck } from "lucide-react";
+import { Building2, Map, LogIn, Heart, MessageSquare, Bell, LayoutDashboard, Plus, LogOut, Scale, ShieldCheck, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
@@ -38,6 +38,7 @@ export function Header() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
+  const [boostCredits, setBoostCredits] = useState<number | null>(null);
   const [imgError, setImgError] = useState(false);
 
   const isKamers = path === "/kamers" || (path.startsWith("/kamers/") && path !== "/kamers/nieuw");
@@ -64,7 +65,7 @@ export function Header() {
     if (!user || !supabase) return;
     supabase
       .from("profiles")
-      .select("avatar_url, name, role, user_type")
+      .select("avatar_url, name, role, user_type, boost_credits")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
@@ -73,6 +74,7 @@ export function Header() {
           setDisplayName(data.name ?? null);
           setUserRole(data.role ?? null);
           setUserType(data.user_type ?? null);
+          setBoostCredits(data.boost_credits ?? null);
         }
       });
   }, [user]);
@@ -200,6 +202,13 @@ export function Header() {
                   )}
 
                   <div className="my-1.5 border-t border-stone-100" />
+
+                  {(userType === "verhuurder" || userType === "huisgenoot_zoeker") && boostCredits !== null && (
+                    <div className="flex items-center gap-2 px-4 py-2 text-xs text-stone-500">
+                      <Zap className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                      Boost Credits: <span className="font-semibold text-stone-700">{boostCredits}</span>
+                    </div>
+                  )}
 
                   <Link
                     href="/dashboard"
