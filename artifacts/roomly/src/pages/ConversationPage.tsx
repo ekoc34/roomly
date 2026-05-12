@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "wouter";
-import { Ban, Check, CheckCheck, Flag } from "lucide-react";
+import { Ban, Check, CheckCheck, Flag, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
-import { getActiveStatus } from "@/lib/landlordUtils";
 import { pingLastActive } from "@/hooks/useLastActive";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
+
+const REPORT_REASONS = ["Spam", "Ongepast gedrag", "Oplichting", "Anders"] as const;
 
 function ConversationSkeleton() {
   return (
@@ -45,15 +46,27 @@ export function ConversationPage() {
   const [showOtherPanel, setShowOtherPanel] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [blockedByOther, setBlockedByOther] = useState(false);
+  const [showReportMenu, setShowReportMenu] = useState(false);
+  const reportMenuRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
 
+  // Close report dropdown on outside click
+  useEffect(() => {
+    if (!showReportMenu) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (reportMenuRef.current && !reportMenuRef.current.contains(e.target as Node)) {
+        setShowReportMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showReportMenu]);
+
   const fetchMessages = useCallback(async () => {
     if (!supabase) return;
 
-    // Mark incoming messages as read BEFORE fetching, so the fetched data
-    // already has read_at populated — receipts show correctly on first render.
     if (user) {
       await supabase
         .from("messages")
@@ -79,6 +92,8 @@ export function ConversationPage() {
 
     setLoading(true);
     setConversation(null);
+    setBlockedByMe(false);
+    setBlockedByOther(false);
     if (user) pingLastActive(user.id);
 
     async function fetchAll() {
@@ -100,16 +115,25 @@ export function ConversationPage() {
         .maybeSingle();
       setOther(otherProfile as Profile | null);
 
-      // Check if the other participant has already blocked the current user
       if (user && otherProfile) {
-        const { data: blockRow } = await supabase!
-          .from("user_reports")
-          .select("id")
-          .eq("reporter_id", otherProfile.id)
-          .eq("reported_id", user.id)
-          .eq("reason", "blocked")
-          .maybeSingle();
-        if (blockRow) setBlockedByOther(true);
+        const [{ data: blockByOtherRow }, { data: blockByMeRow }] = await Promise.all([
+          supabase!
+            .from("user_reports")
+            .select("id")
+            .eq("reporter_id", otherProfile.id)
+            .eq("reported_id", user.id)
+            .eq("reason", "blocked")
+            .maybeSingle(),
+          supabase!
+            .from("user_reports")
+            .select("id")
+            .eq("reporter_id", user.id)
+            .eq("reported_id", otherProfile.id)
+            .eq("reason", "blocked")
+            .maybeSingle(),
+        ]);
+        if (blockByOtherRow) setBlockedByOther(true);
+        if (blockByMeRow) setBlockedByMe(true);
       }
 
       await fetchMessages();
@@ -127,14 +151,12 @@ export function ConversationPage() {
     try {
       const channel = supabase
         .channel(channelName)
-        // New messages arriving
         .on("postgres_changes", {
           event: "INSERT",
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${params.id}`,
         }, () => { fetchMessages(); })
-        // Read receipts: other user opened conversation and set read_at on our messages
         .on("postgres_changes", {
           event: "UPDATE",
           schema: "public",
@@ -153,7 +175,6 @@ export function ConversationPage() {
       console.warn("Realtime conversation channel error:", e);
     }
 
-    // Typing presence channel
     if (typingChannelRef.current && supabase) {
       supabase.removeChannel(typingChannelRef.current);
       typingChannelRef.current = null;
@@ -196,19 +217,41 @@ export function ConversationPage() {
     typingChannelRef.current?.track({ typing: isTyping });
   }, []);
 
-  const handleUserAction = useCallback(async (reason: "blocked" | "reported") => {
+  const handleBlock = useCallback(async () => {
     if (!supabase || !user || !other) return;
+    const { error } = await supabase.from("user_reports").insert({
+      reporter_id: user.id,
+      reported_id: other.id,
+      reason: "blocked",
+    });
+    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
+    setBlockedByMe(true);
+    toast.success("Gebruiker geblokkeerd.");
+  }, [user, other]);
+
+  const handleUnblock = useCallback(async () => {
+    if (!supabase || !user || !other) return;
+    const { error } = await supabase
+      .from("user_reports")
+      .delete()
+      .eq("reporter_id", user.id)
+      .eq("reported_id", other.id)
+      .eq("reason", "blocked");
+    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
+    setBlockedByMe(false);
+    toast.success("Blokkade opgeheven.");
+  }, [user, other]);
+
+  const handleReport = useCallback(async (reason: string) => {
+    if (!supabase || !user || !other) return;
+    setShowReportMenu(false);
     const { error } = await supabase.from("user_reports").insert({
       reporter_id: user.id,
       reported_id: other.id,
       reason,
     });
-    if (error) {
-      toast.error("Actie mislukt. Probeer opnieuw.");
-      return;
-    }
-    if (reason === "blocked") setBlockedByMe(true);
-    toast.success(reason === "blocked" ? "Gebruiker geblokkeerd." : "Gebruiker gerapporteerd.");
+    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
+    toast.success("Gebruiker gerapporteerd.");
   }, [user, other]);
 
   if (loading) return <ConversationSkeleton />;
@@ -231,7 +274,6 @@ export function ConversationPage() {
   const initial = (other?.name ?? other?.email ?? "?").slice(0, 1).toUpperCase();
   const otherIsLandlord = conversation.tenant_id === user?.id;
   const panelMode = otherIsLandlord ? "landlord" : "applicant";
-  const activeStatus = getActiveStatus(other?.last_active_at);
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-0 px-4 py-4 sm:px-6">
@@ -262,7 +304,7 @@ export function ConversationPage() {
           }
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => setShowOtherPanel(true)}
@@ -270,33 +312,59 @@ export function ConversationPage() {
             >
               {other?.name ?? "Gebruiker"}
             </button>
-            <button
-              type="button"
-              title="Blokkeer gebruiker"
-              onClick={() => handleUserAction("blocked")}
-              className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 active:scale-95"
-            >
-              <Ban className="h-3 w-3" />
-              Blokkeer
-            </button>
-            <button
-              type="button"
-              title="Rapporteer gebruiker"
-              onClick={() => handleUserAction("reported")}
-              className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
-            >
-              <Flag className="h-3 w-3" />
-              Rapporteer
-            </button>
+
+            {/* Block / Unblock */}
+            {blockedByMe ? (
+              <button
+                type="button"
+                title="Blokkade opheffen"
+                onClick={handleUnblock}
+                className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95"
+              >
+                <Unlock className="h-3 w-3" />
+                Blokkade opheffen
+              </button>
+            ) : (
+              <button
+                type="button"
+                title="Blokkeer gebruiker"
+                onClick={handleBlock}
+                className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 active:scale-95"
+              >
+                <Ban className="h-3 w-3" />
+                Blokkeer
+              </button>
+            )}
+
+            {/* Report dropdown */}
+            <div className="relative" ref={reportMenuRef}>
+              <button
+                type="button"
+                title="Rapporteer gebruiker"
+                onClick={() => setShowReportMenu((v) => !v)}
+                className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
+              >
+                <Flag className="h-3 w-3" />
+                Rapporteer
+              </button>
+              {showReportMenu && (
+                <div className="absolute left-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-stone-200 bg-white py-1 shadow-lg">
+                  {REPORT_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => handleReport(reason)}
+                      className="w-full px-4 py-2 text-left text-xs text-stone-700 transition hover:bg-rose-50 hover:text-rose-700"
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          {activeStatus && (
-            <p className="mt-0.5 flex items-center gap-1.5">
-              <span className={`inline-block h-2 w-2 shrink-0 rounded-full ${activeStatus.dot}`} />
-              <span className="text-xs text-stone-500">{activeStatus.label}</span>
-            </p>
-          )}
           {listing && (
-            <Link href={`/kamers/${listing.id}`} className="block truncate text-xs text-stone-500 transition hover:text-rose-600">
+            <Link href={`/kamers/${listing.id}`} className="mt-0.5 block truncate text-xs text-stone-500 transition hover:text-rose-600">
               {listing.title}
             </Link>
           )}
@@ -336,7 +404,6 @@ export function ConversationPage() {
                 <p className={`mt-1 text-right text-[10px] ${isMine ? "text-white/60" : "text-stone-400"}`}>{time}</p>
               </div>
 
-              {/* Read receipt — only for my outgoing messages */}
               {isMine && (
                 <div className="mt-0.5 flex items-center gap-1 pr-0.5">
                   {isRead ? (
@@ -371,7 +438,6 @@ export function ConversationPage() {
             : undefined;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
-            {/* Typing indicator — hide when blocked */}
             {!blockedMessage && (
               <div className={`mb-2 flex items-center gap-1.5 transition-opacity duration-300 ${otherIsTyping ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
                 <span className="flex gap-0.5">

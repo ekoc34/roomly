@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning, Home, Mail, CheckCheck, MessageSquareWarning } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 
 type FlaggedLandlord = {
   id: string;
@@ -49,11 +50,12 @@ type ContactMessage = {
 
 type UserReportRow = {
   id: string;
-  reason: "blocked" | "reported";
+  reason: string;
   resolved: boolean;
   created_at: string;
   reporter_name: string | null;
   reported_name: string | null;
+  reported_id: string | null;
 };
 
 type Stats = {
@@ -78,6 +80,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   overig: "Overig",
 };
 
+function reasonBadgeClass(reason: string) {
+  if (reason === "blocked") return "bg-amber-100 text-amber-700";
+  return "bg-rose-100 text-rose-700";
+}
+
+function reasonLabel(reason: string) {
+  if (reason === "blocked") return "Geblokkeerd";
+  return reason;
+}
+
 export function AdminDashboardPage() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
@@ -88,6 +100,7 @@ export function AdminDashboardPage() {
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [userReports, setUserReports] = useState<UserReportRow[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [profilePanelId, setProfilePanelId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // ── 1. Fetch role ──────────────────────────────────────────────────────────
@@ -190,11 +203,13 @@ export function AdminDashboardPage() {
       setContactMessages(contactRows as ContactMessage[]);
     }
 
-    // User reports (block / report)
+    // User reports (block / report) — include reported_id for profile panel
     const { data: userReportRows } = await supabase
       .from("user_reports")
       .select(`
         id, reason, resolved, created_at,
+        reporter_id,
+        reported_id,
         reporter:reporter_id ( name ),
         reported:reported_id ( name )
       `)
@@ -204,9 +219,10 @@ export function AdminDashboardPage() {
     if (userReportRows) {
       const mapped = (userReportRows as {
         id: string;
-        reason: "blocked" | "reported";
+        reason: string;
         resolved: boolean;
         created_at: string;
+        reported_id: string | null;
         reporter: { name: string | null } | null;
         reported: { name: string | null } | null;
       }[]).map((r) => ({
@@ -216,6 +232,7 @@ export function AdminDashboardPage() {
         created_at: r.created_at,
         reporter_name: r.reporter?.name ?? null,
         reported_name: r.reported?.name ?? null,
+        reported_id: r.reported_id ?? null,
       }));
       setUserReports(mapped);
     }
@@ -345,6 +362,15 @@ export function AdminDashboardPage() {
   // ── 6. Page ────────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      {profilePanelId && (
+        <ApplicantProfilePanel
+          profileId={profilePanelId}
+          mode="applicant"
+          viewerUserId={user?.id}
+          onClose={() => setProfilePanelId(null)}
+        />
+      )}
+
       <nav className="mb-6 text-sm text-stone-500">
         <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
         <span className="mx-2">›</span>
@@ -603,14 +629,22 @@ export function AdminDashboardPage() {
                   {userReports.map((r) => (
                     <tr key={r.id} className="hover:bg-stone-50">
                       <td className="px-4 py-3 font-medium text-stone-800">{r.reporter_name ?? "—"}</td>
-                      <td className="px-4 py-3 text-stone-700">{r.reported_name ?? "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          r.reason === "blocked"
-                            ? "bg-amber-100 text-amber-700"
-                            : "bg-rose-100 text-rose-700"
-                        }`}>
-                          {r.reason === "blocked" ? "Geblokkeerd" : "Gerapporteerd"}
+                        {r.reported_id ? (
+                          <button
+                            type="button"
+                            onClick={() => setProfilePanelId(r.reported_id!)}
+                            className="font-medium text-rose-600 underline-offset-2 transition hover:underline"
+                          >
+                            {r.reported_name ?? "—"}
+                          </button>
+                        ) : (
+                          <span className="text-stone-700">{r.reported_name ?? "—"}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${reasonBadgeClass(r.reason)}`}>
+                          {reasonLabel(r.reason)}
                         </span>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3 text-stone-500">
