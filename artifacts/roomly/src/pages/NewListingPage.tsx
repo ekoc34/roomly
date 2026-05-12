@@ -11,7 +11,13 @@ import type { ListingType, SavedSearch, Profile } from "@/types/database";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
 
-const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
+const ALL_TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
+
+function getAvailableTypes(userType: string | null | undefined): ListingType[] {
+  if (userType === "verhuurder") return ["room_for_rent", "short_stay"];
+  if (userType === "huisgenoot_zoeker") return ["roommate_search"];
+  return ALL_TYPES;
+}
 
 const DUTCH_CITIES = [
   "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
@@ -269,7 +275,7 @@ export function NewListingPage() {
             <div>
               <label htmlFor="nl-type" className={labelClass}>Type</label>
               <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
-                {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
+                {getAvailableTypes(profile?.user_type).map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
               </select>
             </div>
             <div>

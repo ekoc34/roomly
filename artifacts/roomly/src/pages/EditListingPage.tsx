@@ -5,9 +5,15 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
-import type { Listing, ListingType } from "@/types/database";
+import type { Listing, ListingType, Profile } from "@/types/database";
 
-const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
+const ALL_TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
+
+function getAvailableTypes(userType: string | null | undefined): ListingType[] {
+  if (userType === "verhuurder") return ["room_for_rent", "short_stay"];
+  if (userType === "huisgenoot_zoeker") return ["roommate_search"];
+  return ALL_TYPES;
+}
 
 const DUTCH_CITIES = [
   "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
@@ -39,6 +45,7 @@ export function EditListingPage() {
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [city, setCity] = useState("");
   const [district, setDistrict] = useState("");
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
 
@@ -46,6 +53,13 @@ export function EditListingPage() {
     setCity(e.target.value);
     setDistrict("");
   };
+
+  useEffect(() => {
+    if (!user || !supabase) return;
+    supabase.from("profiles").select("*").eq("id", user.id).maybeSingle().then(({ data }) => {
+      setProfile(data as Profile | null);
+    });
+  }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -156,7 +170,7 @@ export function EditListingPage() {
               <div>
                 <label htmlFor="el-type" className={labelClass}>Type</label>
                 <select id="el-type" name="type" defaultValue={listing.type} className={selectClass}>
-                  {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
+                  {getAvailableTypes(profile?.user_type).map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
               <div>
