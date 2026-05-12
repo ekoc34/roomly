@@ -1,4 +1,4 @@
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +6,9 @@ import type { UserType } from "@/types/database";
 
 type Step1Choice = "woningzoekende" | "verhuurder" | "huisgenoot_zoeker";
 
-const STEP2_OPTIONS: { key: UserType; label: string; description: string; icon: React.ReactNode }[] = [
+type Step2Option = { key: UserType; label: string; description: string; icon: React.ReactNode };
+
+const STEP2_ALL: Step2Option[] = [
   {
     key: "student",
     label: "Student",
@@ -50,12 +52,28 @@ const STEP2_OPTIONS: { key: UserType; label: string; description: string; icon: 
   },
 ];
 
+const STEP2_HUISGENOOT: Step2Option[] = STEP2_ALL.filter((o) => o.key !== "family");
+
 export function UserPersonaSelector() {
   const [step, setStep] = useState<1 | 2>(1);
+  const [step1Choice, setStep1Choice] = useState<Step1Choice | null>(null);
   const [animating, setAnimating] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [, navigate] = useLocation();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (!supabase || !user) return;
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.role === "admin") setIsAdmin(true);
+      });
+  }, [user]);
 
   const saveAndRedirect = (userType: UserType) => {
     startTransition(async () => {
@@ -66,17 +84,23 @@ export function UserPersonaSelector() {
     });
   };
 
-  const handleStep1 = (choice: Step1Choice) => {
-    if (choice === "verhuurder") { saveAndRedirect("verhuurder"); return; }
-    if (choice === "huisgenoot_zoeker") { saveAndRedirect("huisgenoot_zoeker"); return; }
+  const goToStep2 = (choice: Step1Choice) => {
+    setStep1Choice(choice);
     setAnimating(true);
     setTimeout(() => { setStep(2); setAnimating(false); }, 220);
+  };
+
+  const handleStep1 = (choice: Step1Choice) => {
+    if (choice === "verhuurder") { saveAndRedirect("verhuurder"); return; }
+    goToStep2(choice);
   };
 
   const goBack = () => {
     setAnimating(true);
     setTimeout(() => { setStep(1); setAnimating(false); }, 220);
   };
+
+  const step2Options = step1Choice === "huisgenoot_zoeker" ? STEP2_HUISGENOOT : STEP2_ALL;
 
   return (
     <div className="w-full max-w-lg" data-testid="persona-selector">
@@ -158,16 +182,18 @@ export function UserPersonaSelector() {
               </button>
             </div>
 
-            <p className="mt-8 text-center text-sm text-stone-400">
-              Liever later kiezen?{" "}
-              <button
-                onClick={() => navigate("/dashboard")}
-                className="font-medium text-stone-600 hover:text-rose-600 hover:underline"
-                data-testid="persona-skip"
-              >
-                Sla over
-              </button>
-            </p>
+            {isAdmin && (
+              <p className="mt-8 text-center text-sm text-stone-400">
+                Liever later kiezen?{" "}
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="font-medium text-stone-600 hover:text-rose-600 hover:underline"
+                  data-testid="persona-skip"
+                >
+                  Sla over
+                </button>
+              </p>
+            )}
           </>
         )}
 
@@ -189,7 +215,7 @@ export function UserPersonaSelector() {
             </div>
 
             <div className="mt-8 grid gap-3">
-              {STEP2_OPTIONS.map(({ key, label, description, icon }) => (
+              {step2Options.map(({ key, label, description, icon }) => (
                 <button
                   key={key}
                   onClick={() => saveAndRedirect(key)}
