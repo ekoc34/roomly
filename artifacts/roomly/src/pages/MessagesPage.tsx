@@ -5,8 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { Conversation, Listing, Profile } from "@/types/database";
 
-type LastMsg = { body: string; created_at: string };
-type ConvRow = Conversation & { listing: Listing | null; other: Profile | null; lastMsg: LastMsg | null };
+type LastMsg = { body: string; created_at: string; sender_id: string; read_at: string | null };
+type ConvRow = Conversation & { listing: Listing | null; other: Profile | null; lastMsg: LastMsg | null; hasUnread: boolean };
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
@@ -39,7 +39,7 @@ export function MessagesPage() {
         const { data, error: queryError } = await supabase!
           .from("conversations")
           .select(
-            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at)"
+            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at, sender_id, read_at)"
           )
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
           .or(`hidden_by.is.null,hidden_by.not.cs.{${user!.id}}`)
@@ -65,10 +65,12 @@ export function MessagesPage() {
           const lastMsg = msgs.length > 0
             ? msgs.reduce((a, b) => (a.created_at > b.created_at ? a : b))
             : null;
+          const hasUnread = msgs.some((m) => m.sender_id !== user!.id && m.read_at === null);
           return {
             ...row,
             other: row.tenant_id === user!.id ? row.landlord : row.tenant,
             lastMsg,
+            hasUnread,
           };
         });
 
@@ -95,7 +97,7 @@ export function MessagesPage() {
     const fetchAndPrepend = async (convId: string) => {
       const { data } = await supabase!
         .from("conversations")
-        .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at)")
+        .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at, sender_id, read_at)")
         .eq("id", convId)
         .not("hidden_by", "cs", `{${user!.id}}`)
         .maybeSingle();
@@ -105,11 +107,13 @@ export function MessagesPage() {
       const raw = data as Conversation & { listing: Listing | null; tenant: Profile | null; landlord: Profile | null; messages: LastMsg[] | null };
       const msgs = raw.messages ?? [];
       const lastMsg = msgs.length > 0 ? msgs.reduce((a, b) => (a.created_at > b.created_at ? a : b)) : null;
+      const hasUnread = msgs.some((m) => m.sender_id !== user!.id && m.read_at === null);
 
       const row: ConvRow = {
         ...raw,
         other: raw.tenant_id === user!.id ? raw.landlord : raw.tenant,
         lastMsg,
+        hasUnread,
       };
 
       setConvs((prev) => {
@@ -137,30 +141,51 @@ export function MessagesPage() {
       .subscribe();
 
     // Real-time preview: when a new message is inserted in any conversation the
-    // user belongs to, update that row's preview text and timestamp instantly and
-    // float it to the top of the list — no extra fetch required.
+    // user belongs to, update that row's preview text, timestamp, and unread dot
+    // instantly and float it to the top of the list — no extra fetch required.
     const msgPreviewCh = supabase
       .channel(`messages-preview-rt:${user.id}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          const { conversation_id, body, created_at } = payload.new as {
+          const { conversation_id, body, created_at, sender_id, read_at } = payload.new as {
             conversation_id: string;
             body: string;
             created_at: string;
+            sender_id: string;
+            read_at: string | null;
           };
           setConvs((prev) => {
             const idx = prev.findIndex((c) => c.id === conversation_id);
-            if (idx === -1) return prev; // not a conversation this user is in
+            if (idx === -1) return prev;
             const updated: ConvRow = {
               ...prev[idx],
               last_message_at: created_at,
-              lastMsg: { body, created_at },
+              lastMsg: { body, created_at, sender_id, read_at },
+              hasUnread: prev[idx].hasUnread || (sender_id !== user.id && read_at === null),
             };
             const rest = prev.filter((_, i) => i !== idx);
             return [updated, ...rest];
           });
+        }
+      )
+      // When the other participant opens the conversation, ConversationPage bulk-updates
+      // read_at on all messages. The first UPDATE event clears the unread dot.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages" },
+        (payload) => {
+          const { conversation_id, read_at } = payload.new as {
+            conversation_id: string;
+            read_at: string | null;
+          };
+          if (!read_at) return;
+          setConvs((prev) =>
+            prev.map((c) =>
+              c.id === conversation_id ? { ...c, hasUnread: false } : c
+            )
+          );
         }
       )
       .subscribe();
@@ -297,7 +322,10 @@ export function MessagesPage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
+                      {conv.hasUnread && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                    </div>
                     <p className="truncate text-xs text-stone-500">{title}</p>
                     {preview && (
                       <p className="truncate text-xs text-stone-400">{preview}</p>
