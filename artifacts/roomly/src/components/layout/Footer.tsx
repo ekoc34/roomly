@@ -1,15 +1,27 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
+import type { Profile } from "@/types/database";
 
 export function Footer() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (!user || !supabase) { setProfile(null); return; }
+    supabase.from("profiles").select("user_type").eq("id", user.id).maybeSingle().then(({ data }) => {
+      setProfile(data as Profile | null);
+    });
+  }, [user]);
 
   const handleSignOut = async () => {
     if (supabase) await supabase.auth.signOut();
     navigate("/inloggen");
   };
+
+  const canPost = profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker";
 
   return (
     <footer className="mt-auto border-t border-stone-200/80 bg-white">
@@ -41,40 +53,57 @@ export function Footer() {
             </div>
           </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
-            <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
-              <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
-              <Link href="/contact" className="hover:text-rose-600">Contact</Link>
-              {user && (
-                <>
-                  <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
+          {user ? (
+            <>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
+                <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
+                  <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
+                  {canPost && (
+                    <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
+                  )}
+                  <Link href="/contact" className="hover:text-rose-600">Contact</Link>
+                </nav>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Persoonlijk</p>
+                <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
                   <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
                   <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
-                  <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
-                </>
-              )}
-            </nav>
-          </div>
+                </nav>
+              </div>
 
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
-            <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
-              {user ? (
-                <>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
+                <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
+                  <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
                   <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
                   <button onClick={handleSignOut} className="text-left hover:text-rose-600">
                     Uitloggen
                   </button>
-                </>
-              ) : (
-                <>
+                </nav>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Platform</p>
+                <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
+                  <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
+                  <Link href="/contact" className="hover:text-rose-600">Contact</Link>
+                </nav>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
+                <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
                   <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
                   <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
-                </>
-              )}
-            </nav>
-          </div>
+                </nav>
+              </div>
+            </>
+          )}
         </div>
       </div>
       <div className="border-t border-stone-100 bg-stone-50/80 py-4 text-center text-xs text-stone-400">
