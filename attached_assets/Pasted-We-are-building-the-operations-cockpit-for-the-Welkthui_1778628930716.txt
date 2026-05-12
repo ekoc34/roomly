@@ -1,0 +1,37 @@
+We are building the "operations cockpit" for the Welkthuis platform. Implement a comprehensive Admin Dashboard and an immutable Activity Log. This is not a simple table view; it's an action-oriented control center.
+
+## TASK 1 — Admin Dashboard: User Management ("Gebruikers" Tab)
+1.  In `AdminDashboardPage.tsx`, add a "Gebruikers" tab.
+2.  Fetch and list all users from the `profiles` table.
+3.  For each user, display: avatar, name, email, role (user_type), subscription tier, verification status, boost credits, and account creation date.
+4.  Add filter capabilities: by role, by verification status, and a search bar for name/email.
+5.  Add quick actions for each user:
+    -   "Login als gebruiker" (placeholder for future, just show the button for now).
+    -   "Bewerk rol" (a dropdown to change the user's `user_type`).
+    -   "Voeg 10 credits toe" (a button that calls `admin_add_boost_credits` RPC).
+
+## TASK 2 — Admin Dashboard: Listing Management ("Advertenties" Tab)
+1.  Add an "Advertenties" tab to the Admin Dashboard.
+2.  Fetch and list all listings, joining with the owner's profile.
+3.  Display: title, price, location, type, owner name, boosted status, and creation date.
+4.  Add quick actions: "Verwijder advertentie" (calls `delete_listing` RPC), "Markeer als uitgelicht" (toggles boost).
+5.  Add a filter for reported listings (`scam_flagged = TRUE`).
+
+## TASK 3 — Admin Dashboard: Boost & Payment History ("Betalingen" Tab)
+1.  Add a "Betalingen" tab.
+2.  Fetch all rows from the `boost_logs` table, joined with `profiles` (for user name) and `listings` (for listing title).
+3.  Display: user name, listing title, action, credits used (`credit_before` -> `credit_after`), and timestamp.
+4.  Add a summary card at the top showing total boost revenue (sum of credits used) and total boosts today.
+
+## TASK 4 — Activity Log ("Activiteit" Tab)
+1.  Create an `admin_actions` table in Supabase. Provide the SQL. It must be append-only (no UPDATE or DELETE RLS policies for admins).
+2.  Create an `log_admin_action()` RPC (SECURITY DEFINER). All sensitive admin operations (changing user role, deleting a listing, adding credits) must call this RPC to log the action.
+3.  Add an "Activiteit" tab to the Admin Dashboard.
+4.  Fetch and display a combined timeline from both `admin_actions` and `boost_logs`, ordered by `created_at DESC`. Show: actor, action description, target entity, and timestamp.
+5.  Add filters for action type and date range.
+
+## TASK 5 — Security & Polish
+1.  Ensure ALL new admin functions are protected by `is_admin()` check.
+2.  The Activity Log must be read-only and append-only for everyone, including admins. No one can edit or delete log entries.
+3.  All text in Dutch. Use existing Tailwind v4 styling, stone colors, and rose-500 accents.
+4.  Commit with message: "Implement Admin Operations Dashboard and Immutable Activity Log" and push.
