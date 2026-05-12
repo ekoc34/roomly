@@ -149,6 +149,31 @@ export function ListingFilters() {
         </div>
       </form>
 
+      {/* Stadsdelen chip strip — appears when a city with known districts is selected */}
+      {availableDistricts.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-medium text-stone-500">
+            Stadsdelen in {city}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {availableDistricts.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => push({ district: district === d ? "" : d })}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition active:scale-95 ${
+                  district === d
+                    ? "bg-rose-500 text-white shadow-sm"
+                    : "border border-stone-200 bg-stone-50 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-stone-900">Filters</span>
