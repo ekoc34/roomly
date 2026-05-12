@@ -5,7 +5,22 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import type { Conversation, Listing, Profile } from "@/types/database";
 
-type ConvRow = Conversation & { listing: Listing | null; other: Profile | null };
+type LastMsg = { body: string; created_at: string };
+type ConvRow = Conversation & { listing: Listing | null; other: Profile | null; lastMsg: LastMsg | null };
+
+function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffSec = Math.floor((now - then) / 1000);
+  if (diffSec < 60) return "zojuist";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min geleden`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} uur geleden`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay <= 7) return `${diffDay} dag${diffDay === 1 ? "" : "en"} geleden`;
+  return new Date(dateStr).toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
+}
 
 export function MessagesPage() {
   const { user, loading: authLoading } = useAuth();
@@ -24,7 +39,7 @@ export function MessagesPage() {
         const { data, error: queryError } = await supabase!
           .from("conversations")
           .select(
-            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)"
+            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at)"
           )
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
           .or(`hidden_by.is.null,hidden_by.not.cs.{${user!.id}}`)
@@ -43,11 +58,19 @@ export function MessagesPage() {
             listing: Listing | null;
             tenant: Profile | null;
             landlord: Profile | null;
+            messages: LastMsg[] | null;
           })[]
-        ).map((row) => ({
-          ...row,
-          other: row.tenant_id === user!.id ? row.landlord : row.tenant,
-        }));
+        ).map((row) => {
+          const msgs = row.messages ?? [];
+          const lastMsg = msgs.length > 0
+            ? msgs.reduce((a, b) => (a.created_at > b.created_at ? a : b))
+            : null;
+          return {
+            ...row,
+            other: row.tenant_id === user!.id ? row.landlord : row.tenant,
+            lastMsg,
+          };
+        });
 
         setConvs(rows);
       } catch (err) {
@@ -72,18 +95,21 @@ export function MessagesPage() {
     const fetchAndPrepend = async (convId: string) => {
       const { data } = await supabase!
         .from("conversations")
-        .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*)")
+        .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at)")
         .eq("id", convId)
         .not("hidden_by", "cs", `{${user!.id}}`)
         .maybeSingle();
 
       if (!data) return;
 
+      const raw = data as Conversation & { listing: Listing | null; tenant: Profile | null; landlord: Profile | null; messages: LastMsg[] | null };
+      const msgs = raw.messages ?? [];
+      const lastMsg = msgs.length > 0 ? msgs.reduce((a, b) => (a.created_at > b.created_at ? a : b)) : null;
+
       const row: ConvRow = {
-        ...(data as Conversation & { listing: Listing | null; tenant: Profile | null; landlord: Profile | null }),
-        other: (data as { tenant_id: string; tenant: Profile | null; landlord: Profile | null }).tenant_id === user!.id
-          ? (data as { landlord: Profile | null }).landlord
-          : (data as { tenant: Profile | null }).tenant,
+        ...raw,
+        other: raw.tenant_id === user!.id ? raw.landlord : raw.tenant,
+        lastMsg,
       };
 
       setConvs((prev) => {
@@ -222,9 +248,10 @@ export function MessagesPage() {
           {convs.map((conv) => {
             const initial = (conv.other?.name ?? conv.other?.email ?? "?").slice(0, 1).toUpperCase();
             const title = conv.listing?.title ?? "Verwijderde advertentie";
-            const ts = conv.last_message_at
-              ? new Date(conv.last_message_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })
-              : "";
+            const ts = conv.last_message_at ? timeAgo(conv.last_message_at) : "";
+            const preview = conv.lastMsg
+              ? conv.lastMsg.body.slice(0, 60) + (conv.lastMsg.body.length > 60 ? "…" : "")
+              : null;
             return (
               <div key={conv.id} className="group relative flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
                 <Link
@@ -242,6 +269,9 @@ export function MessagesPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
                     <p className="truncate text-xs text-stone-500">{title}</p>
+                    {preview && (
+                      <p className="truncate text-xs text-stone-400">{preview}</p>
+                    )}
                   </div>
                   <span className="shrink-0 text-xs text-stone-400 pr-2">{ts}</span>
                 </Link>
