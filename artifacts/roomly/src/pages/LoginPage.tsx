@@ -59,10 +59,7 @@ export function LoginPage() {
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        // Always redirect to /welkom after OAuth. WelcomePage redirects
-        // already-onboarded users to /dashboard automatically; new users
-        // stay to complete persona selection.
-        redirectTo: `${window.location.origin}/welkom`,
+        redirectTo: `${window.location.origin}${nextParam}`,
       },
     });
     if (err) {
