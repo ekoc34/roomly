@@ -193,8 +193,10 @@ export function ProfilePage() {
       // Capture session JWT before sign-out — needed for the Edge Function call
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Anonymise listings so existing conversations aren't broken for the other party
-      await supabase.from("listings").update({ user_id: null }).eq("user_id", user.id);
+      // Delete own listings via RPC (direct writes to listings are revoked for security).
+      // The auth-user cascade-delete would also clean these up, but doing it first
+      // ensures conversations referencing those listings degrade gracefully.
+      await supabase.rpc("delete_own_listings");
 
       // Soft-delete: anonymise personal data and set deleted_at timestamp.
       // This keeps the row (and its FK references) intact while blocking future logins.

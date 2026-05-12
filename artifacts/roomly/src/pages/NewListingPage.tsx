@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import { isFullyVerified } from "@/lib/verificationUtils";
+import { mapRpcError } from "@/lib/rpcErrors";
 import type { ListingType, SavedSearch, Profile } from "@/types/database";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
@@ -203,20 +204,26 @@ export function NewListingPage() {
     }
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
-      const { data, error: err } = await supabase
-        .from("listings")
-        .insert({
-          title, description, price, location, type, availability_date, images, user_id: user.id,
-          pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
-          boosted: (profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") ? boosted : false,
-        })
-        .select("id")
-        .single();
-      if (err || !data) {
-        setError("Advertentie kon niet worden geplaatst. Probeer opnieuw.");
+      const { data: listingId, error: err } = await supabase.rpc("create_listing", {
+        p_data: {
+          title,
+          description,
+          price,
+          location,
+          type,
+          images,
+          availability_date: availability_date ?? "",
+          pets_allowed: petsAllowed,
+          smoking_allowed: smokingAllowed,
+          gender_preference: gender_preference ?? "",
+          rooms: rooms != null ? String(rooms) : "",
+          surface_area: surface_area != null ? String(surface_area) : "",
+        },
+      });
+      if (err || !listingId) {
+        setError(mapRpcError(err, "Advertentie kon niet worden geplaatst. Probeer opnieuw."));
         return;
       }
-      const listingId = (data as { id: string }).id;
       toast.success("Advertentie geplaatst!");
 
       notifyMatchingSavedSearches(

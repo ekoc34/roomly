@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
+import { mapRpcError } from "@/lib/rpcErrors";
 import type { Listing, ListingType, Profile } from "@/types/database";
 
 const ALL_TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
@@ -86,7 +87,11 @@ export function EditListingPage() {
     if (!confirm("Weet je zeker dat je deze advertentie wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) return;
     startTransition(async () => {
       if (!supabase || !user) return;
-      await supabase.from("listings").delete().eq("id", params.id).eq("user_id", user.id);
+      const { error: err } = await supabase.rpc("delete_listing", { p_listing_id: params.id });
+      if (err) {
+        toast.error(mapRpcError(err, "Verwijderen mislukt. Probeer opnieuw."));
+        return;
+      }
       toast.success("Advertentie verwijderd.");
       navigate("/dashboard");
     });
@@ -113,16 +118,24 @@ export function EditListingPage() {
     if (!title || !description || !location || price <= 0) { setError("Vul alle verplichte velden in."); return; }
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
-      const { error: err } = await supabase
-        .from("listings")
-        .update({
-          title, description, price, location, type, availability_date, images,
-          pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area,
-          boosted: (profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") ? boosted : false,
-        })
-        .eq("id", params.id)
-        .eq("user_id", user.id);
-      if (err) { setError("Opslaan mislukt."); return; }
+      const { error: err } = await supabase.rpc("update_listing", {
+        p_listing_id: params.id,
+        p_data: {
+          title,
+          description,
+          price,
+          location,
+          type,
+          images,
+          availability_date: availability_date ?? "",
+          pets_allowed: petsAllowed,
+          smoking_allowed: smokingAllowed,
+          gender_preference: gender_preference ?? "",
+          rooms: rooms != null ? String(rooms) : "",
+          surface_area: surface_area != null ? String(surface_area) : "",
+        },
+      });
+      if (err) { setError(mapRpcError(err, "Opslaan mislukt. Probeer opnieuw.")); return; }
       toast.success("Wijzigingen opgeslagen!");
       navigate(`/kamers/${params.id}`);
     });

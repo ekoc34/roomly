@@ -1,0 +1,33 @@
+export type RpcErrorCode =
+  | "NOT_AUTHENTICATED"
+  | "NOT_AUTHORIZED"
+  | "INVALID_DATA"
+  | "INSUFFICIENT_CREDITS"
+  | "COOLDOWN_ACTIVE"
+  | "PROFILE_NOT_FOUND"
+  | "LISTING_NOT_FOUND"
+  | "USER_NOT_FOUND";
+
+const RPC_ERROR_MESSAGES: Record<RpcErrorCode, string> = {
+  NOT_AUTHENTICATED:    "Je bent niet ingelogd. Log opnieuw in en probeer het opnieuw.",
+  NOT_AUTHORIZED:       "Je hebt geen toegang om deze actie uit te voeren.",
+  INVALID_DATA:         "De ingevoerde gegevens zijn ongeldig. Controleer alle velden.",
+  INSUFFICIENT_CREDITS: "Je hebt niet genoeg boost-credits. Neem contact op met support.",
+  COOLDOWN_ACTIVE:      "Je kunt deze advertentie pas over 24 uur opnieuw uitlichten.",
+  PROFILE_NOT_FOUND:    "Profiel niet gevonden.",
+  LISTING_NOT_FOUND:    "Advertentie niet gevonden.",
+  USER_NOT_FOUND:       "Gebruiker niet gevonden.",
+};
+
+const FALLBACK_MESSAGE = "Er is een fout opgetreden. Probeer het opnieuw.";
+
+export function mapRpcError(
+  error: { message?: string } | null | undefined,
+  fallback = FALLBACK_MESSAGE
+): string {
+  if (!error?.message) return fallback;
+  for (const code of Object.keys(RPC_ERROR_MESSAGES) as RpcErrorCode[]) {
+    if (error.message.includes(code)) return RPC_ERROR_MESSAGES[code];
+  }
+  return fallback;
+}

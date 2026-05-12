@@ -1,0 +1,34 @@
+Apply the final, production-ready security and architecture hardening pass to the entire platform. This is the "prod-ready checklist" implementation. The system is feature-complete, but needs these final safeguards to be truly hacker-proof, auditable, and unbreakable.
+
+## TASK 1 — SQL Hardening (Apply via a new migration)
+1.  For all existing SECURITY DEFINER functions (`is_admin`, `create_listing`, `boost_listing`, `admin_add_boost_credits`), ensure they start with `SET search_path = ''`. This is the most secure form.
+
+2.  **Strengthen `create_listing(p_data JSONB)`**:
+    *   Add stricter validation: `title` must have length > 0 after `trim()`, `price` must be a positive finite numeric, `location` must have length > 0 after `trim()`.
+    *   On validation failure, raise 'INVALID_DATA'.
+
+3.  **Harden `boost_listing(p_listing_id UUID)`**:
+    *   Establish a **deadlock-safe lock order**: always lock the `profiles` row first, then the `listings` row using `SELECT ... FOR UPDATE`.
+    *   Wrap the entire logic in a transaction.
+
+4.  **Create an Audit Trail (`boost_logs` table)**:
+    *   Table: `id UUID PK`, `user_id UUID FK`, `listing_id UUID FK`, `action TEXT`, `credits_used INT`, `created_at TIMESTAMPTZ`.
+    *   The `boost_listing` function must INSERT a row into `boost_logs` on every successful boost.
+    *   Provide the SQL for the table and the updated function.
+
+## TASK 2 — RLS and Data Access Tightening
+1.  **SELECT policy tightening**: Ensure that `profiles` SELECT policy strictly enforces that users can only see their own row for sensitive fields (like `boost_credits`, `last_resend_at`). Non-sensitive fields (like `name`, `avatar_url`, `verification_badge`) can remain public.
+2.  **Direct Write Lockdown**: Explicitly revoke INSERT, UPDATE, DELETE on `listings` for all roles except `service_role`. The only way to modify a listing is now exclusively through the RPCs. This provides a final, unbreachable safety net.
+3.  Provide the SQL for both of these changes.
+
+## TASK 3 — Frontend Safety Boundaries
+1.  **Audit UI's Role**: Review every component that modifies data (`NewListingPage`, `DashboardPage`, etc.). Ensure absolutely no business logic exists in the frontend. The frontend is solely responsible for:
+    *   Capturing user input.
+    *   Calling the RPC.
+    *   Displaying the success message or the mapped error message.
+2.  **Centralize Error Mapping**: Provide a small utility hook or function that takes an RPC error code (e.g., `'INSUFFICIENT_CREDITS'`) and returns the corresponding Dutch user message. Apply this to all relevant components.
+
+## TASK 4 — Final Verification
+1.  After applying all changes, ensure the "Nieuw op Welkthuis" and `/kamers` pages are still sorting by `boosted_at DESC NULLS LAST`.
+2.  Run a final check of the entire flow: Admin adds credits -> User creates listing -> User boosts listing -> Cooldown is enforced -> Credit is correctly decremented on the backend.
+3.  Commit with message: "Apply final prod-ready security, audit, and RLS hardening checklist" and push.
