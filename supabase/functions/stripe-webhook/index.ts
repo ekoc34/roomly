@@ -6,7 +6,7 @@
 //   2. supabase functions deploy stripe-webhook --no-verify-jwt
 //
 // ── REQUIRED SECRETS (set via Supabase Dashboard › Settings › Edge Functions) ─
-//   STRIPE_SECRET_KEY       →  sk_test_...
+//   STRIPE_SECRET_KEY       →  sk_live_...
 //   STRIPE_WEBHOOK_SECRET   →  whsec_...  (Stripe Dashboard › Webhooks › Signing secret)
 //   SUPABASE_SERVICE_ROLE_KEY is auto-injected by Supabase.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       }
 
       // Use the service role client (bypasses RLS) to atomically credit the user.
-      const { error: rpcErr } = await adminClient.rpc("system_add_boost_credits", {
+      const { error: rpcErr } = await adminClient.rpc("admin_add_boost_credits", {
         p_user_id: userId,
         p_credits: credits,
       });

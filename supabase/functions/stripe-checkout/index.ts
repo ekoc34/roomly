@@ -1,16 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Stripe } from "https://esm.sh/stripe@13.3.0?target=deno";
+import { Stripe } from "https://esm.sh/stripe@14.21.0?target=deno&no-check";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2024-06-20",
   httpClient: Stripe.createFetchHttpClient(),
 });
 
 const PACKAGES = {
-  starter:   { credits: 1,  priceId: "price_1TWHo0ECUpERwjgz7bqjP5Lq" },
-  populair:  { credits: 5,  priceId: "price_1TWHpDECUpERwjgzViavok6r" },
-  pro:       { credits: 15, priceId: "price_1TWHpuECUpERwjgzM5xNTTLv" },
+  starter:   { credits: 1,  priceId: "price_1TWeW3ECUpERwjgzVWwCGd16" },
+  populair:  { credits: 5,  priceId: "price_1TWeWUECUpERwjgzy6raYM3N" },
+  pro:       { credits: 15, priceId: "price_1TWeX7ECUpERwjgzdMLzvWo5" },
 };
 
 const corsHeaders = {
@@ -51,20 +51,27 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!
     );
-    
+
     const token = authHeader.split("Bearer ")[1];
     const { data: { user } } = await supabaseClient.auth.getUser(token);
     const userId = user?.id;
-    
+
     if (!userId) {
       return new Response(JSON.stringify({ error: "Kan gebruiker niet verifiëren" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Use the request origin if present; fall back to the configured FRONTEND_URL.
+    // Never let this be null — Stripe rejects malformed success/cancel URLs.
+    const origin =
+      req.headers.get("origin") ??
+      Deno.env.get("FRONTEND_URL") ??
+      "https://welkthuis.nl";
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["ideal"],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/betaling-succesvol`,
-      cancel_url: `${req.headers.get("origin")}/pricing`,
+      success_url: `${origin}/betaling-succesvol`,
+      cancel_url: `${origin}/pricing`,
       customer_email: userEmail,
       metadata: {
         user_id: userId,
@@ -76,7 +83,12 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ url: session.url }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("Stripe session error:", err);
-    return new Response(JSON.stringify({ error: "Betaling kon niet worden gestart" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Log the full Stripe error so it appears in Edge Function invocation logs.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Stripe session error:", message, err);
+    return new Response(
+      JSON.stringify({ error: "Betaling kon niet worden gestart", detail: message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
