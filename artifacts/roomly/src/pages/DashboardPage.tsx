@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   UserCircle, X, ShieldCheck, CreditCard, Zap, Edit2, Trash2,
   Home, MessageSquare, Clock, TrendingUp, Heart, Search, Star,
-  ArrowRight, CheckCircle2, Circle, SendHorizontal, Eye,
+  ArrowRight, CheckCircle2, Circle, SendHorizontal, Eye, Phone,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -131,6 +131,20 @@ export function DashboardPage() {
   const [listingViewCounts, setListingViewCounts] = useState<Record<string, number>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+  // Task 2 & 5 state
+  const [favoritedIds, setFavoritedIds] = useState<Set<string>>(new Set());
+  const [quickApplyListingId, setQuickApplyListingId] = useState<string | null>(null);
+  const [quickApplyLoading, setQuickApplyLoading] = useState(false);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  // Task 3 checklist state (localStorage dismissal per completed items)
+  const [checklistDismissed, setChecklistDismissed] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem("roomly_checklist_dismissed") ?? "{}"); } catch { return {}; }
+  });
+
+  const recommendationsRef = useRef<HTMLDivElement>(null);
   const listingIdsRef = useRef<string[]>([]);
   useEffect(() => { listingIdsRef.current = myListings.map((l) => l.id); }, [myListings]);
 
@@ -189,13 +203,13 @@ export function DashboardPage() {
       let recQuery = supabase!.from("listings")
         .select("id, title, price, location, images, boosted_at, created_at")
         .order("created_at", { ascending: false })
-        .limit(4);
+        .limit(8);
       if (preferredCity) {
         recQuery = supabase!.from("listings")
           .select("id, title, price, location, images, boosted_at, created_at")
           .ilike("location", `%${preferredCity}%`)
           .order("created_at", { ascending: false })
-          .limit(4);
+          .limit(8);
       }
       const { data: recListings } = await recQuery;
       const recs = (recListings as RecommendedListing[] | null) ?? [];
@@ -203,11 +217,15 @@ export function DashboardPage() {
       if (recs.length === 0 && preferredCity) {
         const { data: fallbackRecs } = await supabase!.from("listings")
           .select("id, title, price, location, images, boosted_at, created_at")
-          .order("created_at", { ascending: false }).limit(4);
+          .order("created_at", { ascending: false }).limit(8);
         setRecommendedListings((fallbackRecs as RecommendedListing[] | null) ?? []);
       } else {
         setRecommendedListings(recs);
       }
+
+      // Fetch favorited listing IDs for quick-action hearts
+      const { data: favData } = await supabase!.from("favorites").select("listing_id").eq("user_id", user!.id);
+      if (favData) setFavoritedIds(new Set((favData as { listing_id: string }[]).map((f) => f.listing_id)));
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -435,6 +453,76 @@ export function DashboardPage() {
     if (error) { toast.error("Verwijderen mislukt. Probeer het opnieuw."); return; }
     toast.success("Advertentie verwijderd.");
     setMyListings((prev) => prev.filter((l) => l.id !== listingId));
+  }
+
+  async function handleToggleFavorite(listingId: string) {
+    if (!supabase || !user) return;
+    const isFav = favoritedIds.has(listingId);
+    if (isFav) {
+      await supabase.from("favorites").delete().eq("user_id", user.id).eq("listing_id", listingId);
+      setFavoritedIds((prev) => { const next = new Set(prev); next.delete(listingId); return next; });
+      setFavoritesCount((c) => Math.max(0, c - 1));
+      toast.success("Verwijderd uit favorieten.");
+    } else {
+      await supabase.from("favorites").insert({ user_id: user.id, listing_id: listingId });
+      setFavoritedIds((prev) => new Set([...prev, listingId]));
+      setFavoritesCount((c) => c + 1);
+      toast.success("Opgeslagen als favoriet! ❤️");
+    }
+  }
+
+  async function handleQuickApply(listingId: string) {
+    if (!supabase || !user) return;
+    // Task 5: gate on phone number
+    if (!profile?.phone) {
+      setQuickApplyListingId(listingId);
+      setPhoneModalOpen(true);
+      return;
+    }
+    await submitQuickApplication(listingId);
+  }
+
+  async function submitQuickApplication(listingId: string) {
+    if (!supabase || !user) return;
+    setQuickApplyLoading(true);
+    const defaultMsg = "Hoi, ik heb interesse in deze woning. Ik reageer snel! Graag zou ik meer informatie willen ontvangen.";
+    const { error } = await supabase.from("applications").insert({
+      listing_id: listingId,
+      applicant_id: user.id,
+      message: defaultMsg,
+      status: "pending",
+    });
+    setQuickApplyLoading(false);
+    if (error) {
+      if (error.code === "23505") { toast.error("Je hebt al gereageerd op deze woning."); }
+      else { toast.error("Reageren mislukt. Probeer het opnieuw."); }
+      return;
+    }
+    toast.success("Reactie verstuurd! ⚡");
+    setMyApplications((prev) => [
+      { id: crypto.randomUUID(), listing_id: listingId, applicant_id: user.id, message: defaultMsg, budget: null, status: "pending", created_at: new Date().toISOString(), landlord_reply: null, listings: null },
+      ...prev,
+    ]);
+  }
+
+  async function handleSavePhoneAndApply() {
+    if (!supabase || !user || !phoneInput.trim()) return;
+    setSavingPhone(true);
+    const { error } = await supabase.from("profiles").update({ phone: phoneInput.trim() }).eq("id", user.id);
+    setSavingPhone(false);
+    if (error) { toast.error("Telefoonnummer opslaan mislukt."); return; }
+    setProfile((p) => p ? { ...p, phone: phoneInput.trim() } : p);
+    setPhoneModalOpen(false);
+    setPhoneInput("");
+    const listingId = quickApplyListingId;
+    setQuickApplyListingId(null);
+    if (listingId) await submitQuickApplication(listingId);
+  }
+
+  function dismissChecklistItem(key: string) {
+    const next = { ...checklistDismissed, [key]: true };
+    setChecklistDismissed(next);
+    localStorage.setItem("roomly_checklist_dismissed", JSON.stringify(next));
   }
 
   if (!authLoading && !user) {
@@ -939,8 +1027,49 @@ export function DashboardPage() {
           </div>
         )}
 
+        {/* Phone number modal — Task 5 */}
+        {phoneModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+              <div className="mb-4 flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-50">
+                  <Phone className="h-5 w-5 text-rose-500" />
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-stone-900">Telefoonnummer toevoegen</h3>
+                  <p className="mt-1 text-sm text-stone-500">Voeg je telefoonnummer toe voordat je reageert. Dit geeft verhuurders meer vertrouwen.</p>
+                </div>
+              </div>
+              <input
+                type="tel"
+                placeholder="+31 6 12345678"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                className="w-full rounded-xl border border-stone-200 px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+              />
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  disabled={savingPhone || !phoneInput.trim()}
+                  onClick={handleSavePhoneAndApply}
+                  className="flex-1 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95 disabled:opacity-50"
+                >
+                  {savingPhone ? "Opslaan…" : "Opslaan & reageren"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPhoneModalOpen(false); setPhoneInput(""); setQuickApplyListingId(null); }}
+                  className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                >
+                  Annuleren
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ════════════════════════════════════════════════════════════════════
-            WONINGZOEKENDE — Discovery Hub
+            WONINGZOEKENDE — Application Launchpad
             ════════════════════════════════════════════════════════════════════ */}
         {effectiveTab === "zoektocht" && (() => {
           // Derive city for search continuity
@@ -950,152 +1079,249 @@ export function DashboardPage() {
           const searchUrl = buildSearchUrl(lastSavedSearch, cityFromViews);
           const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews);
 
-          // Motivational nudge: pick the most impactful missing field
-          const nudgeMap: Partial<Record<keyof Profile, string>> = {
-            avatar_url: "Profielen met een foto krijgen 3x meer reacties.",
-            bio: "Een goede bio verhoogt je kansen aanzienlijk.",
-            phone: "Verhuurders nemen sneller contact op als je bereikbaar bent.",
-            name: "Voeg je naam toe voor een persoonlijker profiel.",
-          };
-          const motivationalNudge = missingProfileFields.length > 0
-            ? nudgeMap[missingProfileFields[0].key] ?? null
-            : null;
+          // Task 3 — Opstartlijst items
+          const checklistItems = [
+            {
+              key: "search",
+              emoji: "🔍",
+              label: "Je eerste zoekopdracht uitvoeren",
+              done: !loading && savedSearchesCount > 0,
+              href: "/kamers",
+            },
+            {
+              key: "favorite",
+              emoji: "❤️",
+              label: "Sla je eerste woning op",
+              done: !loading && favoritesCount > 0,
+              href: "/kamers",
+            },
+            {
+              key: "apply",
+              emoji: "📝",
+              label: "Verstuur je eerste reactie",
+              done: !loading && myApplications.length > 0,
+              href: "/kamers",
+            },
+          ];
+          const allChecklistDone = !loading && checklistItems.every((i) => i.done);
+          const visibleChecklistItems = checklistItems.filter((i) => !i.done || !checklistDismissed[i.key]);
 
           return (
             <div className="mt-6 space-y-8">
 
-              {/* TASK 1 — Search Continuity */}
-              {!loading && (hasSearchContext || recentViews.length > 0) && (
+              {/* TASK 1 — Search Continuity HERO (most prominent) */}
+              {loading ? (
+                <div className="h-24 animate-pulse rounded-2xl bg-stone-200" />
+              ) : (hasSearchContext || recentViews.length > 0) ? (
                 <Link
                   href={searchUrl}
-                  className="group flex items-center justify-between gap-4 rounded-2xl border border-rose-100 bg-gradient-to-r from-rose-50 to-rose-50/30 px-5 py-4 shadow-sm transition hover:border-rose-200 hover:shadow-md"
+                  className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-rose-200 bg-gradient-to-r from-rose-500 to-rose-400 px-6 py-5 shadow-lg transition hover:from-rose-600 hover:to-rose-500 hover:shadow-xl active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100">
-                      <Search className="h-5 w-5 text-rose-500" />
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
+                      <Search className="h-6 w-6 text-white" />
                     </span>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-rose-400">Ga verder met je zoekopdracht</p>
-                      <p className="mt-0.5 text-sm font-bold text-stone-900">{searchSummary}</p>
+                      <p className="text-xs font-bold uppercase tracking-widest text-rose-100">Ga verder met je zoekopdracht</p>
+                      <p className="mt-0.5 text-lg font-black text-white">{searchSummary}</p>
                       {lastSavedSearch?.name && (
-                        <p className="mt-0.5 text-xs text-stone-400">Opgeslagen als: {lastSavedSearch.name}</p>
+                        <p className="mt-0.5 text-xs text-rose-200">Opgeslagen als: {lastSavedSearch.name}</p>
                       )}
                     </div>
                   </div>
-                  <ArrowRight className="h-5 w-5 shrink-0 text-rose-400 transition group-hover:translate-x-1" />
+                  <ArrowRight className="h-6 w-6 shrink-0 text-white/80 transition group-hover:translate-x-1" />
+                </Link>
+              ) : (
+                <Link
+                  href="/kamers"
+                  className="group flex items-center justify-between gap-4 rounded-2xl border-2 border-rose-200 bg-gradient-to-r from-rose-500 to-rose-400 px-6 py-5 shadow-lg transition hover:from-rose-600 hover:to-rose-500 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20">
+                      <Search className="h-6 w-6 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest text-rose-100">Begin met zoeken</p>
+                      <p className="mt-0.5 text-lg font-black text-white">Vind jouw ideale woning</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-6 w-6 shrink-0 text-white/80 transition group-hover:translate-x-1" />
                 </Link>
               )}
 
-              {/* TASK 4 — Enhanced Profile Completion Card */}
-              {!loading && profile && (
-                <div className={`rounded-2xl border p-5 shadow-sm ${profilePct === 100 ? "border-emerald-200 bg-emerald-50/60" : "border-stone-200/80 bg-white"}`}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${profilePct === 100 ? "bg-emerald-100" : "bg-rose-50"}`}>
-                        <UserCircle className={`h-5 w-5 ${profilePct === 100 ? "text-emerald-600" : "text-rose-400"}`} />
-                      </span>
+              {/* TASK 3 — Opstartlijst OR KPI grid */}
+              {loading ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {[1, 2, 3].map((n) => <div key={n} className="h-20 animate-pulse rounded-2xl bg-stone-200" />)}
+                </div>
+              ) : allChecklistDone ? (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {[
+                    { label: "Favorieten", value: favoritesCount, href: "/favorieten", icon: <Heart className="h-5 w-5 text-rose-400" />, sub: null as string | null },
+                    { label: "Verzonden reacties", value: myApplications.length, href: "#aanvragen", icon: <MessageSquare className="h-5 w-5 text-emerald-400" />, sub: recentApplicationsCount ? `+${recentApplicationsCount} in 30 dagen` : null },
+                    { label: "Opgeslagen zoekopdrachten", value: savedSearchesCount, href: "/opgeslagen-zoekopdrachten", icon: <Search className="h-5 w-5 text-amber-400" />, sub: null },
+                  ].map((stat) => (
+                    <a key={stat.label} href={stat.href}
+                      className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">{stat.icon}</div>
                       <div>
-                        <p className="text-sm font-bold text-stone-900">Profiel voltooiing</p>
-                        {profilePct < 100 && motivationalNudge && (
-                          <p className="mt-0.5 text-xs text-rose-500 font-medium">{motivationalNudge}</p>
+                        <p className="text-xs font-medium text-stone-500">{stat.label}</p>
+                        <p className="text-2xl font-black text-stone-900">{stat.value}</p>
+                        {stat.sub && <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100">
+                      <CheckCircle2 className="h-4 w-4 text-amber-600" />
+                    </span>
+                    <h3 className="text-sm font-bold text-stone-900">Opstartlijst</h3>
+                    <span className="ml-auto rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">
+                      {checklistItems.filter((i) => i.done).length}/{checklistItems.length} gedaan
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {visibleChecklistItems.map((item) => (
+                      <div key={item.key} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${item.done ? "bg-emerald-50" : "bg-stone-50 hover:bg-rose-50"}`}>
+                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${item.done ? "border-emerald-400 bg-emerald-400" : "border-stone-300"}`}>
+                          {item.done && <CheckCircle2 className="h-4 w-4 text-white" />}
+                        </span>
+                        <span className="text-sm">{item.emoji}</span>
+                        {item.done ? (
+                          <span className="flex-1 text-xs font-medium text-emerald-700 line-through">{item.label}</span>
+                        ) : (
+                          <Link href={item.href} className="flex-1 text-xs font-medium text-stone-700 hover:text-rose-700">{item.label}</Link>
+                        )}
+                        {item.done && (
+                          <button type="button" onClick={() => dismissChecklistItem(item.key)} className="shrink-0 rounded-lg p-1 text-emerald-400 transition hover:bg-emerald-100 hover:text-emerald-600">
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                        {!item.done && (
+                          <Link href={item.href} className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95">
+                            Starten →
+                          </Link>
                         )}
                       </div>
-                    </div>
-                    {profilePct === 100 ? (
-                      <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                        <ShieldCheck className="h-4 w-4" /> Compleet!
-                      </span>
-                    ) : (
-                      <span className="text-xs font-medium text-stone-500">
-                        <span className="font-bold text-stone-800">{profilePct}%</span> compleet
-                      </span>
-                    )}
+                    ))}
                   </div>
-
-                  <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-stone-200">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${profilePct === 100 ? "bg-emerald-500" : "bg-rose-500"}`}
-                      style={{ width: `${profilePct}%` }}
-                    />
-                  </div>
-
-                  {profilePct < 100 && missingProfileFields.length > 0 && (
-                    <div className="mt-4 space-y-1.5">
-                      {missingProfileFields.map((f) => (
-                        <Link
-                          key={f.key}
-                          href="/profiel"
-                          className="group flex items-center justify-between gap-3 rounded-xl px-3 py-2 transition hover:bg-rose-50"
-                        >
-                          <span className="flex items-center gap-2 text-xs text-stone-500 group-hover:text-rose-700">
-                            <Circle className="h-3 w-3 shrink-0 text-stone-300 group-hover:text-rose-300" />
-                            {f.missing}
-                          </span>
-                          <span className="shrink-0 text-xs font-semibold text-rose-500 group-hover:text-rose-700">
-                            Toevoegen →
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-
-                  {profilePct < 100 && (
-                    <Link href="/profiel" className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95">
-                      Profiel verbeteren →
-                    </Link>
-                  )}
                 </div>
               )}
 
-              {/* Stats — 3 columns */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {[
-                  {
-                    label: "Favorieten",
-                    value: loading ? "…" : favoritesCount,
-                    href: "/favorieten",
-                    icon: <Heart className="h-5 w-5 text-rose-400" />,
-                  },
-                  {
-                    label: "Verzonden reacties",
-                    value: loading ? "…" : myApplications.length,
-                    href: "#aanvragen",
-                    icon: <MessageSquare className="h-5 w-5 text-emerald-400" />,
-                    sub: !loading && recentApplicationsCount ? `+${recentApplicationsCount} in 30 dagen` : null,
-                  },
-                  {
-                    label: "Opgeslagen zoekopdrachten",
-                    value: loading ? "…" : savedSearchesCount,
-                    href: "/opgeslagen-zoekopdrachten",
-                    icon: <Search className="h-5 w-5 text-amber-400" />,
-                  },
-                ].map((stat) => (
-                  <a key={stat.label} href={stat.href}
-                    className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">{stat.icon}</div>
-                    <div>
-                      <p className="text-xs font-medium text-stone-500">{stat.label}</p>
-                      <p className="text-2xl font-black text-stone-900">{stat.value}</p>
-                      {stat.sub && <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>}
-                    </div>
-                  </a>
-                ))}
+              {/* TASK 2 — Aanbevolen voor jou (8 items, scroll on mobile, grid on desktop) */}
+              <div ref={recommendationsRef}>
+                <div className="mb-4 flex items-center gap-2">
+                  <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
+                  {(cityFromSearch ?? cityFromViews) && (
+                    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
+                      {cityFromSearch ?? cityFromViews}
+                    </span>
+                  )}
+                </div>
+                {loading ? (
+                  <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+                    {[1, 2, 3, 4].map((n) => <div key={n} className="min-w-[200px] animate-pulse rounded-2xl bg-stone-200 h-52 sm:min-w-0" />)}
+                  </div>
+                ) : recommendedListings.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-10 text-center shadow-sm">
+                    <p className="text-sm text-stone-500">Geen aanbevelingen beschikbaar.</p>
+                    <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">Bekijk alle woningen →</Link>
+                  </div>
+                ) : (
+                  <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+                    {recommendedListings.map((l) => {
+                      const thumb = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
+                      const boosted = isBoostActive(l.boosted_at);
+                      const isNew = !boosted && new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
+                      const cityMatch = !!(cityFromSearch ?? cityFromViews);
+                      const isFav = favoritedIds.has(l.id);
+                      const reason = boosted
+                        ? "Uitgelicht voor jou"
+                        : isNew
+                        ? "Nieuw vandaag"
+                        : cityMatch
+                        ? "Op basis van jouw zoekopdracht"
+                        : "Populair in deze buurt";
+                      return (
+                        <div key={l.id} className="group relative flex min-w-[200px] flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:min-w-0">
+                          {/* Image */}
+                          <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
+                            <Link href={`/kamers/${l.id}`}>
+                              {thumb
+                                ? <img src={thumb} alt={l.title} className="h-full w-full object-cover transition group-hover:scale-105" />
+                                : <div className="flex h-full w-full items-center justify-center"><Home className="h-8 w-8 text-stone-300" /></div>}
+                            </Link>
+                            {boosted && (
+                              <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                                <Zap className="h-3 w-3" /> Uitgelicht
+                              </span>
+                            )}
+                            {isNew && !boosted && (
+                              <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                                Nieuw
+                              </span>
+                            )}
+                            {/* Quick-action buttons */}
+                            <div className="absolute right-2 top-2 flex flex-col gap-1.5">
+                              <button
+                                type="button"
+                                aria-label={isFav ? "Verwijder uit favorieten" : "Favoriet"}
+                                onClick={(e) => { e.preventDefault(); handleToggleFavorite(l.id); }}
+                                className={`flex h-8 w-8 items-center justify-center rounded-full shadow-md transition active:scale-90 ${isFav ? "bg-rose-500 text-white" : "bg-white/90 text-stone-400 hover:bg-rose-50 hover:text-rose-500"}`}
+                              >
+                                <Heart className={`h-4 w-4 ${isFav ? "fill-current" : ""}`} />
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Snel reageren"
+                                disabled={quickApplyLoading}
+                                onClick={(e) => { e.preventDefault(); handleQuickApply(l.id); }}
+                                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-stone-400 shadow-md transition hover:bg-amber-50 hover:text-amber-500 active:scale-90 disabled:opacity-50"
+                              >
+                                <Zap className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          {/* Info */}
+                          <div className="flex flex-1 flex-col gap-0.5 p-3">
+                            <p className="line-clamp-2 text-xs font-semibold text-stone-900 leading-snug">{l.title}</p>
+                            <p className="text-xs text-stone-400 truncate">{l.location}</p>
+                            <p className="mt-1 text-xs font-bold text-rose-600">€{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
+                            <p className="mt-1 text-[10px] font-medium text-stone-400 truncate">{reason}</p>
+                            <Link href={`/kamers/${l.id}`} className="mt-2 flex items-center justify-center rounded-xl border border-stone-200 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
+                              Bekijk →
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {/* TASK 3 — Mijn aanvragen as Timeline */}
+              {/* TASK 4 — Mijn aanvragen as Timeline */}
               <div id="aanvragen">
                 <h2 className="mb-4 text-lg font-bold text-stone-900">Mijn aanvragen</h2>
                 {loading ? (
                   <div className="space-y-3">{[1, 2].map((n) => <div key={n} className="h-28 animate-pulse rounded-2xl bg-stone-200" />)}</div>
                 ) : myApplications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-12 text-center shadow-sm">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-50">
-                      <SendHorizontal className="h-5 w-5 text-stone-400" />
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
+                      <SendHorizontal className="h-6 w-6 text-rose-400" />
                     </div>
-                    <p className="mt-3 text-sm font-medium text-stone-700">Nog geen reacties geplaatst</p>
-                    <p className="mt-1 text-xs text-stone-400">Reageer op woningen om je voortgang hier te zien.</p>
-                    <Link href="/kamers" className="mt-4 text-xs font-semibold text-rose-600 hover:underline">Woningen bekijken →</Link>
+                    <p className="mt-4 text-base font-semibold text-stone-800">Nog geen reacties geplaatst</p>
+                    <p className="mt-2 max-w-xs text-sm text-stone-500">Begin met reageren op aanbevolen woningen om je ideale plek te vinden.</p>
+                    <button
+                      type="button"
+                      onClick={() => recommendationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                      className="mt-5 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95"
+                    >
+                      Bekijk aanbevolen woningen
+                    </button>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1293,62 +1519,21 @@ export function DashboardPage() {
                 )}
               </div>
 
-              {/* TASK 2 — Personalized "Aanbevolen voor jou" */}
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
-                  {(cityFromSearch ?? cityFromViews) && (
-                    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
-                      {cityFromSearch ?? cityFromViews}
-                    </span>
-                  )}
+              {/* TASK 1 — Profile completion (subtle, only if missing phone number) */}
+              {!loading && profile && !profile.phone && (
+                <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-stone-100">
+                    <UserCircle className="h-4 w-4 text-stone-500" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-stone-700">Profiel voltooiing</p>
+                    <p className="text-xs text-stone-400">Voeg je telefoonnummer toe — verhuurders nemen sneller contact op.</p>
+                  </div>
+                  <Link href="/profiel" className="shrink-0 rounded-lg bg-stone-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-stone-700 active:scale-95">
+                    Aanvullen
+                  </Link>
                 </div>
-                {loading ? (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {[1, 2, 3, 4].map((n) => <div key={n} className="animate-pulse rounded-2xl bg-stone-200 h-48" />)}
-                  </div>
-                ) : recommendedListings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-10 text-center shadow-sm">
-                    <p className="text-sm text-stone-500">Geen aanbevelingen beschikbaar.</p>
-                    <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">Bekijk alle woningen →</Link>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                    {recommendedListings.map((l) => {
-                      const thumb = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
-                      const boosted = isBoostActive(l.boosted_at);
-                      const isNew = !boosted && new Date(l.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-                      return (
-                        <div key={l.id} className="group flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                          <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
-                            {thumb
-                              ? <img src={thumb} alt={l.title} className="h-full w-full object-cover transition group-hover:scale-105" />
-                              : <div className="flex h-full w-full items-center justify-center"><Home className="h-8 w-8 text-stone-300" /></div>}
-                            {boosted && (
-                              <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold text-white shadow">
-                                <Zap className="h-3 w-3" /> Uitgelicht
-                              </span>
-                            )}
-                            {isNew && !boosted && (
-                              <span className="absolute left-2 top-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white shadow">
-                                Nieuw
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-1 flex-col gap-0.5 p-3">
-                            <p className="line-clamp-2 text-xs font-semibold text-stone-900 leading-snug">{l.title}</p>
-                            <p className="text-xs text-stone-400 truncate">{l.location}</p>
-                            <p className="mt-1 text-xs font-bold text-rose-600">€{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
-                            <Link href={`/kamers/${l.id}`} className="mt-2 flex items-center justify-center rounded-xl border border-stone-200 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700">
-                              Bekijk →
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+              )}
 
             </div>
           );

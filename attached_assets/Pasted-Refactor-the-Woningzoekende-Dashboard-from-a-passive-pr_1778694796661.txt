@@ -1,0 +1,33 @@
+Refactor the Woningzoekende Dashboard from a passive profile page into a dynamic "Application Launchpad". The primary goal is to convert users from browsing to applying.
+
+## TASK 1 — Restructure Hero Area
+1.  Make the "Ga verder met je zoekopdracht" card the most prominent element at the top. Keep its existing functionality.
+2.  Move the "Profiel voltooiing" card down. Make it visually smaller and less dominant. It should be a subtle nudge, not a primary focus. Only show it if the user has not completed a minimum required action for applying (e.g., no phone number set).
+
+## TASK 2 — Supercharge "Aanbevolen voor jou"
+1.  Increase the number of recommended listings from 4 to at least 8. Make the section horizontally scrollable on mobile and a full grid on desktop.
+2.  For each listing, display a short reason for the recommendation: "Op basis van jouw zoekopdracht", "Populair in deze buurt", "Nieuw vandaag".
+3.  Add quick-action buttons directly on each recommendation card: a heart icon for "Favoriet" and a lightning bolt for "Snel reageren" (Quick Apply), which pre-fills a message and submits an application in one click.
+
+## TASK 3 — Transform KPIs into an Onboarding Checklist
+Replace the static KPI grid (Favorieten / Reacties / Zoekopdrachten) with a dynamic, dismissible "Opstartlijst" (Getting Started Checklist).
+1.  Show actionable tasks like:
+    - "🔍 Je eerste zoekopdracht uitvoeren" (if no saved searches)
+    - "❤️ Sla je eerste woning op" (if no favorites)
+    - "📝 Verstuur je eerste reactie" (if no applications sent)
+2.  Each completed task should be visually checked off and collapsed. Incomplete tasks should link to the relevant page to complete them.
+3.  Once all tasks are completed, this section should be replaced by the standard KPI grid showing their real stats (Favorites count, Applications sent, Saved searches).
+
+## TASK 4 — Make "Mijn aanvragen" Actionable
+1.  If the user has no applications, enhance the empty state with a motivational prompt: "Begin met reageren op aanbevolen woningen om je ideale plek te vinden." and a prominent "Bekijk aanbevolen woningen" button that scrolls to the recommendations section.
+2.  Keep the existing timeline for users who have sent applications.
+
+## TASK 5 — Smart Progressive Profiling
+1.  When a user clicks "Snel reageren" on a recommendation, check if they have a phone number in their profile.
+2.  If they do NOT, interrupt the flow and show a friendly modal: "Voeg je telefoonnummer toe voordat je reageert. Dit geeft verhuurders meer vertrouwen." with a field to add it directly in the modal and a "Opslaan & reageren" button.
+3.  If they already have a phone number, proceed with the quick application immediately.
+
+## TASK 6 — Keep Everything Else Intact
+-   All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+-   Do not break any existing functionality, like the real-time application updates or the admin view.
+-   Commit with message: "Refactor Woningzoekende dashboard into Application Launchpad" and push.
