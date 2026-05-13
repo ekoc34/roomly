@@ -140,6 +140,10 @@ export function DashboardPage() {
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
+  const [applyModalListingId, setApplyModalListingId] = useState<string | null>(null);
+  const [applyModalMessage, setApplyModalMessage] = useState("");
+  const [applyModalBudget, setApplyModalBudget] = useState("");
+  const [applyModalLoading, setApplyModalLoading] = useState(false);
 
 
   const recommendationsRef = useRef<HTMLDivElement>(null);
@@ -469,15 +473,45 @@ export function DashboardPage() {
     }
   }
 
-  async function handleQuickApply(listingId: string) {
-    if (!supabase || !user) return;
-    // Task 5: gate on phone number
+  function handleQuickApply(listingId: string) {
+    setApplyModalListingId(listingId);
+    setApplyModalMessage("");
+    setApplyModalBudget("");
+  }
+
+  async function submitApplyModal() {
+    if (!supabase || !user || !applyModalListingId) return;
+    const msg = applyModalMessage.trim();
+    if (!msg) return;
     if (!profile?.phone) {
-      setQuickApplyListingId(listingId);
+      setQuickApplyListingId(applyModalListingId);
+      setApplyModalListingId(null);
       setPhoneModalOpen(true);
       return;
     }
-    await submitQuickApplication(listingId);
+    setApplyModalLoading(true);
+    const budget = applyModalBudget ? parseFloat(applyModalBudget) : null;
+    const { error } = await supabase.from("applications").insert({
+      listing_id: applyModalListingId,
+      applicant_id: user.id,
+      message: msg,
+      budget,
+      status: "pending",
+    });
+    setApplyModalLoading(false);
+    if (error) {
+      if (error.code === "23505") { toast.error("Je hebt al gereageerd op deze woning."); }
+      else { toast.error("Reageren mislukt. Probeer het opnieuw."); }
+      return;
+    }
+    toast.success("Reactie verstuurd!");
+    setMyApplications((prev) => [
+      { id: crypto.randomUUID(), listing_id: applyModalListingId!, applicant_id: user.id, message: msg, budget, status: "pending", created_at: new Date().toISOString(), landlord_reply: null, listings: null },
+      ...prev,
+    ]);
+    setApplyModalListingId(null);
+    setApplyModalMessage("");
+    setApplyModalBudget("");
   }
 
   async function submitQuickApplication(listingId: string) {
@@ -496,7 +530,7 @@ export function DashboardPage() {
       else { toast.error("Reageren mislukt. Probeer het opnieuw."); }
       return;
     }
-    toast.success("Reactie verstuurd! ⚡");
+    toast.success("Reactie verstuurd!");
     setMyApplications((prev) => [
       { id: crypto.randomUUID(), listing_id: listingId, applicant_id: user.id, message: defaultMsg, budget: null, status: "pending", created_at: new Date().toISOString(), landlord_reply: null, listings: null },
       ...prev,
@@ -643,19 +677,17 @@ export function DashboardPage() {
             VERHUURDER / HUISGENOOT ZOEKER — Operations Cockpit
             ════════════════════════════════════════════════════════════════════ */}
         {effectiveTab === "verhuur" && (
-          <div className="mt-6 space-y-6">
+          <div className="mt-4 space-y-4">
 
-            {/* 1. Compact CTA */}
-            <div className="flex justify-end">
-              <Link
-                href="/kamers/nieuw"
-                data-testid="dashboard-new-listing"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:bg-stone-50"
-              >
-                <span className="leading-none">+</span>
-                Advertentie plaatsen
-              </Link>
-            </div>
+            {/* 1. Prominent CTA */}
+            <Link
+              href="/kamers/nieuw"
+              data-testid="dashboard-new-listing"
+              className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 active:scale-[0.99]"
+            >
+              <span className="text-base leading-none">+</span>
+              Advertentie plaatsen
+            </Link>
 
             {/* 2. Stats — 3-4 columns (reactietijd hidden when no data) */}
             {(() => {
@@ -678,7 +710,7 @@ export function DashboardPage() {
                   href: "#aanvragen",
                   icon: <Star className="h-5 w-5 text-amber-400" />,
                   sub: !loading && recentLandlordApplicationsCount ? `+${recentLandlordApplicationsCount} in 30 dagen` : null,
-                  cta: !loading && pendingCount === 0 && mostRecentListingId ? { label: "Advertentie verbeteren", href: `/kamers/${mostRecentListingId}/bewerken` } : null,
+                  cta: null,
                 },
                 {
                   label: "Nieuwe berichten",
@@ -826,38 +858,23 @@ export function DashboardPage() {
                               <Edit2 className="h-3.5 w-3.5" />
                               Bewerken
                             </Link>
-                            {/* ⋯ dropdown for secondary actions */}
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={() => setOpenDropdownId(isDropdownOpen ? null : l.id)}
-                                className="flex items-center justify-center rounded-xl border border-stone-200 px-2.5 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-50"
-                                aria-label="Meer opties"
-                              >
-                                ⋯
-                              </button>
-                              {isDropdownOpen && (
-                                <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-2xl border border-stone-200 bg-white py-1.5 shadow-lg">
-                                  <button
-                                    type="button"
-                                    disabled={boostingId === l.id || boosted || (profile?.boost_credits ?? 0) <= 0}
-                                    onClick={() => { handleBoostListing(l.id); setOpenDropdownId(null); }}
-                                    className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                  >
-                                    <Zap className="h-3.5 w-3.5 shrink-0" />
-                                    {boostingId === l.id ? "Bezig…" : boosted ? "Boost actief" : "Boost nu"}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => { setDeletingListingId(l.id); setOpenDropdownId(null); }}
-                                    className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                                    Verwijderen
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                            <button
+                              type="button"
+                              disabled={boostingId === l.id || boosted || (profile?.boost_credits ?? 0) <= 0}
+                              onClick={() => handleBoostListing(l.id)}
+                              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Zap className="h-3.5 w-3.5" />
+                              {boostingId === l.id ? "Bezig…" : boosted ? "Actief" : "Boost"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingListingId(l.id)}
+                              className="flex h-8 w-8 items-center justify-center rounded-xl border border-stone-200 text-stone-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                              aria-label="Verwijderen"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -1005,6 +1022,62 @@ export function DashboardPage() {
               </Link>
             </div>
 
+          </div>
+        )}
+
+        {/* Apply modal — message + budget form */}
+        {applyModalListingId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-base font-bold text-stone-900">Reageer op woning</h3>
+                <button type="button" onClick={() => setApplyModalListingId(null)} className="rounded-lg p-1 text-stone-400 transition hover:text-stone-600">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-700">Bericht <span className="text-rose-500">*</span></label>
+                  <textarea
+                    rows={4}
+                    placeholder="Hoi, ik heb interesse in deze woning…"
+                    value={applyModalMessage}
+                    onChange={(e) => setApplyModalMessage(e.target.value)}
+                    className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-stone-700">Budget (optioneel)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">€</span>
+                    <input
+                      type="number"
+                      placeholder="bijv. 1200"
+                      value={applyModalBudget}
+                      onChange={(e) => setApplyModalBudget(e.target.value)}
+                      className="w-full rounded-xl border border-stone-200 py-2.5 pl-7 pr-3 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button
+                  type="button"
+                  disabled={applyModalLoading || !applyModalMessage.trim()}
+                  onClick={submitApplyModal}
+                  className="flex-1 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-600 active:scale-95 disabled:opacity-50"
+                >
+                  {applyModalLoading ? "Versturen…" : "Verstuur reactie"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyModalListingId(null)}
+                  className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
+                >
+                  Annuleren
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -1470,27 +1543,6 @@ export function DashboardPage() {
             </div>
           );
         })()}
-
-        {/* ── Boost Credits ── */}
-        {!loading && profile?.user_type && VERHUUR_TYPES.includes(profile.user_type) && (
-          <div className="mt-8 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-start gap-4">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50">
-                <Zap className="h-5 w-5 text-rose-500" />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-base font-bold text-stone-900">Boost Credits</h2>
-                <p className="mt-0.5 text-xs text-stone-500">Koop credits om je advertentie uit te lichten en meer huurders te bereiken.</p>
-              </div>
-            </div>
-            <button type="button" onClick={() => navigate("/pricing")}
-              className="inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
-            >
-              <CreditCard className="h-4 w-4" />
-              Boost Credits kopen
-            </button>
-          </div>
-        )}
 
       </div>
     </>
