@@ -1,0 +1,30 @@
+Apply three UX improvements to the Profile page (`ProfilePage.tsx`) to make it more human-centric and trust-building.
+
+## TASK 1 — Human-centric Verification Status
+Replace the technical verification text (e.g., "E-mail niet geverifieerd / Telefoon geverifieerd / Gedeeltelijk geverifieerd") with a more friendly, user-focused design.
+1.  Create a single "Je account status" card that shows a clear, visual summary.
+2.  Use colored dots and friendly text:
+    -   🟢 "Je account is volledig geverifieerd" (if both email and phone are verified).
+    -   🟡 "Je account is gedeeltelijk geverifieerd. Verifieer je e-mailadres voor extra vertrouwen." (if only phone is verified).
+    -   ⚪ "Je account is niet geverifieerd. Verifieer je e-mailadres of telefoonnummer om meer vertrouwen te krijgen." (if none are verified).
+3.  Provide clear action buttons next to each unverified item ("E-mail verifiëren", "Telefoon verifiëren").
+
+## TASK 2 — Visual Notification Preferences
+Make the "Notificatievoorkeuren" section more scannable by adding icons and grouping.
+1.  Add a relevant Lucide icon next to each toggle label:
+    -   💬 (MessageSquare) for "Nieuwe berichten"
+    -   🏠 (Home) for "Nieuwe woningen"
+    -   📩 (Bell) for "Aanvraag updates"
+2.  Keep the existing toggle functionality and Dutch labels intact.
+
+## TASK 3 — Add "Public Profile Preview"
+Add a card to the profile page that lets users see exactly how their public profile card appears to others.
+1.  Create a new "Zo zien anderen jou" section.
+2.  Inside it, render a static preview of the `OwnerBadges` component, passing the current user's profile data. This lets users see their own verification badge, lifestyle tags, and response time.
+3.  Add a subtle "Dit is hoe verhuurders of huisgenoten jouw profiel zien." description.
+4.  This preview must update in real-time as the user changes their profile fields or lifestyle tags.
+
+## TASK 4 — Keep Everything Else Intact
+-   All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+-   Do not break any existing functionality, especially the persona selector and admin features.
+-   Commit with message: "Humanize verification status, add profile preview, and improve notification UI" and push.

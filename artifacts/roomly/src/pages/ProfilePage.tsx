@@ -1,11 +1,12 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { MessageSquare, Bell, Search, AlertTriangle, KeyRound } from "lucide-react";
+import { MessageSquare, Bell, Home, AlertTriangle, KeyRound, Mail, Phone, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { PasswordInput } from "@/components/ui/password-input";
+import { OwnerBadges } from "@/components/listings/OwnerBadges";
 import type { Profile, UserType } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
@@ -554,29 +555,81 @@ export function ProfilePage() {
                 )}
               </div>
 
+              {/* TASK 1 — Je account status */}
               <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
-                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Verificatiestatus</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${profile?.email_auto_verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-stone-200 bg-white text-stone-500"}`}>
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    {profile?.email_auto_verified ? "E-mail geverifieerd" : "E-mail niet geverifieerd"}
-                  </span>
-                  <span className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${profile?.phone_verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-stone-200 bg-white text-stone-500"}`}>
-                    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                    {profile?.phone_verified ? "Telefoon geverifieerd" : "Telefoon niet geverifieerd"}
-                  </span>
-                  {isFullyVerified(profile) && (
-                    <span className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                      Geverifieerd
-                    </span>
+                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Je account status</p>
+                {/* Summary line */}
+                <div className="flex items-center gap-2.5 mb-4">
+                  {isFullyVerified(profile) ? (
+                    <>
+                      <span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
+                      <p className="text-sm font-medium text-emerald-800">Je account is volledig geverifieerd</p>
+                    </>
+                  ) : isPartiallyVerified(profile) ? (
+                    <>
+                      <span className="h-3 w-3 shrink-0 rounded-full bg-amber-400 shadow-sm shadow-amber-200" />
+                      <p className="text-sm font-medium text-amber-800">Je account is gedeeltelijk geverifieerd. Verifieer je e-mailadres voor extra vertrouwen.</p>
+                    </>
+                  ) : (
+                    <>
+                      <span className="h-3 w-3 shrink-0 rounded-full bg-stone-300" />
+                      <p className="text-sm font-medium text-stone-600">Je account is niet geverifieerd. Verifieer je e-mailadres of telefoonnummer om meer vertrouwen te krijgen.</p>
+                    </>
                   )}
-                  {isPartiallyVerified(profile) && (
-                    <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
-                      Gedeeltelijk geverifieerd
-                    </span>
-                  )}
+                </div>
+                {/* Per-item rows */}
+                <div className="flex flex-col gap-2">
+                  {/* E-mail row */}
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <Mail className="h-4 w-4 shrink-0 text-stone-400" />
+                      <div>
+                        <p className="text-xs font-medium text-stone-700">E-mailadres</p>
+                        <p className="text-[11px] text-stone-400">{user?.email}</p>
+                      </div>
+                    </div>
+                    {profile?.email_auto_verified ? (
+                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                        <CheckCircle2 className="h-3 w-3" /> Geverifieerd
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={emailVerifySending || emailCooldown > 0}
+                        onClick={sendEmailVerification}
+                        className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        {emailVerifySending ? "Versturen…" : emailCooldown > 0 ? `Opnieuw (${emailCooldown}s)` : "E-mail verifiëren"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Telefoon row */}
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <Phone className="h-4 w-4 shrink-0 text-stone-400" />
+                      <div>
+                        <p className="text-xs font-medium text-stone-700">Telefoonnummer</p>
+                        <p className="text-[11px] text-stone-400">{profile?.phone ? profile.phone : "Nog niet ingevuld"}</p>
+                      </div>
+                    </div>
+                    {profile?.phone_verified ? (
+                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                        <CheckCircle2 className="h-3 w-3" /> Geverifieerd
+                      </span>
+                    ) : (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") ? (
+                      <button
+                        type="button"
+                        disabled={phoneVerifyStep === "sending"}
+                        onClick={() => {
+                          const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
+                          startPhoneVerification(phoneInput?.value ?? "");
+                        }}
+                        className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                      >
+                        {phoneVerifyStep === "sending" ? "Versturen…" : "Telefoon verifiëren"}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
 
@@ -800,7 +853,7 @@ export function ProfilePage() {
             <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-50">
-                  <Search className="h-4 w-4 text-purple-500" />
+                  <Home className="h-4 w-4 text-purple-500" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-stone-800">Nieuwe woningen</p>
@@ -819,6 +872,20 @@ export function ProfilePage() {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* TASK 3 — Zo zien anderen jou */}
+      {!loading && profile && (
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <p className="text-base font-semibold text-stone-900">Zo zien anderen jou</p>
+          </div>
+          <p className="mb-5 text-sm text-stone-500">Dit is hoe verhuurders of huisgenoten jouw profiel zien.</p>
+          <OwnerBadges
+            profile={{ ...profile, lifestyle_tags: lifestyleTags }}
+            memberSince={user?.created_at ?? new Date().toISOString()}
+          />
         </div>
       )}
 
