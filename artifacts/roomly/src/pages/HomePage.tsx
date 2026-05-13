@@ -135,6 +135,7 @@ function HomePageContent() {
           responseTimeBadges={responseTimeBadges}
           roommateListings={roommateListings}
           roommateProfiles={roommateProfiles}
+          currentUserId={user?.id ?? null}
         />
       )}
 

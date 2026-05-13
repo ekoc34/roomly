@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useSearch } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ListingCard } from "@/components/listings/ListingCard";
+import { sortByBoost, BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
 import { ListingFilters } from "@/components/listings/ListingFilters";
 import { SkeletonGrid } from "@/components/listings/SkeletonCard";
 import type { Listing, SavedSearch } from "@/types/database";
@@ -54,6 +55,7 @@ export function ListingsPage() {
   const [savedSearchId, setSavedSearchId] = useState<string | null>(null);
   const [savedSearchNotify, setSavedSearchNotify] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [boostTick, setBoostTick] = useState(0);
 
   const currentFilters = normalizeFilters(searchString);
   const hasActiveFilters = Object.keys(currentFilters).length > 0;
@@ -105,7 +107,15 @@ export function ListingsPage() {
       if (sort === "cheapest") {
         query = query.order("price", { ascending: true });
       } else {
-        query = query.order("created_at", { ascending: false });
+        // Default "newest" — boosted listings float to top, then by recency.
+        // Fall back to created_at-only if boosted_at column not yet migrated.
+        try {
+          query = query
+            .order("boosted_at", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false });
+        } catch {
+          query = query.order("created_at", { ascending: false });
+        }
       }
 
       const [{ data: ls }, { data: favs }] = await Promise.all([
@@ -137,6 +147,25 @@ export function ListingsPage() {
     }
     fetchData();
   }, [searchString, user]);
+
+  // Re-sort client-side when the next active boost expires
+  useEffect(() => {
+    const now = Date.now();
+    const nextExpiry = listings
+      .filter((l) => l.boosted_at)
+      .map((l) => new Date(l.boosted_at!).getTime() + BOOST_WINDOW_MS)
+      .filter((t) => t > now)
+      .reduce((min, t) => Math.min(min, t), Infinity);
+    if (!isFinite(nextExpiry)) return;
+    const timer = setTimeout(() => setBoostTick((n) => n + 1), nextExpiry - now);
+    return () => clearTimeout(timer);
+  }, [listings, boostTick]);
+
+  const currentSort = new URLSearchParams(searchString).get("sort") ?? "newest";
+  const displayListings = useMemo(() => {
+    if (currentSort === "cheapest") return listings;
+    return sortByBoost(listings);
+  }, [listings, currentSort, boostTick]);
 
   // Check if current search is already saved
   useEffect(() => {
@@ -269,8 +298,15 @@ export function ListingsPage() {
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {listings.map((l) => (
-              <ListingCard key={l.id} listing={l} isFavorited={favoriteIds.includes(l.id)} verificationBadge={verificationMap.get(l.user_id) ?? null} avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null} />
+            {displayListings.map((l) => (
+              <ListingCard
+                key={l.id}
+                listing={l}
+                isFavorited={favoriteIds.includes(l.id)}
+                verificationBadge={verificationMap.get(l.user_id) ?? null}
+                avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null}
+                currentUserId={user?.id ?? null}
+              />
             ))}
           </div>
         )}

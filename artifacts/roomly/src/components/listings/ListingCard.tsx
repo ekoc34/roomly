@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Users } from "lucide-react";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { CompareButton } from "@/components/listings/CompareButton";
+import { BoostBadge } from "@/components/listings/BoostBadge";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
 
 import type { Listing } from "@/types/database";
@@ -11,6 +12,7 @@ type Props = {
   isFavorited?: boolean;
   verificationBadge?: string | null;
   avgResponseTimeHours?: number | null;
+  currentUserId?: string | null;
 };
 
 function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
@@ -28,7 +30,7 @@ function getResponseBadge(hours: number | null | undefined): { label: string; cl
   return null;
 }
 
-export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours }: Props) {
+export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours, currentUserId }: Props) {
   const isLandlordVerified = !!verificationBadge;
   const img = listing.images[0];
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
@@ -69,6 +71,14 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
               </span>
             )}
           </div>
+          {listing.boosted_at && (
+            <div className="absolute right-3 top-3">
+              <BoostBadge
+                boostedAt={listing.boosted_at}
+                isOwner={!!currentUserId && currentUserId === listing.user_id}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col p-4">
