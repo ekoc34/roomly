@@ -1,0 +1,31 @@
+Transform the "Woningzoekende" dashboard from a stats panel into a dynamic "Search & Discovery Hub". The user should feel that their personal housing search journey continues here, not just see account data.
+
+## TASK 1 — Add "Search Continuity" ("Ga verder met je zoekopdracht")
+At the very top of the dashboard, show a prominent card that allows users to resume their last search instantly.
+1.  Fetch the user's most recently viewed listing's location, or their last saved search filters, or their last used city filter from `listing_views` or `saved_searches`.
+2.  Display a card with a title like "Ga verder met je zoekopdracht" and a summary (e.g., "Amsterdam • max €800 • Studio").
+3.  A single click on this card must navigate back to `/kamers` with those filters pre-applied.
+
+## TASK 2 — Replace "Snel navigeren" with "Aanbevolen voor jou"
+1.  Remove the "Snel navigeren" section entirely.
+2.  In its place, create a personalized "Aanbevolen voor jou" section.
+3.  Fetch 4 listings based on the user's last viewed city, or the most recently boosted listings if no history exists.
+4.  Display them in a grid, showing the listing image, title, price, location, and a "Nieuw" or "Uitgelicht" badge.
+
+## TASK 3 — Turn "Mijn aanvragen" into a Timeline
+1.  Transform the "Mijn aanvragen" list into a visual timeline.
+2.  Each entry should show the application status as a step in a journey:
+    -   "Aanvraag verzonden" (with a clock icon).
+    -   "Bekeken door verhuurder" (if `read_at` is set on their message).
+    -   "Reactie ontvangen" (if the status is 'accepted' or 'rejected').
+3.  This reduces user anxiety by clearly showing where they are in the process.
+
+## TASK 4 — Enhance "Profiel voltooiing" Card
+1.  Keep the existing profile completion card but add a motivational nudge.
+2.  Instead of just showing "75% compleet", add a line: "Profielen met een foto krijgen 3x meer reacties."
+3.  Make the missing items (e.g., "Voeg een foto toe") directly clickable to navigate to the relevant profile editing section.
+
+## TASK 5 — Keep Everything Else Intact
+-   All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+-   Do not break any existing functionality.
+-   Commit with message: "Transform Woningzoekende dashboard into dynamic Search & Discovery Hub" and push.
