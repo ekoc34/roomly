@@ -2,6 +2,8 @@ import { Link } from "wouter";
 import { CitySearchAutocomplete } from "@/components/search/CitySearchAutocomplete";
 import { useSelectedCity } from "@/contexts/SelectedCityContext";
 
+const POPULAR_CITIES = ["Amsterdam", "Rotterdam", "Utrecht", "Den Haag"];
+
 export function HeroSearch() {
   const { selectedCity } = useSelectedCity();
 
@@ -30,8 +32,37 @@ export function HeroSearch() {
             : "Kamers, appartementen en huisgenoten door heel Nederland."}
         </p>
 
-        {/* b. Search input + button (side by side, handled inside CitySearchAutocomplete) */}
+        {/* b. Intent-based CTAs */}
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/kamers"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-8 py-4 text-base font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
+          >
+            🏠 Ik zoek een woning
+          </Link>
+          <Link
+            href="/kamers/nieuw"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-rose-500 bg-white px-8 py-4 text-base font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 active:scale-[0.98]"
+          >
+            📢 Ik wil verhuren
+          </Link>
+        </div>
+
+        {/* c. Search input + button */}
         <CitySearchAutocomplete />
+
+        {/* d. Popular city chips */}
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {POPULAR_CITIES.map((city) => (
+            <Link
+              key={city}
+              href={`/kamers?city=${encodeURIComponent(city)}`}
+              className="rounded-full border border-stone-200 bg-white px-4 py-1.5 text-sm font-medium text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+            >
+              {city}
+            </Link>
+          ))}
+        </div>
 
         {/* c. Quick filter chips — two logical groups */}
         <div className="mt-6 flex flex-wrap justify-center gap-y-3">

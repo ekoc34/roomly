@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { NeighborhoodSection } from "@/components/home/NeighborhoodSection";
-import { WhyRoomly } from "@/components/home/WhyRoomly";
 import { OnboardingBanner } from "@/components/home/OnboardingBanner";
 import { SkeletonGrid } from "@/components/listings/SkeletonCard";
 import type { Listing } from "@/types/database";
@@ -139,7 +138,6 @@ function HomePageContent() {
         />
       )}
 
-      <WhyRoomly />
     </div>
   );
 }

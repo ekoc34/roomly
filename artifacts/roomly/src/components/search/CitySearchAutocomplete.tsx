@@ -120,8 +120,8 @@ export function CitySearchAutocomplete() {
             onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
             onKeyDown={handleKeyDown}
             onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
-            placeholder="Zoek een stad..."
-            className="min-h-12 w-full rounded-2xl border border-stone-200 bg-white py-3 pl-10 pr-4 text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            placeholder="Zoek op stad, budget of type woning..."
+            className="min-h-14 w-full rounded-2xl border border-stone-200 bg-white py-4 pl-11 pr-4 text-base text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
           />
           {loading && (
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
@@ -135,7 +135,7 @@ export function CitySearchAutocomplete() {
         <button
           type="submit"
           data-testid="city-autocomplete-submit"
-          className="min-h-12 rounded-2xl bg-rose-500 px-6 font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
+          className="min-h-14 rounded-2xl bg-rose-500 px-7 text-base font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
         >
           Zoek woningen
         </button>
