@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "wouter";
 import { Elements } from "@stripe/react-stripe-js";
 import { Zap, Star, Rocket, Info } from "lucide-react";
@@ -50,26 +50,11 @@ function formatPrice(price: number) {
 }
 
 function PricingContent() {
-  const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [roleLoaded, setRoleLoaded] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const [loadingId, setLoadingId] = useState<PackageId | null>(null);
 
-  useEffect(() => {
-    if (!user || !supabase) { setRoleLoaded(true); return; }
-    supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        setIsAdmin((data as { role: string } | null)?.role === "admin");
-        setRoleLoaded(true);
-      });
-  }, [user]);
-
   const handleBuy = async (packageId: PackageId) => {
-    if (!isAdmin || !supabase) return;
+    if (!supabase || !user) return;
     setLoadingId(packageId);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -104,10 +89,7 @@ function PricingContent() {
       </nav>
 
       <div className="mb-12 text-center">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
-          Admin testmodus · iDEAL · Test Mode
-        </span>
-        <h1 className="mt-4 text-3xl font-black text-stone-900">Boost Credits kopen</h1>
+        <h1 className="text-3xl font-black text-stone-900">Boost Credits kopen</h1>
         <p className="mt-3 mx-auto max-w-md text-sm text-stone-500">
           Licht je advertentie uit en bereik meer huurders. Betaal snel en veilig via iDEAL.
         </p>
@@ -152,9 +134,9 @@ function PricingContent() {
               </p>
 
               <div className="mt-auto pt-6">
-                {!roleLoaded ? (
+                {authLoading ? (
                   <div className="h-10 w-full animate-pulse rounded-2xl bg-stone-100" />
-                ) : isAdmin ? (
+                ) : user ? (
                   <button
                     onClick={() => handleBuy(pkg.id)}
                     disabled={isLoading || anyLoading}
@@ -163,17 +145,12 @@ function PricingContent() {
                     {isLoading ? "Laden…" : "Koop nu"}
                   </button>
                 ) : (
-                  <div className="group relative">
-                    <button
-                      disabled
-                      className="w-full cursor-not-allowed rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-400"
-                    >
-                      Koop nu
-                    </button>
-                    <div className="pointer-events-none absolute -top-12 left-1/2 z-10 hidden w-56 -translate-x-1/2 rounded-xl bg-stone-800 px-3 py-2 text-center text-xs leading-snug text-white shadow-lg group-hover:block">
-                      Alleen beschikbaar voor admins tijdens de testfase.
-                    </div>
-                  </div>
+                  <Link
+                    href="/inloggen?next=/pricing"
+                    className="block w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+                  >
+                    Inloggen om te kopen
+                  </Link>
                 )}
               </div>
             </div>
@@ -184,7 +161,7 @@ function PricingContent() {
       <div className="mt-10 flex flex-col items-center gap-3">
         <div className="flex items-center gap-2 rounded-2xl border border-stone-100 bg-white px-5 py-3 text-xs text-stone-500 shadow-sm">
           <Info className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-          Beveiligd via <strong className="text-stone-700">iDEAL</strong> · Stripe Test Mode actief · Geen echte betalingen
+          Beveiligd via <strong className="text-stone-700">iDEAL</strong> · Veilige betaling via Stripe
         </div>
       </div>
     </div>
