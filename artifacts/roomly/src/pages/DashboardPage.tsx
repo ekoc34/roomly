@@ -618,7 +618,7 @@ export function DashboardPage() {
       <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 border border-stone-200">
               {profile?.avatar_url
@@ -632,9 +632,27 @@ export function DashboardPage() {
               <p className="text-xs text-stone-500">{user?.email}</p>
             </div>
           </div>
-          <Link href="/profiel" className="w-fit rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50" data-testid="dashboard-edit-profile">
-            Profiel bewerken
-          </Link>
+          {effectiveTab === "verhuur" ? (
+            <div className="flex gap-3">
+              <Link href="/profiel" data-testid="dashboard-edit-profile"
+                className="flex flex-1 items-center justify-center rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+              >
+                Profiel bewerken
+              </Link>
+              <Link href="/kamers/nieuw" data-testid="dashboard-new-listing"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-[0.99]"
+              >
+                <span className="leading-none">+</span>
+                Advertentie plaatsen
+              </Link>
+            </div>
+          ) : (
+            <Link href="/profiel" data-testid="dashboard-edit-profile"
+              className="w-fit rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
+            >
+              Profiel bewerken
+            </Link>
+          )}
         </div>
 
         {/* ── Profile completion banner ─────────────────────────────────────── */}
@@ -679,17 +697,7 @@ export function DashboardPage() {
         {effectiveTab === "verhuur" && (
           <div className="mt-4 space-y-4">
 
-            {/* 1. Prominent CTA */}
-            <Link
-              href="/kamers/nieuw"
-              data-testid="dashboard-new-listing"
-              className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 active:scale-[0.99]"
-            >
-              <span className="text-base leading-none">+</span>
-              Advertentie plaatsen
-            </Link>
-
-            {/* 2. Stats — 3-4 columns (reactietijd hidden when no data) */}
+            {/* Stats — 3-4 columns (reactietijd hidden when no data) */}
             {(() => {
               const reactietijdValue = loading ? "…"
                 : profile?.avg_response_time_hours != null
@@ -759,9 +767,9 @@ export function DashboardPage() {
                 <span className="h-4 w-32 animate-pulse rounded-full bg-stone-200" />
               ) : (
                 <>
-                  <span><span className="font-semibold text-stone-900">{weeklyStats.views}</span> weergaven</span>
-                  <span><span className="font-semibold text-stone-900">{weeklyStats.reactions}</span> reacties</span>
-                  <span><span className="font-semibold text-stone-900">{weeklyStats.boosts}</span> boosts</span>
+                  <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.views}</span> weergaven</span>
+                  <span className="flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.reactions}</span> reacties</span>
+                  <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.boosts}</span> boosts</span>
                 </>
               )}
             </div>
