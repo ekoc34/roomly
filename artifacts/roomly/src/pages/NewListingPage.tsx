@@ -1,14 +1,15 @@
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ShieldAlert, X } from "lucide-react";
+import { Shield, ShieldCheck, X, Rocket } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
+import { ListingCard } from "@/components/listings/ListingCard";
 import { isFullyVerified } from "@/lib/verificationUtils";
 import { mapRpcError } from "@/lib/rpcErrors";
-import type { ListingType, SavedSearch, Profile } from "@/types/database";
+import type { ListingType, SavedSearch, Profile, Listing } from "@/types/database";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
 
@@ -57,25 +58,16 @@ function listingMatchesFilters(listing: NewListing, filters: Record<string, stri
   const rooms      = filters.rooms ?? "";
   const minSurface = filters.min_surface ?? "";
 
-  // Free-text search across title, description and location
   if (q && !`${listing.title} ${listing.description} ${listing.location}`.toLowerCase().includes(q.toLowerCase())) return false;
-  // City — listing location format is "Amsterdam" or "Amsterdam, Centrum"
   if (city && !listing.location.toLowerCase().includes(city.toLowerCase())) return false;
-  // District / stadsdeel
   if (district && !listing.location.toLowerCase().includes(district.toLowerCase())) return false;
-  // Listing type (room_for_rent, roommate_search, short_stay)
   if (filterType && listing.type !== filterType) return false;
-  // Price range
   if (minPrice > 0 && listing.price < minPrice) return false;
   if (maxPrice < 10000 && listing.price > maxPrice) return false;
-  // Amenity flags — only filter when explicitly set
   if (pets === "1" && !listing.pets_allowed) return false;
   if (smoking === "1" && !listing.smoking_allowed) return false;
-  // Gender preference — exact match
   if (gender && listing.gender_preference !== gender) return false;
-  // Minimum rooms
   if (rooms && (listing.rooms == null || listing.rooms < Number(rooms))) return false;
-  // Minimum surface area
   if (minSurface && (listing.surface_area == null || listing.surface_area < Number(minSurface))) return false;
   return true;
 }
@@ -94,7 +86,6 @@ async function notifyMatchingSavedSearches(listing: NewListing, ownerId: string)
 
   if (matches.length === 0) return;
 
-  // Fetch notification preferences for all matching users in one query
   const matchingUserIds = [...new Set(matches.map((s) => s.user_id))];
   const { data: prefsData } = await supabase!
     .from("profiles")
@@ -143,6 +134,9 @@ export function NewListingPage() {
   const [bannerDismissed, setBannerDismissed] = useState<boolean>(
     () => localStorage.getItem(BANNER_DISMISSED_KEY) === "1"
   );
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewListing, setPreviewListing] = useState<Listing | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (!user || !supabase) return;
@@ -155,7 +149,6 @@ export function NewListingPage() {
         navigate("/dashboard");
         return;
       }
-      // Fetch listing count for free-tier limit check (admins and premium users are exempt)
       if (p && p.role !== "admin" && (!p.subscription_tier || p.subscription_tier === "free")) {
         const { count } = await supabase!
           .from("listings")
@@ -172,12 +165,51 @@ export function NewListingPage() {
   };
 
   const showVerifyBanner = !bannerDismissed && !!user && !isFullyVerified(profile);
+  const emailVerified = !!(profile as unknown as { email_auto_verified?: boolean } | null)?.email_auto_verified;
+  const phoneVerified = !!(profile as unknown as { phone_verified?: boolean } | null)?.phone_verified;
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCity(e.target.value);
     setDistrict("");
+  };
+
+  const handlePreview = () => {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const previewTitle = String(fd.get("title") ?? "").trim() || "Jouw advertentie";
+    const previewPrice = Number(fd.get("price") ?? 0);
+    const previewDesc = String(fd.get("description") ?? "").trim();
+    const previewType = String(fd.get("type") ?? "room_for_rent") as ListingType;
+    const previewLocation = city
+      ? district ? `${city}, ${district}` : city
+      : String(fd.get("location_fallback") ?? "").trim() || "Jouw stad";
+    const previewRoomsRaw = String(fd.get("rooms") ?? "").trim();
+    const previewRooms = previewRoomsRaw !== "" ? Number(previewRoomsRaw) : null;
+    const previewSurfaceRaw = String(fd.get("surface_area") ?? "").trim();
+    const previewSurface = previewSurfaceRaw !== "" ? Number(previewSurfaceRaw) : null;
+    const previewAvailRaw = String(fd.get("availability_date") ?? "").trim();
+
+    setPreviewListing({
+      id: "preview",
+      title: previewTitle,
+      description: previewDesc,
+      price: previewPrice,
+      location: previewLocation,
+      type: previewType,
+      images,
+      pets_allowed: petsAllowed,
+      smoking_allowed: smokingAllowed,
+      gender_preference: null,
+      rooms: previewRooms,
+      surface_area: previewSurface,
+      boosted_at: boosted ? new Date().toISOString() : null,
+      created_at: new Date().toISOString(),
+      user_id: user?.id ?? "",
+      availability_date: previewAvailRaw || null,
+    } as unknown as Listing);
+    setShowPreview(true);
   };
 
   if (!authLoading && !user) {
@@ -191,6 +223,7 @@ export function NewListingPage() {
 
   // Free-tier listing limit gate — temporarily disabled.
   // Re-enable isFreeUser + limitReached + the return block below to restore the cap.
+  void activeListingCount;
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -249,196 +282,271 @@ export function NewListingPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <nav className="mb-6 text-sm text-stone-500">
-        <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
-        <span className="mx-2">›</span>
-        <span className="text-stone-700">Advertentie plaatsen</span>
-      </nav>
-      <h1 className="text-2xl font-bold text-stone-900">Advertentie plaatsen</h1>
-      <p className="mt-1 text-sm text-stone-500">Gratis — bereik duizenden huurders in heel Nederland.</p>
-      <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-        <form onSubmit={onSubmit} className="space-y-5" data-testid="new-listing-form">
-          {showVerifyBanner && (
-            <div className="relative rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 pr-10">
-              <button
-                type="button"
-                onClick={dismissBanner}
-                aria-label="Sluiten"
-                className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-amber-400 transition hover:bg-amber-100 hover:text-amber-700"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100">
-                  <ShieldAlert className="h-4 w-4 text-amber-600" />
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-amber-900">Vergroot je kans op reacties</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-amber-700">
-                    Geverifieerde accounts krijgen meer vertrouwen. Verifieer je e-mail en telefoonnummer voor een grotere kans op reacties.
-                  </p>
-                  <Link
-                    href="/profiel"
-                    className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 active:scale-95"
-                  >
-                    <ShieldAlert className="h-3 w-3" />
-                    Verifiëren
-                  </Link>
+    <>
+      {/* ── Preview Modal ── */}
+      {showPreview && previewListing && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm"
+          onClick={() => setShowPreview(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl bg-stone-50 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowPreview(false)}
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-stone-500">Voorbeeldweergave</p>
+            <ListingCard listing={previewListing} currentUserId={user?.id} />
+            <p className="mt-3 text-center text-xs text-stone-400">Zo ziet jouw advertentie eruit voor huurders</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <nav className="mb-6 text-sm text-stone-500">
+          <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
+          <span className="mx-2">›</span>
+          <span className="text-stone-700">Advertentie plaatsen</span>
+        </nav>
+        <h1 className="text-2xl font-bold text-stone-900">Advertentie plaatsen</h1>
+        <p className="mt-1 text-sm text-stone-500">Gratis — bereik duizenden huurders in heel Nederland.</p>
+        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
+          <form ref={formRef} onSubmit={onSubmit} className="space-y-5" data-testid="new-listing-form">
+
+            {/* ── Task 1: Premium Verification Block ── */}
+            {showVerifyBanner && (
+              <div className="relative rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 pr-10">
+                <button
+                  type="button"
+                  onClick={dismissBanner}
+                  aria-label="Sluiten"
+                  className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-emerald-400 transition hover:bg-emerald-100 hover:text-emerald-700"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                    <Shield className="h-4 w-4 text-emerald-600" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-emerald-900">🛡 Geverifieerde accounts ontvangen gemiddeld meer reacties.</p>
+                    <ul className="mt-2 space-y-1">
+                      <li className="flex items-center gap-2 text-xs text-emerald-800">
+                        {emailVerified
+                          ? <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                          : <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-300" />}
+                        E-mail verificatie{emailVerified ? " — voltooid" : " — niet voltooid"}
+                      </li>
+                      <li className="flex items-center gap-2 text-xs text-emerald-800">
+                        {phoneVerified
+                          ? <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                          : <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-300" />}
+                        Telefoon verificatie{phoneVerified ? " — voltooid" : " — niet voltooid"}
+                      </li>
+                    </ul>
+                    <Link
+                      href="/profiel"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
+                    >
+                      <Shield className="h-3.5 w-3.5" />
+                      Verifiëren
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="nl-title" className={labelClass}>Titel *</label>
+              <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className={inputClass} data-testid="new-listing-title" />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="nl-type" className={labelClass}>Type</label>
+                <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
+                  {getAvailableTypes(profile?.user_type).map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
+              <div>
+                {/* ── Task 2: Price helper text ── */}
+                <label htmlFor="nl-price" className={labelClass}>Prijs per maand (€) *</label>
+                <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className={inputClass} data-testid="new-listing-price" />
+                <p className="mt-1 text-xs text-stone-400">Een realistische prijs verhoogt je kans op reacties.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="nl-city" className={labelClass}>Stad *</label>
+                <select
+                  id="nl-city"
+                  value={city}
+                  onChange={handleCityChange}
+                  className={selectClass}
+                  data-testid="new-listing-city"
+                >
+                  <option value="">Kies een stad…</option>
+                  {DUTCH_CITIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="nl-district" className={labelClass}>Stadsdeel / wijk</label>
+                <select
+                  id="nl-district"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  disabled={availableDistricts.length === 0}
+                  className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                  data-testid="new-listing-district"
+                >
+                  <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
+                  {availableDistricts.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
+                <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
+              </div>
+              <div>
+                <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
+                <select id="nl-gender" name="gender_preference" className={selectClass}>
+                  <option value="">Geen voorkeur</option>
+                  <option value="man">Alleen mannen</option>
+                  <option value="vrouw">Alleen vrouwen</option>
+                  <option value="gemengd">Gemengd</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="nl-rooms" className={labelClass}>Aantal kamers</label>
+                <input id="nl-rooms" name="rooms" type="number" min={0} step={1} placeholder="bijv. 3" className={inputClass} />
+              </div>
+              <div>
+                <label htmlFor="nl-surface" className={labelClass}>Woonoppervlakte</label>
+                <div className="relative mt-1.5">
+                  <input id="nl-surface" name="surface_area" type="number" min={0} step={1} placeholder="bijv. 20" className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
                 </div>
               </div>
             </div>
-          )}
-          <div>
-            <label htmlFor="nl-title" className={labelClass}>Titel *</label>
-            <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className={inputClass} data-testid="new-listing-title" />
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nl-type" className={labelClass}>Type</label>
-              <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
-                {getAvailableTypes(profile?.user_type).map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="nl-price" className={labelClass}>Prijs per maand (€) *</label>
-              <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className={inputClass} data-testid="new-listing-price" />
-            </div>
-          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nl-city" className={labelClass}>Stad *</label>
-              <select
-                id="nl-city"
-                value={city}
-                onChange={handleCityChange}
-                className={selectClass}
-                data-testid="new-listing-city"
-              >
-                <option value="">Kies een stad…</option>
-                {DUTCH_CITIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="nl-district" className={labelClass}>Stadsdeel / wijk</label>
-              <select
-                id="nl-district"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                disabled={availableDistricts.length === 0}
-                className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
-                data-testid="new-listing-district"
-              >
-                <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
-                {availableDistricts.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
-              <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
-            </div>
-            <div>
-              <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
-              <select id="nl-gender" name="gender_preference" className={selectClass}>
-                <option value="">Geen voorkeur</option>
-                <option value="man">Alleen mannen</option>
-                <option value="vrouw">Alleen vrouwen</option>
-                <option value="gemengd">Gemengd</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="nl-rooms" className={labelClass}>Aantal kamers</label>
-              <input id="nl-rooms" name="rooms" type="number" min={0} step={1} placeholder="bijv. 3" className={inputClass} />
-            </div>
-            <div>
-              <label htmlFor="nl-surface" className={labelClass}>Woonoppervlakte</label>
-              <div className="relative mt-1.5">
-                <input id="nl-surface" name="surface_area" type="number" min={0} step={1} placeholder="bijv. 20" className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Huisregels</p>
-            <label className="flex cursor-pointer items-center justify-between">
-              <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={petsAllowed}
-                onClick={() => setPetsAllowed((v) => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
-              >
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-            </label>
-            <label className="flex cursor-pointer items-center justify-between">
-              <span className="text-sm text-stone-700">Roken toegestaan</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smokingAllowed}
-                onClick={() => setSmokingAllowed((v) => !v)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
-              >
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-            </label>
-          </div>
-
-          <div>
-            <label htmlFor="nl-desc" className={labelClass}>Beschrijving *</label>
-            <textarea id="nl-desc" name="description" required rows={6} maxLength={4000} placeholder="Omschrijf de woning, huurder, voorzieningen en buurt…" className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" data-testid="new-listing-description" />
-          </div>
-          <ListingImageUpload value={images} onChange={setImages} />
-
-          {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Promotie</p>
-              </div>
+            <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Huisregels</p>
               <label className="flex cursor-pointer items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-amber-900">Advertentie uitlichten</p>
-                  <p className="mt-0.5 text-xs text-amber-700">Jouw advertentie verschijnt bovenaan de aanbevolen woningen op de homepage.</p>
-                </div>
+                <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={boosted}
-                  onClick={() => setBoosted((v) => !v)}
-                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${boosted ? "bg-amber-500" : "bg-stone-300"}`}
+                  aria-checked={petsAllowed}
+                  onClick={() => setPetsAllowed((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
                 >
-                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${boosted ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </label>
+              <label className="flex cursor-pointer items-center justify-between">
+                <span className="text-sm text-stone-700">Roken toegestaan</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={smokingAllowed}
+                  onClick={() => setSmokingAllowed((v) => !v)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </label>
             </div>
-          )}
 
-          {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
-          <div className="flex gap-3">
-            <button type="submit" disabled={isPending} data-testid="new-listing-submit" className="flex-1 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
-              {isPending ? "Bezig…" : "Advertentie plaatsen"}
-            </button>
-            <Link href="/dashboard" className="rounded-2xl border border-stone-200 px-5 py-3 text-sm font-medium text-stone-700 shadow-sm hover:bg-stone-50">Annuleren</Link>
-          </div>
-        </form>
+            {/* ── Task 2: Structured description placeholder ── */}
+            <div>
+              <label htmlFor="nl-desc" className={labelClass}>Beschrijving *</label>
+              <textarea
+                id="nl-desc"
+                name="description"
+                required
+                rows={6}
+                maxLength={4000}
+                placeholder={"Vertel iets over:\n• de woning\n• de buurt\n• voorzieningen\n• wie je zoekt"}
+                className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                data-testid="new-listing-description"
+              />
+            </div>
+
+            <ListingImageUpload value={images} onChange={setImages} />
+
+            {/* ── Task 2: Photo tip ── */}
+            <p className="flex items-center gap-1.5 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5 text-xs text-stone-500">
+              <span>💡</span>
+              Advertenties met minimaal 3 foto's krijgen gemiddeld meer reacties.
+            </p>
+
+            {/* ── Task 3: Enhanced Boost Section ── */}
+            {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
+              <div className={`rounded-2xl border p-4 space-y-3 transition ${boosted ? "border-amber-300 bg-amber-50 ring-2 ring-amber-200" : "border-amber-200 bg-amber-50"}`}>
+                <div className="flex items-center gap-2">
+                  <Rocket className="h-4 w-4 text-amber-600" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">🚀 Promotie</p>
+                </div>
+                <label className="flex cursor-pointer items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Advertentie uitlichten</p>
+                    <p className="mt-0.5 text-xs text-amber-700">Verschijn bovenaan bij duizenden woningzoekers en krijg meer reacties.</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={boosted}
+                    onClick={() => setBoosted((v) => !v)}
+                    className={`relative ml-4 inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${boosted ? "bg-amber-500" : "bg-stone-300"}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${boosted ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </label>
+              </div>
+            )}
+
+            {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
+
+            {/* ── Task 4 + 5: Submit row + reassurance ── */}
+            <div className="flex gap-3">
+              <button
+                type="submit"
+                disabled={isPending}
+                data-testid="new-listing-submit"
+                className="flex-1 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
+              >
+                {isPending ? "Bezig…" : "Advertentie plaatsen"}
+              </button>
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 active:scale-[0.98]"
+              >
+                Bekijk voorbeeld
+              </button>
+              <Link href="/dashboard" className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-medium text-stone-700 shadow-sm hover:bg-stone-50">Annuleren</Link>
+            </div>
+            <p className="text-center text-xs text-stone-400">Gratis plaatsen • Geen abonnement nodig</p>
+
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

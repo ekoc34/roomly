@@ -1,0 +1,35 @@
+Transform the listing creation page (`NewListingPage.tsx`) from a basic form into a smart, guided, and psychology-driven listing builder.
+
+## TASK 1 — Premium Verification Block
+Replace the current "Vergroot je kans op reacties" amber banner with a more premium design.
+1. Use a subtle emerald/green accent instead of amber to signal "trust".
+2. Add a shield icon and change the text to: "🛡 Geverifieerde accounts ontvangen gemiddeld meer reacties."
+3. Show two checklist items below: "✓ E-mail verificatie" and "✓ Telefoon verificatie" with their current status.
+4. Keep the "Verifiëren" button but style it more prominently.
+
+## TASK 2 — Smart Listing Guidance
+Add contextual, dismissible tips that guide the user to create a higher-quality listing.
+1. Below the "Foto's" section, add a subtle tip: "💡 Advertenties met minimaal 3 foto's krijgen gemiddeld meer reacties."
+2. Inside the "Beschrijving" textarea placeholder, structure the prompt to guide the user: "Vertel iets over:\n• de woning\n• de buurt\n• voorzieningen\n• wie je zoekt"
+3. Next to the "Prijs per maand" field, add a small helper text: "Een realistische prijs verhoogt je kans op reacties."
+
+## TASK 3 — Enhanced Promotie (Boost) Section
+Make the revenue-driving Boost section more psychologically compelling.
+1. Change the section title to "🚀 Promotie" with the rocket icon.
+2. Update the description to: "Verschijn bovenaan bij duizenden woningzoekers en krijg meer reacties."
+3. Style the toggle card with a subtle glow border (ring-2 ring-amber-200) to make it feel like a premium upgrade, not just a checkbox.
+
+## TASK 4 — Add Listing Preview Button
+Add a "Bekijk voorbeeld" button next to the main submit button.
+1. This button opens a modal or a new browser tab showing a realistic preview of how the listing card will appear on the homepage.
+2. Reuse the existing `ListingCard` component to render the preview.
+3. Style the button as a secondary action (outline, stone color).
+
+## TASK 5 — CTA Reassurance
+Add a small, reassuring text directly below the main submit button:
+"Gratis plaatsen • Geen abonnement nodig"
+
+## TASK 6 — Keep Everything Else Intact
+- All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+- Do not break any existing form functionality, validation, or RPC calls.
+- Commit with message: "Transform listing form with smart guidance and premium UX" and push.
