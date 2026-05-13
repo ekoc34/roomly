@@ -305,6 +305,38 @@ export function DashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
+  // Real-time updates for the tenant's own applications (Woningzoekende dashboard)
+  useEffect(() => {
+    if (!supabase || !user) return;
+    const channel = supabase
+      .channel(`tenant-applications-rt-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "applications",
+          filter: `applicant_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as MyApplication;
+          setMyApplications((prev) =>
+            prev.map((a) =>
+              a.id === updated.id
+                ? {
+                    ...a,
+                    status: updated.status,
+                    landlord_reply: updated.landlord_reply ?? null,
+                  }
+                : a
+            )
+          );
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   async function handleApplicationStatus(appId: string, status: "accepted" | "rejected", replyText?: string) {
     if (!supabase || !user) return;
     const { error } = await supabase.from("applications").update({ status, landlord_reply: replyText?.trim() || null }).eq("id", appId);
