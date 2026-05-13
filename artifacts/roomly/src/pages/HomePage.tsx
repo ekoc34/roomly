@@ -138,6 +138,62 @@ function HomePageContent() {
         />
       )}
 
+      {/* Hoe het werkt — compact, for scrollers */}
+      <section className="mt-16 border-t border-stone-200 pt-12">
+        <div className="mx-auto max-w-4xl">
+          <p className="text-xs font-semibold uppercase tracking-widest text-rose-500">Hoe het werkt</p>
+          <div className="mt-6 grid gap-8 sm:grid-cols-3">
+            {/* Stap 1 */}
+            <div className="flex gap-4">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-stone-900">Zoek je woning</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Zoek op stad, budget of woningtype door heel Nederland.</p>
+              </div>
+            </div>
+            {/* Stap 2 */}
+            <div className="flex gap-4">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-stone-900">Reageer direct</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Chat veilig via Welkthuis — geen gedeelde contactgegevens.</p>
+              </div>
+            </div>
+            {/* Stap 3 */}
+            <div className="flex gap-4">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                <svg className="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-semibold text-stone-900">Verhuis naar je nieuwe thuis</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Spreek een bezichtiging af en rond alles af binnen het platform.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Verificatiebanner — compact */}
+          <div className="mt-8 flex items-start gap-3 border-l-4 border-emerald-400 pl-4">
+            <svg className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <p className="text-sm leading-relaxed text-stone-600">
+              <span className="font-semibold text-stone-900">Praat met echte mensen, niet met spamaccounts.</span>{" "}
+              Geverifieerde accounts zorgen voor meer vertrouwen tussen huurders en verhuurders.
+            </p>
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }
