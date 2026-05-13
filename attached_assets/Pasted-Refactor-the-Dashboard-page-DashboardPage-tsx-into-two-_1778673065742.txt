@@ -1,0 +1,32 @@
+Refactor the Dashboard page (`DashboardPage.tsx`) into two completely distinct role-based experiences: "Verhuurder/Huisgenoot zoeker" and "Woningzoekende". This is not just a content change, but a fundamental UX shift.
+
+## TASK 1 — Verhuurder / Huisgenoot zoeker Dashboard ("Operations Cockpit")
+For users with `user_type` of 'verhuurder' or 'huisgenoot_zoeker', build an operations-focused dashboard.
+
+1.  **Top Section:** A prominent, full-width rose-colored " + Advertentie plaatsen" button that links to `/kamers/nieuw`.
+2.  **Stats Cards Grid:** A clean, 4-column grid with the most important metrics:
+    -   "Actieve advertenties" (Active Listings Count)
+    -   "Openstaande aanvragen" (Pending Applications Count)
+    -   "Nieuwe berichten" (Unread Messages Count)
+    -   "Mijn reactietijd" (Avg Response Time, shown as a badge: e.g., "< 1 uur")
+3.  **Quick Performance:** A subtle card showing a simple summary of the current week's activity: "+X weergaven, +Y reacties, +Z boosts gebruikt" across all their listings.
+4.  **Mijn Advertenties:** A list of their active listings, each card showing the listing title, price, location, a boost badge (if active), view/reaction counts, and a row of quick action buttons ("Bewerken", "Boost nu", "Verwijderen").
+5.  **Aanvragen Section:** A list of recent applications they've received. Each card shows the applicant's name, avatar, a preview of their message, and "Accepteren" / "Afwijzen" buttons.
+6.  **Boost & Promotie Block:** A card showing their current 🚀 Boost Credits with a direct link to `/pricing` to buy more.
+
+## TASK 2 — Woningzoekende Dashboard ("Discovery Hub")
+For users with `user_type` of 'student', 'professional', 'alleenstaande', or 'family', build a discovery-focused dashboard.
+
+1.  **Profile Completion Card:** A prominent card at the top showing their profile completion percentage (based on filled-in fields like name, bio, phone, lifestyle tags, avatar). Include a "Profiel verbeteren" link to `/profiel`.
+2.  **Saved Activity Grid:** A 3-column grid showing:
+    -   "Favorieten" (Saved Listings Count)
+    -   "Verzonden reacties" (Applications Sent Count)
+    -   "Opgeslagen zoekopdrachten" (Saved Searches Count)
+3.  **Recent Bekeken:** The existing "Recently Viewed" section, kept as is.
+4.  **Aanbevolen voor jou (Discovery):** A new section that shows a personalized grid of recommended listings. For now, simply fetch the 4 most recently boosted listings or the newest listings. Each card shows the listing image, title, price, location, and a "Bekijk" button.
+
+## TASK 3 — Keep Everything Else Intact
+-   All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+-   The admin tab structure and content should remain completely untouched.
+-   Do not break any existing functionality.
+-   Commit with message: "Refactor Dashboard into role-based Verhuurder and Woningzoekende experiences" and push.
