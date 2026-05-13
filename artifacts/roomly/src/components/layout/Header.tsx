@@ -7,6 +7,7 @@ import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCompare } from "@/contexts/CompareContext";
 import { CitySelector } from "@/components/search/CitySelector";
+import { AdminNotificationBell } from "@/components/layout/AdminNotificationBell";
 
 const USER_TYPE_LABELS: Record<string, string> = {
   verhuurder:        "Verhuurder",
@@ -123,7 +124,11 @@ export function Header() {
           )}
 
           {user ? (
-            /* Profile dropdown */
+            <>
+            {/* Admin notification bell — only visible to admins */}
+            <AdminNotificationBell isAdmin={userRole === "admin"} />
+
+            {/* Profile dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
@@ -289,6 +294,7 @@ export function Header() {
                 </div>
               )}
             </div>
+            </>
           ) : (
             <>
               <Link href="/inloggen" data-testid="header-login-link" className="flex items-center gap-1.5 text-stone-600 transition hover:text-rose-600">
