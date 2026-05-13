@@ -113,7 +113,7 @@ function PricingContent() {
         </p>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex justify-center"><div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {PACKAGES.map((pkg) => {
           const { Icon } = pkg;
           const isLoading = loadingId === pkg.id;
@@ -179,7 +179,7 @@ function PricingContent() {
             </div>
           );
         })}
-      </div>
+      </div></div>
 
       <div className="mt-10 flex flex-col items-center gap-3">
         <div className="flex items-center gap-2 rounded-2xl border border-stone-100 bg-white px-5 py-3 text-xs text-stone-500 shadow-sm">
