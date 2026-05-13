@@ -1,7 +1,7 @@
 import { useState, useEffect, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { ShieldAlert, X, Lock } from "lucide-react";
+import { ShieldAlert, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
@@ -189,44 +189,8 @@ export function NewListingPage() {
     );
   }
 
-  // Free-tier listing limit gate
-  const isFreeUser = !!profile && profile.role !== "admin" && (!profile.subscription_tier || profile.subscription_tier === "free");
-  const limitReached = isFreeUser && activeListingCount !== null && activeListingCount >= 2;
-
-  if (limitReached) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <nav className="mb-10 text-sm text-stone-500 text-left">
-          <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
-          <span className="mx-2">›</span>
-          <span className="text-stone-700">Advertentie plaatsen</span>
-        </nav>
-        <div className="flex flex-col items-center gap-5 rounded-3xl border border-stone-200 bg-white p-10 shadow-sm">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-50">
-            <Lock className="h-8 w-8 text-rose-500" />
-          </span>
-          <h1 className="text-xl font-bold text-stone-900">Limiet bereikt</h1>
-          <p className="max-w-sm text-sm leading-relaxed text-stone-600">
-            Je hebt je gratis limiet van 2 advertenties bereikt. Upgrade naar Premium voor onbeperkte advertenties.
-          </p>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link
-              href="/dashboard"
-              className="rounded-2xl border border-stone-200 px-5 py-2.5 text-sm font-medium text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
-            >
-              Terug naar dashboard
-            </Link>
-            <Link
-              href="/profiel"
-              className="rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
-            >
-              Upgrade naar Premium
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Free-tier listing limit gate — temporarily disabled.
+  // Re-enable isFreeUser + limitReached + the return block below to restore the cap.
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

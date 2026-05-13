@@ -190,22 +190,22 @@ BEGIN
     RAISE EXCEPTION 'NOT_AUTHENTICATED';
   END IF;
 
-  -- Free-tier listing cap: max 2 active listings per user.
-  -- Admins and premium users are exempt.
-  SELECT subscription_tier, (role = 'admin')
-    INTO v_tier, v_is_admin
-    FROM public.profiles
-   WHERE id = v_user_id;
-
-  IF NOT v_is_admin AND v_tier = 'free' THEN
-    SELECT COUNT(*) INTO v_list_count
-      FROM public.listings
-     WHERE user_id = v_user_id;
-
-    IF v_list_count >= 2 THEN
-      RAISE EXCEPTION 'LIMIT_REACHED';
-    END IF;
-  END IF;
+  -- Free-tier listing cap: temporarily disabled.
+  -- Re-enable the block below to restore the 2-listing limit for free users.
+  -- SELECT subscription_tier, (role = 'admin')
+  --   INTO v_tier, v_is_admin
+  --   FROM public.profiles
+  --  WHERE id = v_user_id;
+  --
+  -- IF NOT v_is_admin AND v_tier = 'free' THEN
+  --   SELECT COUNT(*) INTO v_list_count
+  --     FROM public.listings
+  --    WHERE user_id = v_user_id;
+  --
+  --   IF v_list_count >= 2 THEN
+  --     RAISE EXCEPTION 'LIMIT_REACHED';
+  --   END IF;
+  -- END IF;
 
   v_title    := trim(p_data->>'title');
   v_price    := (p_data->>'price')::NUMERIC;
