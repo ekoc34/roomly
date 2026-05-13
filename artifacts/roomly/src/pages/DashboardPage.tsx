@@ -4,8 +4,8 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   UserCircle, X, ShieldCheck, CreditCard, Zap, Edit2, Trash2,
-  Home, MessageSquare, Clock, TrendingUp, Heart, Search, Star,
-  ArrowRight, CheckCircle2, Circle, SendHorizontal, Eye, Phone,
+  Home, MessageSquare, Clock, Heart, Search, Star,
+  ArrowRight, CheckCircle2, SendHorizontal, Eye, Phone,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -118,6 +118,8 @@ export function DashboardPage() {
   const [recentLandlordApplicationsCount, setRecentLandlordApplicationsCount] = useState<number | null>(null);
   const [confirmClearViews, setConfirmClearViews] = useState(false);
   const [clearingViews, setClearingViews] = useState(false);
+  const [confirmClearApplications, setConfirmClearApplications] = useState(false);
+  const [clearingApplications, setClearingApplications] = useState(false);
   const [bannerDismissed, setBannerDismissed] = useState(() => localStorage.getItem(BANNER_KEY) === "1");
   const [, navigate] = useLocation();
 
@@ -139,10 +141,6 @@ export function DashboardPage() {
   const [phoneInput, setPhoneInput] = useState("");
   const [savingPhone, setSavingPhone] = useState(false);
 
-  // Task 3 checklist state (localStorage dismissal per completed items)
-  const [checklistDismissed, setChecklistDismissed] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem("roomly_checklist_dismissed") ?? "{}"); } catch { return {}; }
-  });
 
   const recommendationsRef = useRef<HTMLDivElement>(null);
   const listingIdsRef = useRef<string[]>([]);
@@ -519,10 +517,14 @@ export function DashboardPage() {
     if (listingId) await submitQuickApplication(listingId);
   }
 
-  function dismissChecklistItem(key: string) {
-    const next = { ...checklistDismissed, [key]: true };
-    setChecklistDismissed(next);
-    localStorage.setItem("roomly_checklist_dismissed", JSON.stringify(next));
+  async function handleClearApplications() {
+    if (!supabase || !user) return;
+    setClearingApplications(true);
+    const ids = myApplications.map((a) => a.id);
+    const { error } = await supabase.from("applications").update({ hidden_by_tenant: true }).in("id", ids);
+    setClearingApplications(false);
+    if (error) toast.error("Wissen mislukt. Probeer het opnieuw.");
+    else { setMyApplications([]); setConfirmClearApplications(false); toast.success("Aanvragen gearchiveerd."); }
   }
 
   if (!authLoading && !user) {
@@ -643,15 +645,17 @@ export function DashboardPage() {
         {effectiveTab === "verhuur" && (
           <div className="mt-6 space-y-6">
 
-            {/* 1. Full-width CTA */}
-            <Link
-              href="/kamers/nieuw"
-              data-testid="dashboard-new-listing"
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-rose-200 bg-rose-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-rose-600 active:scale-[0.99]"
-            >
-              <span className="text-base leading-none">+</span>
-              Advertentie plaatsen
-            </Link>
+            {/* 1. Compact CTA */}
+            <div className="flex justify-end">
+              <Link
+                href="/kamers/nieuw"
+                data-testid="dashboard-new-listing"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:bg-stone-50"
+              >
+                <span className="leading-none">+</span>
+                Advertentie plaatsen
+              </Link>
+            </div>
 
             {/* 2. Stats — 3-4 columns (reactietijd hidden when no data) */}
             {(() => {
@@ -1056,37 +1060,10 @@ export function DashboardPage() {
           const searchUrl = buildSearchUrl(lastSavedSearch, cityFromViews);
           const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews);
 
-          // Task 3 — Opstartlijst items
-          const checklistItems = [
-            {
-              key: "search",
-              emoji: "🔍",
-              label: "Je eerste zoekopdracht uitvoeren",
-              done: !loading && savedSearchesCount > 0,
-              href: "/kamers",
-            },
-            {
-              key: "favorite",
-              emoji: "❤️",
-              label: "Sla je eerste woning op",
-              done: !loading && favoritesCount > 0,
-              href: "/kamers",
-            },
-            {
-              key: "apply",
-              emoji: "📝",
-              label: "Verstuur je eerste reactie",
-              done: !loading && myApplications.length > 0,
-              href: "/kamers",
-            },
-          ];
-          const allChecklistDone = !loading && checklistItems.every((i) => i.done);
-          const visibleChecklistItems = checklistItems.filter((i) => !i.done || !checklistDismissed[i.key]);
-
           return (
             <div className="mt-6 space-y-6">
 
-              {/* TASK 1 — Search Continuity */}
+              {/* Search Continuity */}
               {loading ? (
                 <div className="h-16 animate-pulse rounded-lg bg-stone-200" />
               ) : (hasSearchContext || recentViews.length > 0) ? (
@@ -1122,12 +1099,12 @@ export function DashboardPage() {
                 </Link>
               )}
 
-              {/* TASK 3 — Opstartlijst OR KPI grid */}
+              {/* KPI grid — always visible */}
               {loading ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {[1, 2, 3].map((n) => <div key={n} className="h-20 animate-pulse rounded-2xl bg-stone-200" />)}
+                  {[1, 2, 3].map((n) => <div key={n} className="h-20 animate-pulse rounded-lg bg-stone-200" />)}
                 </div>
-              ) : allChecklistDone ? (
+              ) : (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                   {[
                     { label: "Favorieten", value: favoritesCount, href: "/favorieten", sub: null as string | null },
@@ -1142,40 +1119,6 @@ export function DashboardPage() {
                       {stat.sub && <p className="text-xs text-stone-400">{stat.sub}</p>}
                     </a>
                   ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border border-stone-200 bg-white p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-stone-900">Opstartlijst</h3>
-                    <span className="ml-auto text-xs text-stone-400">
-                      {checklistItems.filter((i) => i.done).length}/{checklistItems.length} gedaan
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {visibleChecklistItems.map((item) => (
-                      <div key={item.key} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${item.done ? "bg-emerald-50" : "bg-stone-50 hover:bg-rose-50"}`}>
-                        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 ${item.done ? "border-emerald-400 bg-emerald-400" : "border-stone-300"}`}>
-                          {item.done && <CheckCircle2 className="h-4 w-4 text-white" />}
-                        </span>
-                        <span className="text-sm">{item.emoji}</span>
-                        {item.done ? (
-                          <span className="flex-1 text-xs font-medium text-emerald-700 line-through">{item.label}</span>
-                        ) : (
-                          <Link href={item.href} className="flex-1 text-xs font-medium text-stone-700 hover:text-rose-700">{item.label}</Link>
-                        )}
-                        {item.done && (
-                          <button type="button" onClick={() => dismissChecklistItem(item.key)} className="shrink-0 rounded-lg p-1 text-emerald-400 transition hover:bg-emerald-100 hover:text-emerald-600">
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
-                        {!item.done && (
-                          <Link href={item.href} className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-[10px] font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95">
-                            Starten →
-                          </Link>
-                        )}
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 
@@ -1269,9 +1212,34 @@ export function DashboardPage() {
                 )}
               </div>
 
-              {/* TASK 4 — Mijn aanvragen as Timeline */}
+              {/* Mijn aanvragen */}
               <div id="aanvragen">
-                <h2 className="mb-4 text-lg font-bold text-stone-900">Mijn aanvragen</h2>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="text-lg font-bold text-stone-900">Mijn aanvragen</h2>
+                  {!loading && myApplications.length > 0 && !confirmClearApplications && (
+                    <button type="button" onClick={() => setConfirmClearApplications(true)}
+                      className="text-xs font-medium text-stone-400 transition hover:text-rose-500"
+                    >
+                      Wis aanvragen
+                    </button>
+                  )}
+                  {confirmClearApplications && (
+                    <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5">
+                      <p className="text-xs font-medium text-rose-800">Alle aanvragen wissen?</p>
+                      <button type="button" disabled={clearingApplications}
+                        onClick={handleClearApplications}
+                        className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-95"
+                      >
+                        {clearingApplications ? "Bezig…" : "Ja, wissen"}
+                      </button>
+                      <button type="button" onClick={() => setConfirmClearApplications(false)}
+                        className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95"
+                      >
+                        Annuleren
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {loading ? (
                   <div className="space-y-3">{[1, 2].map((n) => <div key={n} className="h-28 animate-pulse rounded-2xl bg-stone-200" />)}</div>
                 ) : myApplications.length === 0 ? (
