@@ -11,7 +11,6 @@ const PACKAGES = {
   starter:   { credits: 1,  priceId: "price_1TWHo0ECUpERwjgz7bqjP5Lq" },
   populair:  { credits: 5,  priceId: "price_1TWHpDECUpERwjgzViavok6r" },
   pro:       { credits: 15, priceId: "price_1TWHpuECUpERwjgzM5xNTTLv" },
-  max:       { credits: 50, priceId: "price_1TWHqZECUpERwjgzmEsKOOPZ" },
 };
 
 const corsHeaders = {

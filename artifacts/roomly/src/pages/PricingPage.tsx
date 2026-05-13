@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Elements } from "@stripe/react-stripe-js";
-import { Zap, Star, Rocket, Crown, Info } from "lucide-react";
+import { Zap, Star, Rocket, Info } from "lucide-react";
 import { toast } from "sonner";
 import { stripePromise } from "@/lib/stripe";
 import { supabase } from "@/lib/supabase";
@@ -39,17 +39,6 @@ const PACKAGES = [
     Icon: Rocket,
     iconColor: "text-violet-500",
     iconBg: "bg-violet-50",
-    popular: false,
-  },
-  {
-    id: "max",
-    name: "Max",
-    credits: 50,
-    price: 49.99,
-    description: "Maximale zichtbaarheid",
-    Icon: Crown,
-    iconColor: "text-amber-500",
-    iconBg: "bg-amber-50",
     popular: false,
   },
 ] as const;
