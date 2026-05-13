@@ -1,0 +1,31 @@
+Refactor the Verhuurder/Huisgenoot zoeker Dashboard from a passive data display into an action-oriented "Control Center". Apply these improvements:
+
+## TASK 1 — Connect KPIs to Actions
+Make the KPI cards actionable. When a metric is low or zero, provide a direct CTA.
+1. "0 reacties" / "0 aanvragen" → Add a small link below the stat: "Advertentie verbeteren" linking to the edit page of their most recent listing.
+2. "Mijn reactietijd —" (no data) → Hide the card entirely instead of showing an empty state.
+
+## TASK 2 — Enrich Listing Cards with Performance Data
+Add performance signals to the "Mijn advertenties" listing cards.
+1. Add a small 👁️ view count next to the existing "X reacties" badge.
+2. Add a "Laatst bijgewerkt: X dagen geleden" timestamp.
+3. Add a subtle "Populair" badge for listings with above-average views or reactions.
+4. Move "Boost nu" and "Verwijderen" into a small dropdown menu (⋯) on each card to reduce visual clutter. Keep "Bewerken" as the primary visible button.
+
+## TASK 3 — Transform Empty States into Growth Opportunities
+Replace dead-end empty states with actionable guidance.
+1. For "Nog geen aanvragen ontvangen", show 3 actionable tips:
+   - "📸 Voeg meer foto's toe aan je advertentie"
+   - "📝 Maak je beschrijving uitgebreider"
+   - "🚀 Boost je advertentie voor meer zichtbaarheid"
+   Each tip should link to the relevant action (edit listing, boost).
+
+## TASK 4 — Refine Boost Credits Area
+Make the Boost Credits section more trust-building and less salesy.
+1. Add a subtle performance indicator: "Boost je advertentie en verschijn bovenaan bij duizenden woningzoekers."
+2. Keep the credits display and the "Meer credits kopen" link, but make it less visually dominant than the main listing actions.
+
+## TASK 5 — Keep Everything Else Intact
+- All text in Dutch. Use existing Tailwind v4 styling, rose-500 accent, and stone colors.
+- Do not break any existing functionality, especially the admin tab structure.
+- Commit with message: "Refactor dashboard into action-oriented Control Center" and push.

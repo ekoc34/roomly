@@ -128,6 +128,8 @@ export function DashboardPage() {
   const [boostingId, setBoostingId] = useState<string | null>(null);
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
   const [lastSavedSearch, setLastSavedSearch] = useState<LastSavedSearch | null>(null);
+  const [listingViewCounts, setListingViewCounts] = useState<Record<string, number>>({});
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   const listingIdsRef = useRef<string[]>([]);
   useEffect(() => { listingIdsRef.current = myListings.map((l) => l.id); }, [myListings]);
@@ -239,16 +241,22 @@ export function DashboardPage() {
           .gte("created_at", thirtyDaysAgoLandlord.toISOString());
         setRecentLandlordApplicationsCount(recentLandlordCount ?? 0);
 
-        // Weekly stats
-        const [{ count: weekViews }, { count: weekReactions }, { count: weekBoosts }] = await Promise.all([
+        // Weekly stats + per-listing view counts
+        const [{ count: weekViews }, { count: weekReactions }, { count: weekBoosts }, { data: viewCountsData }] = await Promise.all([
           supabase!.from("listing_views").select("*", { count: "exact", head: true })
             .in("listing_id", listingIds).gte("viewed_at", weekStart.toISOString()),
           supabase!.from("applications").select("*", { count: "exact", head: true })
             .in("listing_id", listingIds).gte("created_at", weekStart.toISOString()),
           supabase!.from("boost_logs").select("*", { count: "exact", head: true })
             .eq("user_id", user!.id).gte("created_at", weekStart.toISOString()),
+          supabase!.from("listing_views").select("listing_id").in("listing_id", listingIds),
         ]);
         setWeeklyStats({ views: weekViews ?? 0, reactions: weekReactions ?? 0, boosts: weekBoosts ?? 0 });
+        const counts: Record<string, number> = {};
+        ((viewCountsData ?? []) as { listing_id: string }[]).forEach((v) => {
+          counts[v.listing_id] = (counts[v.listing_id] ?? 0) + 1;
+        });
+        setListingViewCounts(counts);
 
         // Unread messages for landlord
         const convIds = (landlordConvData as ConvSummary[] | null ?? []).map((c) => c.id);
@@ -564,14 +572,20 @@ export function DashboardPage() {
               Advertentie plaatsen
             </Link>
 
-            {/* 2. Stats — 4 columns */}
-            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-              {[
+            {/* 2. Stats — 3-4 columns (reactietijd hidden when no data) */}
+            {(() => {
+              const reactietijdValue = loading ? "…"
+                : profile?.avg_response_time_hours != null
+                  ? (profile.avg_response_time_hours < 1 ? "< 1 uur" : `${Math.round(profile.avg_response_time_hours)} uur`)
+                  : "—";
+              const mostRecentListingId = myListings[0]?.id ?? null;
+              const stats = [
                 {
                   label: "Actieve advertenties",
                   value: loading ? "…" : myListings.length,
                   href: "#listings",
                   icon: <Home className="h-5 w-5 text-rose-400" />,
+                  cta: !loading && myListings.length === 0 ? { label: "Advertentie plaatsen", href: "/kamers/nieuw" } : null,
                 },
                 {
                   label: "Openstaande aanvragen",
@@ -579,36 +593,50 @@ export function DashboardPage() {
                   href: "#aanvragen",
                   icon: <Star className="h-5 w-5 text-amber-400" />,
                   sub: !loading && recentLandlordApplicationsCount ? `+${recentLandlordApplicationsCount} in 30 dagen` : null,
+                  cta: !loading && pendingCount === 0 && mostRecentListingId ? { label: "Advertentie verbeteren", href: `/kamers/${mostRecentListingId}/bewerken` } : null,
                 },
                 {
                   label: "Nieuwe berichten",
                   value: loading ? "…" : unreadLandlordMsgCount,
                   href: "/berichten",
                   icon: <MessageSquare className="h-5 w-5 text-blue-400" />,
+                  cta: null,
                 },
-                {
+                ...(!loading && reactietijdValue === "—" ? [] : [{
                   label: "Mijn reactietijd",
-                  value: loading ? "…"
-                    : profile?.avg_response_time_hours != null
-                      ? (profile.avg_response_time_hours < 1 ? "< 1 uur" : `${Math.round(profile.avg_response_time_hours)} uur`)
-                      : "—",
+                  value: reactietijdValue,
                   href: "#",
                   icon: <Clock className="h-5 w-5 text-emerald-400" />,
                   isText: true,
-                },
-              ].map((stat) => (
-                <a key={stat.label} href={stat.href}
-                  className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">{stat.icon}</div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-stone-500 truncate">{stat.label}</p>
-                    <p className={`font-black text-stone-900 ${stat.isText ? "text-lg" : "text-2xl"}`}>{stat.value}</p>
-                    {stat.sub && <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>}
-                  </div>
-                </a>
-              ))}
-            </div>
+                  cta: null,
+                }]),
+              ];
+              return (
+                <div className={`grid grid-cols-2 gap-4 ${stats.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+                  {stats.map((stat) => (
+                    <a key={stat.label} href={stat.href}
+                      className="flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-50">{stat.icon}</div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-stone-500 truncate">{stat.label}</p>
+                        <p className={`font-black text-stone-900 ${"isText" in stat && stat.isText ? "text-lg" : "text-2xl"}`}>{stat.value}</p>
+                        {stat.sub && <p className="mt-0.5 text-xs text-stone-400">{stat.sub}</p>}
+                        {stat.cta && (
+                          <Link
+                            href={stat.cta.href}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 inline-block text-xs font-medium text-rose-500 hover:underline"
+                          >
+                            {stat.cta.label} →
+                          </Link>
+                        )}
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              );
+            })()}
 
             {/* 3. Quick performance — this week */}
             <div className="flex items-center gap-4 rounded-2xl border border-stone-100 bg-stone-50 px-5 py-4">
@@ -652,75 +680,114 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {myListings.map((l) => {
-                    const boosted = isBoostActive(l.boosted_at ?? null);
-                    const appCount = receivedApplications.filter((a) => a.listing_id === l.id).length;
-                    const img = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
-                    return (
-                      <div key={l.id} className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
-                        {/* Delete confirm overlay */}
-                        {deletingListingId === l.id && (
-                          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/95 p-4 text-center backdrop-blur-sm">
-                            <p className="text-sm font-medium text-stone-800">Advertentie "{l.title}" verwijderen?</p>
-                            <div className="flex gap-2">
-                              <button type="button" onClick={() => handleDeleteListingFromDashboard(l.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">
-                                Ja, verwijderen
-                              </button>
-                              <button type="button" onClick={() => setDeletingListingId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">
-                                Annuleren
-                              </button>
+                  {(() => {
+                    const allViewCounts = Object.values(listingViewCounts);
+                    const avgViews = allViewCounts.length > 0 ? allViewCounts.reduce((a, b) => a + b, 0) / allViewCounts.length : 0;
+                    const allAppCounts = myListings.map((l) => receivedApplications.filter((a) => a.listing_id === l.id).length);
+                    const avgApps = allAppCounts.length > 0 ? allAppCounts.reduce((a, b) => a + b, 0) / allAppCounts.length : 0;
+                    return myListings.map((l) => {
+                      const boosted = isBoostActive(l.boosted_at ?? null);
+                      const appCount = receivedApplications.filter((a) => a.listing_id === l.id).length;
+                      const viewCount = listingViewCounts[l.id] ?? 0;
+                      const img = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
+                      const isDropdownOpen = openDropdownId === l.id;
+                      const updatedAt = (l as unknown as { updated_at?: string }).updated_at ?? l.created_at;
+                      const daysSinceUpdate = updatedAt
+                        ? Math.floor((Date.now() - new Date(updatedAt).getTime()) / 86400000)
+                        : null;
+                      const isPopular = myListings.length > 1 && (viewCount > avgViews * 1.5 || appCount > avgApps * 1.5);
+                      return (
+                        <div key={l.id} className="relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
+                          {/* Delete confirm overlay */}
+                          {deletingListingId === l.id && (
+                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/95 p-4 text-center backdrop-blur-sm">
+                              <p className="text-sm font-medium text-stone-800">Advertentie "{l.title}" verwijderen?</p>
+                              <div className="flex gap-2">
+                                <button type="button" onClick={() => handleDeleteListingFromDashboard(l.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">
+                                  Ja, verwijderen
+                                </button>
+                                <button type="button" onClick={() => setDeletingListingId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">
+                                  Annuleren
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {/* Thumbnail */}
+                          <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100">
+                            {img
+                              ? <img src={img} alt={l.title} className="h-full w-full object-cover" />
+                              : <div className="flex h-full w-full items-center justify-center"><Home className="h-5 w-5 text-stone-300" /></div>}
+                          </div>
+                          {/* Info */}
+                          <div className="flex flex-1 flex-col gap-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-stone-900 truncate">{l.title}</p>
+                              {boosted && (
+                                <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                  <Zap className="h-3 w-3" /> Uitgelicht
+                                </span>
+                              )}
+                              {isPopular && (
+                                <span className="rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-600 border border-rose-200">
+                                  🔥 Populair
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-stone-500 truncate">{l.location} · €{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
+                              <span>{appCount} {appCount === 1 ? "reactie" : "reacties"}</span>
+                              <span className="flex items-center gap-1">👁 {viewCount} weergaven</span>
+                              {daysSinceUpdate !== null && (
+                                <span>Bijgewerkt: {daysSinceUpdate === 0 ? "vandaag" : `${daysSinceUpdate}d geleden`}</span>
+                              )}
                             </div>
                           </div>
-                        )}
-                        {/* Thumbnail */}
-                        <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100">
-                          {img
-                            ? <img src={img} alt={l.title} className="h-full w-full object-cover" />
-                            : <div className="flex h-full w-full items-center justify-center"><Home className="h-5 w-5 text-stone-300" /></div>}
-                        </div>
-                        {/* Info */}
-                        <div className="flex flex-1 flex-col gap-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold text-stone-900 truncate">{l.title}</p>
-                            {boosted && (
-                              <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                                <Zap className="h-3 w-3" /> Uitgelicht
-                              </span>
-                            )}
+                          {/* Quick actions */}
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Link
+                              href={`/kamers/${l.id}/bewerken`}
+                              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                              Bewerken
+                            </Link>
+                            {/* ⋯ dropdown for secondary actions */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setOpenDropdownId(isDropdownOpen ? null : l.id)}
+                                className="flex items-center justify-center rounded-xl border border-stone-200 px-2.5 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-50"
+                                aria-label="Meer opties"
+                              >
+                                ⋯
+                              </button>
+                              {isDropdownOpen && (
+                                <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-2xl border border-stone-200 bg-white py-1.5 shadow-lg">
+                                  <button
+                                    type="button"
+                                    disabled={boostingId === l.id || boosted || (profile?.boost_credits ?? 0) <= 0}
+                                    onClick={() => { handleBoostListing(l.id); setOpenDropdownId(null); }}
+                                    className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    <Zap className="h-3.5 w-3.5 shrink-0" />
+                                    {boostingId === l.id ? "Bezig…" : boosted ? "Boost actief" : "Boost nu"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => { setDeletingListingId(l.id); setOpenDropdownId(null); }}
+                                    className="flex w-full items-center gap-2 px-4 py-2 text-xs font-medium text-rose-600 transition hover:bg-rose-50"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                    Verwijderen
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-xs text-stone-500 truncate">{l.location} · €{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
-                          <p className="text-xs text-stone-400">{appCount} {appCount === 1 ? "reactie" : "reacties"}</p>
                         </div>
-                        {/* Quick actions */}
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                          <Link
-                            href={`/kamers/${l.id}/bewerken`}
-                            className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                          >
-                            <Edit2 className="h-3.5 w-3.5" />
-                            Bewerken
-                          </Link>
-                          <button
-                            type="button"
-                            disabled={boostingId === l.id || boosted || (profile?.boost_credits ?? 0) <= 0}
-                            onClick={() => handleBoostListing(l.id)}
-                            className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Zap className="h-3.5 w-3.5" />
-                            {boostingId === l.id ? "Bezig…" : boosted ? "Actief" : "Boost nu"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeletingListingId(l.id)}
-                            className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                            Verwijderen
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    });
+                  })()}
                 </div>
               )}
             </div>
@@ -736,12 +803,31 @@ export function DashboardPage() {
               {loading ? (
                 <div className="space-y-3">{[1, 2].map((n) => <div key={n} className="h-28 animate-pulse rounded-2xl bg-stone-200" />)}</div>
               ) : receivedApplications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-12 text-center shadow-sm">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-50">
-                    <MessageSquare className="h-5 w-5 text-stone-400" />
+                <div className="rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-8 shadow-sm">
+                  <div className="flex flex-col items-center text-center mb-5">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-stone-50">
+                      <MessageSquare className="h-5 w-5 text-stone-400" />
+                    </div>
+                    <p className="mt-3 text-sm font-semibold text-stone-700">Nog geen aanvragen ontvangen</p>
+                    <p className="mt-1 text-xs text-stone-400">Verbeter je advertentie om meer reacties te krijgen.</p>
                   </div>
-                  <p className="mt-3 text-sm font-medium text-stone-700">Nog geen aanvragen ontvangen</p>
-                  <p className="mt-1 text-xs text-stone-400">Aanvragen van geïnteresseerde huurders verschijnen hier.</p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: "📸", text: "Voeg meer foto's toe aan je advertentie", href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
+                      { icon: "📝", text: "Maak je beschrijving uitgebreider", href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
+                      { icon: "🚀", text: "Boost je advertentie voor meer zichtbaarheid", href: "/pricing" },
+                    ].map((tip) => (
+                      <Link
+                        key={tip.text}
+                        href={tip.href}
+                        className="flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 px-4 py-3 text-xs font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      >
+                        <span className="shrink-0 text-base">{tip.icon}</span>
+                        {tip.text}
+                        <span className="ml-auto text-stone-400">→</span>
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -830,22 +916,22 @@ export function DashboardPage() {
             </div>
 
             {/* 6. Boost & Promotie */}
-            <div className="flex flex-col gap-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-4">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                  <Zap className="h-5 w-5 text-amber-600" />
+            <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                  <Zap className="h-4 w-4 text-amber-600" />
                 </span>
                 <div>
-                  <p className="text-sm font-bold text-stone-900">Boost Credits</p>
-                  <p className="text-2xl font-black text-stone-900">
+                  <p className="text-xs font-semibold text-stone-700">Boost Credits</p>
+                  <p className="text-xl font-black text-stone-900">
                     {loading ? "…" : (profile?.boost_credits ?? 0)}
-                    <span className="ml-1.5 text-sm font-medium text-stone-500">beschikbaar</span>
+                    <span className="ml-1.5 text-xs font-medium text-stone-500">beschikbaar</span>
                   </p>
-                  <p className="mt-0.5 text-xs text-stone-500">Gebruik credits om je advertentie bovenaan te tonen.</p>
+                  <p className="mt-0.5 text-xs text-stone-400">Boost je advertentie en verschijn bovenaan bij duizenden woningzoekers.</p>
                 </div>
               </div>
-              <Link href="/pricing" className="inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95 shrink-0">
-                <CreditCard className="h-4 w-4" />
+              <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-medium text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95 shrink-0">
+                <CreditCard className="h-3.5 w-3.5" />
                 Meer credits kopen
               </Link>
             </div>
