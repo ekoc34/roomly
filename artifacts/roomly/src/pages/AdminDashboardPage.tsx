@@ -406,6 +406,111 @@ export function AdminDashboardPage() {
     else if (activeTab === "activiteit") loadActivity();
   }, [activeTab, role]);
 
+  // ── Realtime badge subscriptions ─────────────────────────────────────────
+  // Four channels keep the Meldingen badge count live for admins.
+  // When a new scam report, user report, contact message, or flagged profile
+  // arrives the badge increments instantly — no page refresh needed.
+  const realtimeChannelsRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]>[]>([]);
+
+  useEffect(() => {
+    if (role !== "admin" || !supabase) return;
+
+    // Tear down any stale channels first
+    realtimeChannelsRef.current.forEach((ch) => supabase!.removeChannel(ch));
+    realtimeChannelsRef.current = [];
+
+    const ts = Date.now();
+
+    // 1. Scam reports (listing_reports INSERT where category = 'scam')
+    const scamCh = supabase
+      .channel(`admin-scam-reports:${ts}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "listing_reports" },
+        (payload) => {
+          if ((payload.new as { category?: string }).category === "scam") {
+            setStats((s) => s ? { ...s, scamReportCount: s.scamReportCount + 1 } : s);
+            // Reload list data if the meldingen tab has already been fetched
+            if (loadedTabs.current.has("meldingen")) {
+              loadedTabs.current.delete("meldingen");
+              loadMeldingen().then(() => loadedTabs.current.add("meldingen"));
+            }
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") console.warn("[admin-rt] scam-reports channel error");
+      });
+
+    // 2. User reports (user_reports INSERT)
+    const userRepCh = supabase
+      .channel(`admin-user-reports:${ts}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "user_reports" },
+        () => {
+          setStats((s) => s ? { ...s, userReportCount: s.userReportCount + 1 } : s);
+          if (loadedTabs.current.has("meldingen")) {
+            loadedTabs.current.delete("meldingen");
+            loadMeldingen().then(() => loadedTabs.current.add("meldingen"));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") console.warn("[admin-rt] user-reports channel error");
+      });
+
+    // 3. Contact messages (contact_messages INSERT)
+    const contactCh = supabase
+      .channel(`admin-contact-messages:${ts}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "contact_messages" },
+        () => {
+          setStats((s) => s ? { ...s, unreadContactCount: s.unreadContactCount + 1 } : s);
+          if (loadedTabs.current.has("meldingen")) {
+            loadedTabs.current.delete("meldingen");
+            loadMeldingen().then(() => loadedTabs.current.add("meldingen"));
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") console.warn("[admin-rt] contact-messages channel error");
+      });
+
+    // 4. Flagged/unflagged landlords (profiles UPDATE on scam_flagged)
+    const profileCh = supabase
+      .channel(`admin-profiles-flagged:${ts}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          const newRow = payload.new as { scam_flagged?: boolean };
+          const oldRow = payload.old as { scam_flagged?: boolean };
+          if (newRow.scam_flagged && !oldRow.scam_flagged) {
+            setStats((s) => s ? { ...s, flaggedCount: s.flaggedCount + 1 } : s);
+            if (loadedTabs.current.has("meldingen")) {
+              loadedTabs.current.delete("meldingen");
+              loadMeldingen().then(() => loadedTabs.current.add("meldingen"));
+            }
+          } else if (!newRow.scam_flagged && oldRow.scam_flagged) {
+            setStats((s) => s ? { ...s, flaggedCount: Math.max(0, s.flaggedCount - 1) } : s);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR") console.warn("[admin-rt] profiles channel error");
+      });
+
+    realtimeChannelsRef.current = [scamCh, userRepCh, contactCh, profileCh];
+
+    return () => {
+      realtimeChannelsRef.current.forEach((ch) => supabase!.removeChannel(ch));
+      realtimeChannelsRef.current = [];
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
+
   // ── Meldingen actions ────────────────────────────────────────────────────
   const handleRestore = (landlordId: string) => {
     startTransition(async () => {
