@@ -57,6 +57,9 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
             </div>
           )}
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            {listing.boosted_at && (
+              <BoostBadge boostedAt={listing.boosted_at} />
+            )}
             {newLabel === "vandaag" && (
               <span className="rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">✦ Nieuw vandaag</span>
             )}
@@ -71,14 +74,6 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
               </span>
             )}
           </div>
-          {listing.boosted_at && (
-            <div className="absolute right-3 top-3">
-              <BoostBadge
-                boostedAt={listing.boosted_at}
-                isOwner={!!currentUserId && currentUserId === listing.user_id}
-              />
-            </div>
-          )}
         </div>
 
         <div className="flex flex-1 flex-col p-4">

@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 export const BOOST_WINDOW_MS = 60 * 60 * 1000;
 
 const StarIcon = () => (
@@ -10,29 +8,18 @@ const StarIcon = () => (
 
 type Props = {
   boostedAt: string;
-  isOwner: boolean;
   className?: string;
 };
 
-export function BoostBadge({ boostedAt, isOwner, className = "" }: Props) {
-  const [, setTick] = useState(0);
-
+export function BoostBadge({ boostedAt, className = "" }: Props) {
   const msLeft = new Date(boostedAt).getTime() + BOOST_WINDOW_MS - Date.now();
 
-  useEffect(() => {
-    if (msLeft <= 0) return;
-    const timer = setTimeout(() => setTick((n) => n + 1), msLeft);
-    return () => clearTimeout(timer);
-  }, [msLeft]);
-
   if (msLeft <= 0) return null;
-
-  const minutesLeft = Math.max(1, Math.ceil(msLeft / 60000));
 
   return (
     <div className={`flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-xs font-bold text-white shadow ${className}`}>
       <StarIcon />
-      {isOwner ? `Uitgelicht · ${minutesLeft}m` : "Uitgelicht"}
+      Uitgelicht
     </div>
   );
 }

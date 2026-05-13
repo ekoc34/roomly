@@ -213,10 +213,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
                 <div key={l.id} className="relative">
                   {l.boosted_at && (
                     <div className="absolute right-3 top-3 z-10">
-                      <BoostBadge
-                        boostedAt={l.boosted_at}
-                        isOwner={!!currentUserId && currentUserId === l.user_id}
-                      />
+                      <BoostBadge boostedAt={l.boosted_at} />
                     </div>
                   )}
                   <RoommateCard listing={l} profile={roommateProfiles[l.user_id]} />
