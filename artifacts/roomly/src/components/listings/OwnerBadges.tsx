@@ -2,6 +2,15 @@ import { AlertTriangle } from "lucide-react";
 import type { Profile } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
+const USER_TYPE_LABELS: Record<string, string> = {
+  verhuurder:        "Verhuurder",
+  huisgenoot_zoeker: "Huisgenoot zoeker",
+  student:           "Student",
+  professional:      "Professional / Expat",
+  alleenstaande:     "Alleenstaande",
+  family:            "Familie",
+};
+
 type Props = {
   profile: Profile | null;
   memberSince: string;
@@ -11,6 +20,7 @@ type Props = {
 export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
   const joinMonth = new Date(memberSince).toLocaleDateString("nl-NL", { month: "long", year: "numeric" });
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
+  const roleLabel = (profile?.user_type && USER_TYPE_LABELS[profile.user_type]) ?? "Gebruiker";
 
   const fullyVerified = isFullyVerified(profile);
   const partiallyVerified = isPartiallyVerified(profile);
@@ -27,7 +37,7 @@ export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
         </div>
       )}
 
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">Verhuurder</p>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">{roleLabel}</p>
 
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
