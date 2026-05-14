@@ -6,6 +6,7 @@ import {
   UserCircle, X, ShieldCheck, CreditCard, Zap, Edit2, Trash2,
   Home, MessageSquare, Clock, Heart, Search, Star,
   ArrowRight, CheckCircle2, SendHorizontal, Eye, Phone,
+  Camera, RefreshCw, FileText,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -697,59 +698,43 @@ export function DashboardPage() {
         {effectiveTab === "verhuur" && (
           <div className="mt-4 space-y-4">
 
-            {/* Stats — 3-4 columns (reactietijd hidden when no data) */}
+            {/* Stats — compact 3-column */}
             {(() => {
-              const reactietijdValue = loading ? "…"
-                : profile?.avg_response_time_hours != null
-                  ? (profile.avg_response_time_hours < 1 ? "< 1 uur" : `${Math.round(profile.avg_response_time_hours)} uur`)
-                  : "—";
-              const mostRecentListingId = myListings[0]?.id ?? null;
               const stats = [
                 {
-                  label: "Actieve advertenties",
+                  label: "Advertenties",
                   value: loading ? "…" : myListings.length,
                   href: "#listings",
-                  icon: <Home className="h-5 w-5 text-rose-400" />,
-                  cta: !loading && myListings.length === 0 ? { label: "Advertentie plaatsen", href: "/kamers/nieuw" } : null,
+                  sub: null as string | null,
+                  cta: !loading && myListings.length === 0 ? { label: "Plaatsen", href: "/kamers/nieuw" } : null,
                 },
                 {
-                  label: "Openstaande aanvragen",
+                  label: "Reacties",
                   value: loading ? "…" : pendingCount,
                   href: "#aanvragen",
-                  icon: <Star className="h-5 w-5 text-amber-400" />,
-                  sub: !loading && recentLandlordApplicationsCount ? `+${recentLandlordApplicationsCount} in 30 dagen` : null,
+                  sub: !loading && recentLandlordApplicationsCount ? `+${recentLandlordApplicationsCount} nieuw` : null,
                   cta: null,
                 },
                 {
-                  label: "Nieuwe berichten",
+                  label: "Berichten",
                   value: loading ? "…" : unreadLandlordMsgCount,
                   href: "/berichten",
-                  icon: <MessageSquare className="h-5 w-5 text-blue-400" />,
+                  sub: null,
                   cta: null,
                 },
-                ...(!loading && reactietijdValue === "—" ? [] : [{
-                  label: "Mijn reactietijd",
-                  value: reactietijdValue,
-                  href: "#",
-                  icon: <Clock className="h-5 w-5 text-emerald-400" />,
-                  isText: true,
-                  cta: null,
-                }]),
               ];
               return (
-                <div className={`grid grid-cols-2 gap-4 ${stats.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+                <div className="grid grid-cols-3 gap-3">
                   {stats.map((stat) => (
                     <a key={stat.label} href={stat.href}
-                      className="flex flex-col gap-1 rounded-lg border border-stone-200 bg-white p-4 transition hover:bg-stone-50"
+                      className="flex flex-col gap-0.5 rounded-lg border border-stone-200 bg-white px-3 py-3 transition hover:bg-stone-50"
                     >
-                      <p className="text-xs text-stone-500 truncate">{stat.label}</p>
-                      <p className={`font-bold text-stone-900 ${"isText" in stat && stat.isText ? "text-base" : "text-2xl"}`}>{stat.value}</p>
-                      {stat.sub && <p className="text-xs text-stone-400">{stat.sub}</p>}
+                      <p className="text-[11px] text-stone-400 truncate">{stat.label}</p>
+                      <p className="text-lg font-semibold text-stone-900">{stat.value}</p>
+                      {stat.sub && <p className="text-[11px] text-stone-400">{stat.sub}</p>}
                       {stat.cta && (
-                        <Link
-                          href={stat.cta.href}
-                          onClick={(e) => e.stopPropagation()}
-                          className="mt-0.5 text-xs font-medium text-rose-500 hover:underline"
+                        <Link href={stat.cta.href} onClick={(e) => e.stopPropagation()}
+                          className="mt-0.5 text-[11px] font-medium text-rose-500 hover:underline"
                         >
                           {stat.cta.label} →
                         </Link>
@@ -760,19 +745,83 @@ export function DashboardPage() {
               );
             })()}
 
-            {/* 3. Quick performance — this week */}
-            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-stone-200 bg-white px-4 py-3 text-sm text-stone-600">
-              <span className="font-medium text-stone-900">Deze week:</span>
+            {/* Quick performance — this week */}
+            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-stone-100 bg-stone-50 px-4 py-2.5 text-xs text-stone-500">
+              <span className="font-medium text-stone-600">Deze week</span>
               {loading || !weeklyStats ? (
-                <span className="h-4 w-32 animate-pulse rounded-full bg-stone-200" />
+                <span className="h-3.5 w-28 animate-pulse rounded-full bg-stone-200" />
+              ) : weeklyStats.views === 0 && weeklyStats.reactions === 0 ? (
+                <span className="text-stone-400">Nog geen activiteit — je advertentie kan meer bereik krijgen.</span>
               ) : (
                 <>
-                  <span className="flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.views}</span> weergaven</span>
-                  <span className="flex items-center gap-1"><MessageSquare className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.reactions}</span> reacties</span>
-                  <span className="flex items-center gap-1"><Zap className="h-3.5 w-3.5 text-stone-400" /><span className="font-semibold text-stone-900">{weeklyStats.boosts}</span> boosts</span>
+                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.views}</span> weergaven</span>
+                  <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.reactions}</span> reacties</span>
                 </>
               )}
             </div>
+
+            {/* Next Best Action — contextual guidance */}
+            {!loading && myListings.length > 0 && (() => {
+              const suggestions: { icon: React.ReactNode; title: string; desc: string; href: string; cta: string }[] = [];
+              const listingWithoutPhotos = myListings.find((l) => !Array.isArray(l.images) || l.images.length === 0);
+              if (listingWithoutPhotos) {
+                suggestions.push({
+                  icon: <Camera className="h-4 w-4 text-stone-400" />,
+                  title: "Voeg foto's toe",
+                  desc: "Advertenties met foto's krijgen tot 3× meer reacties.",
+                  href: `/kamers/${listingWithoutPhotos.id}/bewerken`,
+                  cta: "Foto's toevoegen →",
+                });
+              }
+              if (weeklyStats && weeklyStats.views < 5) {
+                suggestions.push({
+                  icon: <RefreshCw className="h-4 w-4 text-stone-400" />,
+                  title: "Ververs je advertentie",
+                  desc: "Een kleine update verhoogt je zichtbaarheid in zoekresultaten.",
+                  href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "#listings",
+                  cta: "Bijwerken →",
+                });
+              }
+              if (pendingCount === 0 && receivedApplications.length === 0) {
+                suggestions.push({
+                  icon: <FileText className="h-4 w-4 text-stone-400" />,
+                  title: "Verbeter je omschrijving",
+                  desc: "Een heldere beschrijving geeft woningzoekers meer vertrouwen om te reageren.",
+                  href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "#listings",
+                  cta: "Aanpassen →",
+                });
+              }
+              if (!profile?.phone) {
+                suggestions.push({
+                  icon: <ShieldCheck className="h-4 w-4 text-stone-400" />,
+                  title: "Vul je profiel aan",
+                  desc: "Een telefoonnummer maakt je betrouwbaarder voor potentiële huurders.",
+                  href: "/profiel",
+                  cta: "Aanvullen →",
+                });
+              }
+              if (suggestions.length === 0) return null;
+              const top = suggestions.slice(0, 2);
+              return (
+                <div>
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-400">Suggesties</p>
+                  <div className="space-y-2">
+                    {top.map((s) => (
+                      <Link key={s.title} href={s.href}
+                        className="flex items-start gap-3 rounded-lg border border-stone-200 bg-white px-4 py-3 transition hover:border-stone-300 hover:bg-stone-50"
+                      >
+                        <span className="mt-0.5 shrink-0">{s.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-stone-800">{s.title}</p>
+                          <p className="text-xs text-stone-500 leading-snug">{s.desc}</p>
+                        </div>
+                        <span className="shrink-0 text-xs font-medium text-rose-600 whitespace-nowrap">{s.cta}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* 4. Mijn Advertenties */}
             <div id="listings">
@@ -812,10 +861,10 @@ export function DashboardPage() {
                         : null;
                       const isPopular = myListings.length > 1 && (viewCount > avgViews * 1.5 || appCount > avgApps * 1.5);
                       return (
-                        <div key={l.id} className="relative flex flex-col gap-3 overflow-hidden rounded-lg border border-stone-200 bg-white p-4 sm:flex-row sm:items-center">
+                        <div key={l.id} className="relative flex flex-col gap-3 overflow-hidden rounded-lg border border-stone-200 bg-white p-4 sm:flex-row sm:items-start">
                           {/* Delete confirm overlay */}
                           {deletingListingId === l.id && (
-                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-2xl bg-white/95 p-4 text-center backdrop-blur-sm">
+                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center backdrop-blur-sm">
                               <p className="text-sm font-medium text-stone-800">Advertentie "{l.title}" verwijderen?</p>
                               <div className="flex gap-2">
                                 <button type="button" onClick={() => handleDeleteListingFromDashboard(l.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">
@@ -828,61 +877,74 @@ export function DashboardPage() {
                             </div>
                           )}
                           {/* Thumbnail */}
-                          <div className="h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100">
+                          <div className="h-20 w-24 shrink-0 overflow-hidden rounded-lg bg-stone-100">
                             {img
                               ? <img src={img} alt={l.title} className="h-full w-full object-cover" />
-                              : <div className="flex h-full w-full items-center justify-center"><Home className="h-5 w-5 text-stone-300" /></div>}
+                              : <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+                                  <Camera className="h-5 w-5 text-stone-300" />
+                                  <p className="text-[10px] text-stone-300">Geen foto</p>
+                                </div>}
                           </div>
                           {/* Info */}
-                          <div className="flex flex-1 flex-col gap-1 min-w-0">
+                          <div className="flex flex-1 flex-col gap-1.5 min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-stone-900 truncate">{l.title}</p>
+                              <p className="text-sm font-semibold text-stone-900 truncate leading-snug">{l.title}</p>
                               {boosted && (
-                                <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                                <span className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                                   <Zap className="h-3 w-3" /> Uitgelicht
                                 </span>
                               )}
                               {isPopular && (
-                                <span className="rounded-full border border-stone-200 px-2 py-0.5 text-[10px] font-medium text-stone-500">
+                                <span className="rounded-full border border-stone-200 px-2 py-0.5 text-[10px] font-medium text-stone-400">
                                   Populair
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-stone-500 truncate">{l.location} · €{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
+                            <p className="text-sm font-semibold text-stone-800">€{Number(l.price).toLocaleString("nl-NL")}<span className="text-xs font-normal text-stone-400">/mnd</span></p>
+                            <p className="text-xs text-stone-400 truncate">{l.location}</p>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
-                              <span>{appCount} {appCount === 1 ? "reactie" : "reacties"}</span>
-                              <span>{viewCount} weergaven</span>
-                              {daysSinceUpdate !== null && (
-                                <span>Bijgewerkt: {daysSinceUpdate === 0 ? "vandaag" : `${daysSinceUpdate}d geleden`}</span>
+                              {appCount > 0
+                                ? <span>{appCount} {appCount === 1 ? "reactie" : "reacties"}</span>
+                                : <span className="text-stone-300">Nog geen reacties</span>}
+                              {viewCount > 0
+                                ? <span>{viewCount} weergaven</span>
+                                : <span className="text-stone-300">Nog geen weergaven</span>}
+                              {daysSinceUpdate !== null && daysSinceUpdate > 0 && (
+                                <span>{daysSinceUpdate}d geleden bijgewerkt</span>
                               )}
                             </div>
                           </div>
                           {/* Quick actions */}
-                          <div className="flex shrink-0 items-center gap-2">
+                          <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
                             <Link
                               href={`/kamers/${l.id}/bewerken`}
-                              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                              className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
                               Bewerken
                             </Link>
-                            <button
-                              type="button"
-                              disabled={boostingId === l.id || boosted || (profile?.boost_credits ?? 0) <= 0}
-                              onClick={() => handleBoostListing(l.id)}
-                              className="flex items-center gap-1.5 rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <Zap className="h-3.5 w-3.5" />
-                              {boostingId === l.id ? "Bezig…" : boosted ? "Actief" : "Boost"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setDeletingListingId(l.id)}
-                              className="flex h-8 w-8 items-center justify-center rounded-xl border border-stone-200 text-stone-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                              aria-label="Verwijderen"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              {!boosted && (profile?.boost_credits ?? 0) > 0 && (
+                                <button
+                                  type="button"
+                                  disabled={boostingId === l.id}
+                                  onClick={() => handleBoostListing(l.id)}
+                                  className="flex items-center gap-1 rounded-lg border border-stone-200 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 disabled:opacity-50"
+                                  title="Boost gebruiken"
+                                >
+                                  <Zap className="h-3 w-3" />
+                                  {boostingId === l.id ? "Bezig…" : "Boost"}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setDeletingListingId(l.id)}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-300 transition hover:bg-rose-50 hover:text-rose-500"
+                                aria-label="Verwijderen"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -1009,26 +1071,21 @@ export function DashboardPage() {
               )}
             </div>
 
-            {/* 6. Boost & Promotie */}
-            <div className="flex flex-col gap-3 rounded-2xl border border-stone-100 bg-stone-50 p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
-                  <Zap className="h-4 w-4 text-amber-600" />
+            {/* Boost credits — compact secondary */}
+            {!loading && (
+              <div className="flex items-center justify-between gap-4 border-t border-stone-100 pt-4 text-xs text-stone-500">
+                <span className="flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-amber-500" />
+                  {(profile?.boost_credits ?? 0) > 0
+                    ? <><span className="font-medium text-stone-700">{profile!.boost_credits}</span> boost {(profile?.boost_credits ?? 0) === 1 ? "credit" : "credits"} beschikbaar</>
+                    : "Geen boost credits — boost meer bereik voor je advertentie"}
                 </span>
-                <div>
-                  <p className="text-xs font-semibold text-stone-700">Boost Credits</p>
-                  <p className="text-xl font-black text-stone-900">
-                    {loading ? "…" : (profile?.boost_credits ?? 0)}
-                    <span className="ml-1.5 text-xs font-medium text-stone-500">beschikbaar</span>
-                  </p>
-                  <p className="mt-0.5 text-xs text-stone-400">Boost je advertentie en verschijn bovenaan bij duizenden woningzoekers.</p>
-                </div>
+                <Link href="/pricing" className="flex items-center gap-1 text-stone-400 transition hover:text-rose-600">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Credits kopen
+                </Link>
               </div>
-              <Link href="/pricing" className="inline-flex items-center gap-2 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-medium text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95 shrink-0">
-                <CreditCard className="h-3.5 w-3.5" />
-                Meer credits kopen
-              </Link>
-            </div>
+            )}
 
           </div>
         )}
