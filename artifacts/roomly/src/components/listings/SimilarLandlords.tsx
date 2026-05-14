@@ -95,24 +95,26 @@ export function SimilarLandlords({ location, excludeUserId, viewerUserId }: Prop
   if (loading) {
     return (
       <section className="mt-10 border-t border-stone-100 pt-8">
-        <div className="mb-4 h-6 w-64 animate-pulse rounded-full bg-stone-200" />
-        <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+        <div className="mb-4 h-5 w-56 animate-pulse rounded-full bg-stone-200" />
+        <div className="flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="min-w-[220px] animate-pulse rounded-2xl border border-stone-100 bg-stone-50 p-4 sm:min-w-0">
+            <div key={n} className="min-w-[200px] animate-pulse rounded-2xl border border-stone-100 bg-stone-50 p-4 sm:min-w-0">
               <div className="flex items-center gap-3">
-                <div className="h-11 w-11 rounded-full bg-stone-200" />
+                <div className="h-10 w-10 rounded-full bg-stone-200" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3.5 w-28 rounded-full bg-stone-200" />
-                  <div className="h-2.5 w-20 rounded-full bg-stone-200" />
+                  <div className="h-3 w-24 rounded-full bg-stone-200" />
+                  <div className="h-2.5 w-16 rounded-full bg-stone-200" />
                 </div>
               </div>
-              <div className="mt-4 h-8 rounded-xl bg-stone-200" />
+              <div className="mt-3 h-7 rounded-xl bg-stone-200" />
             </div>
           ))}
         </div>
       </section>
     );
   }
+
+  if (landlords.length === 0) return null;
 
   return (
     <>
@@ -126,16 +128,11 @@ export function SimilarLandlords({ location, excludeUserId, viewerUserId }: Prop
       )}
 
       <section className="mt-10 border-t border-stone-100 pt-8">
-        <h2 className="text-lg font-bold text-stone-900">
-          Vergelijkbare verhuurders in <span className="text-rose-500">{city}</span>
+        <h2 className="text-base font-semibold text-stone-700">
+          Andere verhuurders in {city}
         </h2>
 
-        {landlords.length === 0 ? (
-          <p className="mt-3 text-sm text-stone-400">
-            Geen andere verhuurders gevonden in {city}.
-          </p>
-        ) : (
-          <div className="mt-4 flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+        <div className="mt-4 flex gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
             {landlords.map(({ profile, listingCount, responseRate }) => {
               const initial = (profile.name ?? profile.email ?? "?").slice(0, 1).toUpperCase();
               const activeStatus = getActiveStatus(profile.last_active_at);
@@ -206,7 +203,6 @@ export function SimilarLandlords({ location, excludeUserId, viewerUserId }: Prop
               );
             })}
           </div>
-        )}
       </section>
     </>
   );

@@ -17,31 +17,33 @@ export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
   const isScamFlagged = profile?.scam_flagged === true;
 
   return (
-    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm" data-testid="owner-badges">
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm" data-testid="owner-badges">
       {isScamFlagged && (
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
           <p className="text-xs leading-relaxed text-amber-800">
-            <span className="font-semibold">Let op:</span> Deze verhuurder heeft meldingen ontvangen. Wees voorzichtig en chat altijd via het platform.
+            <span className="font-semibold">Let op:</span> Deze verhuurder heeft meldingen ontvangen. Chat altijd via het platform.
           </p>
         </div>
       )}
-      <h2 className="text-sm font-semibold text-stone-900">Over de plaatser</h2>
-      <div className="mt-4 flex items-center gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
+
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-400">Verhuurder</p>
+
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="text-base font-semibold text-stone-500">{initial}</span>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             {onNameClick ? (
               <button
                 type="button"
                 onClick={onNameClick}
-                className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
+                className="truncate text-sm font-semibold text-stone-900 hover:text-rose-600 hover:underline"
               >
                 {profile?.name ?? "Welkthuis gebruiker"}
               </button>
@@ -49,52 +51,51 @@ export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
               <p className="truncate text-sm font-semibold text-stone-900">{profile?.name ?? "Welkthuis gebruiker"}</p>
             )}
             {fullyVerified && (
-              <span title="Geverifieerd — e-mail én telefoon bevestigd">
-                <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                </svg>
-              </span>
+              <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 24 24" title="Geverifieerd">
+                <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+              </svg>
             )}
           </div>
-          <p className="text-xs text-stone-500">Lid sinds {joinMonth}</p>
+          <p className="text-xs text-stone-400">Lid sinds {joinMonth}</p>
         </div>
       </div>
-      {profile?.bio && (
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-stone-600">{profile.bio}</p>
-      )}
-      <div className="mt-4 flex flex-wrap gap-2">
-        <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          E-mail account
-        </span>
-        {(profile?.email_auto_verified || profile?.student_verified) && (
-          <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0v6" /></svg>
-            Geverifieerde student
+
+      {/* Single verification status line */}
+      <div className="mt-3">
+        {fullyVerified ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            Geverifieerd verhuurder
           </span>
-        )}
-        {profile?.phone_verified && (
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-            Telefoon geverifieerd
-          </span>
-        )}
-        {fullyVerified && (
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-            Geverifieerd
-          </span>
-        )}
-        {partiallyVerified && (
-          <span className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
+        ) : partiallyVerified ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
             Gedeeltelijk geverifieerd
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-medium text-stone-500">
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            E-mail bevestigd
           </span>
         )}
       </div>
-      <p className="mt-4 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5 text-xs leading-relaxed text-blue-800">
-        <svg className="mt-0.5 h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        Chat altijd via Welkthuis. Maak nooit geld over, deel geen bankgegevens of ID-bewijs voordat je de woning hebt gezien.
+
+      {profile?.bio && (
+        <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-relaxed text-stone-500">{profile.bio}</p>
+      )}
+
+      {/* Safety tip — compact single line */}
+      <p className="mt-4 flex items-start gap-1.5 border-t border-stone-100 pt-3 text-xs leading-relaxed text-stone-400">
+        <svg className="mt-0.5 h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Chat altijd via Welkthuis. Betaal nooit voordat je de woning hebt gezien.
       </p>
     </div>
   );
