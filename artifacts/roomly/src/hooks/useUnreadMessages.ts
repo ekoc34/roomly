@@ -67,7 +67,7 @@ export function useUnreadMessages() {
             table: "messages",
           },
           (payload) => {
-            // Yalnızca ilk fetch tamamlandıktan sonra sayacı güncelle
+            // Werk de teller pas bij nadat de eerste fetch is voltooid
             if (payload.new.sender_id !== user.id && initialFetchDoneRef.current) {
               setUnreadCount((prev) => (prev === null ? 1 : prev + 1));
             }
@@ -94,7 +94,7 @@ export function useUnreadMessages() {
 
       channelRef.current = channel;
     } catch (e) {
-      console.warn("Supabase realtime bağlantı hatası, uygulama çalışmaya devam ediyor.", e);
+      console.warn("Supabase realtime verbindingsfout, applicatie blijft werken.", e);
     }
 
     return () => {
