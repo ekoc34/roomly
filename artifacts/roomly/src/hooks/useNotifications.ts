@@ -33,38 +33,49 @@ export function useNotifications() {
   useEffect(() => {
     if (!user || !supabase) return;
 
-    const channel = supabase
-      .channel(`notifications:${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setNotifications((prev) => [payload.new as Notification, ...prev]);
-          } else if (payload.eventType === "UPDATE") {
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.id === (payload.new as Notification).id
-                  ? (payload.new as Notification)
-                  : n
-              )
-            );
-          } else if (payload.eventType === "DELETE") {
-            setNotifications((prev) =>
-              prev.filter((n) => n.id !== (payload.old as Notification).id)
-            );
+    let channel: ReturnType<NonNullable<typeof supabase>["channel"]> | null = null;
+    try {
+      channel = supabase
+        .channel(`notifications:${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              setNotifications((prev) => [payload.new as Notification, ...prev]);
+            } else if (payload.eventType === "UPDATE") {
+              setNotifications((prev) =>
+                prev.map((n) =>
+                  n.id === (payload.new as Notification).id
+                    ? (payload.new as Notification)
+                    : n
+                )
+              );
+            } else if (payload.eventType === "DELETE") {
+              setNotifications((prev) =>
+                prev.filter((n) => n.id !== (payload.old as Notification).id)
+              );
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe((status) => {
+          if (status === "CHANNEL_ERROR") {
+            console.warn("Notifications realtime channel error.");
+          }
+        });
+    } catch (e) {
+      console.warn("Notifications realtime setup failed:", e);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel && supabase) {
+        try { supabase.removeChannel(channel); } catch { /* ignore */ }
+      }
     };
   }, [user]);
 

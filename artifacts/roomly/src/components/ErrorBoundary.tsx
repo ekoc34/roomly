@@ -1,6 +1,10 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
-type Props = { children: ReactNode; fallback?: ReactNode };
+type Props = {
+  children: ReactNode;
+  fallback?: ReactNode;
+  resetKeys?: unknown[];
+};
 type State = { hasError: boolean; error: Error | null };
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -17,9 +21,23 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("ErrorBoundary caught:", error, info.componentStack);
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (
+      this.state.hasError &&
+      prevProps.resetKeys !== this.props.resetKeys &&
+      this.props.resetKeys?.some((k, i) => k !== prevProps.resetKeys?.[i])
+    ) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (this.props.fallback !== undefined) return this.props.fallback;
       return (
         <div className="mx-auto max-w-xl px-4 py-24 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
@@ -29,12 +47,20 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h1 className="mt-4 text-xl font-semibold text-stone-900">Er is iets misgegaan</h1>
           <p className="mt-2 text-sm text-stone-500">Probeer de pagina opnieuw te laden.</p>
-          <button
-            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-            className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600"
-          >
-            Pagina herladen
-          </button>
+          <div className="mt-6 flex items-center justify-center gap-3">
+            <button
+              onClick={this.handleReset}
+              className="rounded-2xl border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 shadow-sm hover:bg-stone-50"
+            >
+              Opnieuw proberen
+            </button>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+              className="rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600"
+            >
+              Pagina herladen
+            </button>
+          </div>
         </div>
       );
     }

@@ -30,6 +30,7 @@ export function useAdminNotifications(isAdmin: boolean): UseAdminNotificationsRe
 
     try {
       const [scamRes, userRepRes, contactRes] = await Promise.all([
+
         supabase
           .from("listing_reports")
           .select("id, reason, created_at, listing_id, listings ( title )")
@@ -105,6 +106,8 @@ export function useAdminNotifications(isAdmin: boolean): UseAdminNotificationsRe
       setTotalCount(
         (countScam.count ?? 0) + (countUserRep.count ?? 0) + (countContact.count ?? 0)
       );
+    } catch (e) {
+      console.warn("Admin notifications fetch failed:", e);
     } finally {
       if (mountedRef.current) setLoading(false);
     }

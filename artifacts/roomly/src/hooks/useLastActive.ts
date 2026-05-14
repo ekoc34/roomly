@@ -12,10 +12,14 @@ export async function pingLastActive(userId: string): Promise<void> {
   const now = Date.now();
   if (now - lastUpdatedAt < THROTTLE_MS) return;
   lastUpdatedAt = now;
-  await supabase
-    .from("profiles")
-    .update({ last_active_at: new Date().toISOString() })
-    .eq("id", userId);
+  try {
+    await supabase
+      .from("profiles")
+      .update({ last_active_at: new Date().toISOString() })
+      .eq("id", userId);
+  } catch {
+    // Non-critical: ignore errors so a network hiccup never crashes the app
+  }
 }
 
 export function useLastActive() {

@@ -68,7 +68,7 @@ function AnimatedRoute({ component: Component }: { component: React.ComponentTyp
   useEffect(() => { keyRef.current = path; }, [path]);
   return (
     <PageTransition key={path}>
-      <ErrorBoundary>
+      <ErrorBoundary resetKeys={[path]}>
         <Suspense fallback={<PageLoader />}>
           <Component />
         </Suspense>
@@ -131,9 +131,9 @@ function AppContent() {
 
   return (
     <>
-      <ActivityTracker />
-      <EmailVerificationHandler />
-      <OAuthProfileHandler />
+      <ErrorBoundary fallback={null}><ActivityTracker /></ErrorBoundary>
+      <ErrorBoundary fallback={null}><EmailVerificationHandler /></ErrorBoundary>
+      <ErrorBoundary fallback={null}><OAuthProfileHandler /></ErrorBoundary>
       <ErrorBoundary fallback={<div className="h-16 border-b border-stone-200 bg-white" />}>
         <Header />
       </ErrorBoundary>
