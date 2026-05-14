@@ -55,15 +55,15 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
               </svg>
             </div>
           )}
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-            {listing.boosted_at && (
-              <BoostBadge boostedAt={listing.boosted_at} />
-            )}
+          <div className="absolute left-3 top-3 flex flex-col gap-1">
             {newLabel === "vandaag" && (
               <span className="rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">✦ Nieuw vandaag</span>
             )}
             {newLabel === "nieuw" && (
               <span className="rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">Nieuw</span>
+            )}
+            {listing.boosted_at && (
+              <BoostBadge boostedAt={listing.boosted_at} />
             )}
             {isLandlordVerified && (
               <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm">
