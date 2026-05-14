@@ -1,0 +1,136 @@
+You are refining the empty-state experience inside the homepage discovery section of Welkthuis.nl.
+
+Important context:
+- The homepage contains:
+  - 🏠 Woningen
+  - 🤝 Huisgenoten
+- Each tab also includes:
+  - ⭐ Uitgelicht
+  - 🆕 Nieuw
+- Empty states should adapt dynamically based on:
+  - authentication status
+  - user role
+- The platform is intentionally calm, minimalist, and trust-focused.
+- Empty states should feel helpful and human — never like aggressive marketing banners.
+
+User roles:
+
+1. Logged out
+- Visitor is not authenticated.
+- Can browse only.
+- Cannot create listings, boost, or apply.
+
+2. Logged in + verhuurder
+- Can create housing listings.
+- Can boost listings.
+- Can manage applications.
+
+3. Logged in + huisgenoot_zoeker
+- Can create roommate listings.
+- Can boost listings.
+
+4. Logged in + tenant-type roles:
+- student
+- professional
+- alleenstaande
+- family
+
+These users:
+- cannot create listings
+- cannot boost
+- only browse and apply
+
+Your tasks:
+
+1. Create personalized empty-state logic
+Empty states should adapt intelligently to:
+- tab type
+- featured/new state
+- authentication status
+- user role
+
+2. Logged out users
+Goal:
+- encourage account creation softly
+- make the platform feel active and welcoming
+
+Guidelines:
+- avoid aggressive signup pressure
+- avoid startup-style growth messaging
+- keep tone calm and trustworthy
+
+Examples:
+- “Nog geen nieuwe advertenties gevonden.”
+- “Maak een account aan om sneller te reageren en favorieten op te slaan.”
+
+3. Logged in + verhuurder / huisgenoot_zoeker
+Goal:
+- encourage action creation naturally
+- motivate posting or boosting
+
+Guidelines:
+- do not sound salesy
+- avoid “growth hacking” language
+- keep CTAs subtle and contextual
+
+Examples:
+- “Nog geen uitgelichte advertenties.”
+- “Plaats een advertentie om hier zichtbaar te worden.”
+
+4. Logged in + tenant-type users
+Goal:
+- keep browsing flow alive
+- reduce disappointment
+- encourage filter exploration
+
+Guidelines:
+- never suggest actions they cannot take
+- do not mention boosting or posting listings
+
+Examples:
+- “Nog geen nieuwe advertenties in deze categorie.”
+- “Probeer een andere stad of pas je filters aan.”
+
+5. Improve emotional tone
+All empty states should feel:
+- calm
+- reassuring
+- useful
+- lightweight
+
+Avoid:
+- desperation
+- urgency pressure
+- fake excitement
+- startup marketing tone
+
+6. Improve visual structure
+Refine:
+- spacing
+- icon sizing
+- typography hierarchy
+- CTA subtlety
+
+The empty state should never overpower actual listings.
+
+7. Create consistency across:
+- Woningen
+- Huisgenoten
+- Uitgelicht
+- Nieuw
+
+Maintain one coherent design language.
+
+8. Preserve:
+- minimalist design
+- mobile-first UX
+- marketplace trust
+- calm visual rhythm
+
+Avoid:
+- oversized illustrations
+- loud empty-state graphics
+- onboarding-style cards
+- gamification
+- excessive CTA buttons
+- SaaS dashboard aesthetics

@@ -7,7 +7,7 @@ import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { NeighborhoodSection } from "@/components/home/NeighborhoodSection";
 import { OnboardingBanner } from "@/components/home/OnboardingBanner";
 import { SkeletonGrid } from "@/components/listings/SkeletonCard";
-import type { Listing } from "@/types/database";
+import type { Listing, UserType } from "@/types/database";
 
 type RoommateProfile = {
   name: string | null;
@@ -24,6 +24,7 @@ function HomePageContent() {
   const [roommateListings, setRoommateListings] = useState<Listing[]>([]);
   const [roommateProfiles, setRoommateProfiles] = useState<Record<string, RoommateProfile>>({});
   const [ownerProfiles, setOwnerProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
+  const [userType, setUserType] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -103,7 +104,7 @@ function HomePageContent() {
             };
           }
 
-          const ownerProfileMap: Record<string, { name: string | null; avatar_url: string | null }> = {};
+            const ownerProfileMap: Record<string, { name: string | null; avatar_url: string | null }> = {};
           for (const p of (profiles ?? []) as { id: string; name: string | null; avatar_url: string | null; email_auto_verified: boolean; phone_verified: boolean; lifestyle_tags: string[] | null; avg_response_time_hours: number | null }[]) {
             ownerProfileMap[p.id] = { name: p.name, avatar_url: p.avatar_url };
           }
@@ -112,6 +113,15 @@ function HomePageContent() {
           setResponseTimeBadges(rtMap);
           setRoommateProfiles(rmProfileMap);
           setOwnerProfiles(ownerProfileMap);
+        }
+
+        if (user) {
+          const { data: ownProfile } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .single();
+          if (ownProfile) setUserType((ownProfile as { user_type: UserType }).user_type);
         }
       } catch {
         // silently fail — show empty state
@@ -143,6 +153,7 @@ function HomePageContent() {
           roommateProfiles={roommateProfiles}
           ownerProfiles={ownerProfiles}
           currentUserId={user?.id ?? null}
+          userType={userType}
         />
       )}
 
