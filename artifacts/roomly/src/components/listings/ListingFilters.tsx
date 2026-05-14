@@ -4,8 +4,6 @@ import { CITY_DISTRICTS, LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { ListingType } from "@/types/database";
 
 const TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
-const PRICE_MAX = 2000;
-const PRICE_STEP = 50;
 
 const DUTCH_CITIES = [
   "Amsterdam", "Rotterdam", "Utrecht", "Den Haag", "Eindhoven",
@@ -32,6 +30,9 @@ const ROOMS_OPTIONS = [
   { value: "4", label: "4+" },
 ];
 
+const SELECT_CLASS =
+  "w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
+
 export function ListingFilters() {
   const searchString = useSearch();
   const [, navigate] = useLocation();
@@ -42,41 +43,24 @@ export function ListingFilters() {
   const currentQ = searchParams.get("q") ?? "";
   const [searchInput, setSearchInput] = useState(currentQ);
 
-  const spMin = Number(searchParams.get("min") ?? 0);
-  const spMax = Number(searchParams.get("max") ?? PRICE_MAX);
-  const [sliderMin, setSliderMin] = useState(spMin);
-  const [sliderMax, setSliderMax] = useState(spMax);
-
   const city = searchParams.get("city") ?? "";
   const district = searchParams.get("district") ?? "";
   const type = searchParams.get("type") ?? "";
   const sort = searchParams.get("sort") ?? "newest";
-
   const pets = searchParams.get("pets") ?? "";
   const smoking = searchParams.get("smoking") ?? "";
   const gender = searchParams.get("gender") ?? "";
   const rooms = searchParams.get("rooms") ?? "";
   const minSurface = searchParams.get("min_surface") ?? "";
   const verified = searchParams.get("verified") ?? "";
+  const minPrice = searchParams.get("min") ?? "";
+  const maxPrice = searchParams.get("max") ?? "";
+
+  const [localMin, setLocalMin] = useState(minPrice);
+  const [localMax, setLocalMax] = useState(maxPrice);
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
-
-  const advancedCount = [pets, smoking, gender, rooms, minSurface].filter(Boolean).length;
-
-  const activeCount = [
-    searchParams.get("min"),
-    searchParams.get("max"),
-    city,
-    district,
-    type,
-    searchParams.get("q"),
-    pets,
-    smoking,
-    gender,
-    rooms,
-    minSurface,
-    verified,
-  ].filter(Boolean).length;
+  const advancedCount = [district, pets, smoking, gender, rooms, minSurface].filter(Boolean).length;
 
   const push = useCallback((updates: Record<string, string>) => {
     const next = new URLSearchParams(searchString);
@@ -87,18 +71,13 @@ export function ListingFilters() {
     startTransition(() => navigate(`/kamers?${next.toString()}`));
   }, [navigate, searchString]);
 
-  const handleCityChange = (newCity: string) => {
-    push({ city: newCity, district: "" });
-  };
+  const handleCityChange = (newCity: string) => push({ city: newCity, district: "" });
 
-  const commitPrice = () => push({
-    min: sliderMin > 0 ? String(sliderMin) : "",
-    max: sliderMax < PRICE_MAX ? String(sliderMax) : "",
-  });
+  const commitPrice = () => push({ min: localMin, max: localMax });
 
   const clearFilters = () => {
-    setSliderMin(0);
-    setSliderMax(PRICE_MAX);
+    setLocalMin("");
+    setLocalMax("");
     const next = new URLSearchParams();
     const s = searchParams.get("sort");
     if (s && s !== "newest") next.set("sort", s);
@@ -110,11 +89,27 @@ export function ListingFilters() {
     push({ q: searchInput.trim() });
   };
 
+  // Active filter pills
+  const activePills: { key: string; label: string; clear: Record<string, string> }[] = [];
+  if (currentQ) activePills.push({ key: "q", label: `"${currentQ}"`, clear: { q: "" } });
+  if (city) activePills.push({ key: "city", label: city, clear: { city: "", district: "" } });
+  if (district) activePills.push({ key: "district", label: district, clear: { district: "" } });
+  if (type) activePills.push({ key: "type", label: LISTING_TYPE_LABELS[type as ListingType] ?? type, clear: { type: "" } });
+  if (minPrice) activePills.push({ key: "min", label: `Min €${minPrice}`, clear: { min: "" } });
+  if (maxPrice) activePills.push({ key: "max", label: `Max €${maxPrice}`, clear: { max: "" } });
+  if (pets === "1") activePills.push({ key: "pets", label: "Huisdieren", clear: { pets: "" } });
+  if (smoking === "1") activePills.push({ key: "smoking", label: "Roken ok", clear: { smoking: "" } });
+  if (gender) activePills.push({ key: "gender", label: GENDER_OPTIONS.find((g) => g.value === gender)?.label ?? gender, clear: { gender: "" } });
+  if (rooms) activePills.push({ key: "rooms", label: `${rooms}+ kamers`, clear: { rooms: "" } });
+  if (minSurface) activePills.push({ key: "min_surface", label: `${minSurface}m²+`, clear: { min_surface: "" } });
+  if (verified === "1") activePills.push({ key: "verified", label: "Geverifieerd", clear: { verified: "" } });
+
   return (
-    <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm sm:p-5">
+
+      {/* Search bar */}
       <form onSubmit={handleSearchSubmit} className="mb-4">
-        <label className="text-xs font-medium text-stone-700">Zoeken in advertenties</label>
-        <div className="mt-1.5 flex gap-2">
+        <div className="flex gap-2">
           <div className="relative flex-1">
             <svg className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -124,7 +119,7 @@ export function ListingFilters() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Zoek op titel, omschrijving of locatie…"
-              className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-4 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
+              className="w-full rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-9 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200"
             />
             {searchInput && (
               <button
@@ -149,210 +144,151 @@ export function ListingFilters() {
         </div>
       </form>
 
-      {/* Stadsdelen chip strip — appears when a city with known districts is selected */}
-      {availableDistricts.length > 0 && (
-        <div className="mb-4">
-          <p className="mb-2 text-xs font-medium text-stone-500">
-            Stadsdelen in {city}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            {availableDistricts.map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => push({ district: district === d ? "" : d })}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition active:scale-95 ${
-                  district === d
-                    ? "bg-rose-500 text-white shadow-sm"
-                    : "border border-stone-200 bg-stone-50 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                }`}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-stone-900">Filters</span>
-          {activeCount > 0 && (
-            <span className="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-500 px-1.5 text-xs font-bold text-white">
-              {activeCount}
-            </span>
-          )}
-        </div>
-        {activeCount > 0 && (
-          <button type="button" onClick={clearFilters} className="text-xs text-stone-500 hover:text-rose-600">
-            Wis filters
-          </button>
-        )}
-      </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Primary filters — Stad · Type · Prijs */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label className="text-xs font-medium text-stone-700">Min prijs</label>
-          <div className="mt-1.5 flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={PRICE_MAX}
-              step={PRICE_STEP}
-              value={sliderMin}
-              onChange={(e) => setSliderMin(Number(e.target.value))}
-              onMouseUp={commitPrice}
-              onTouchEnd={commitPrice}
-              className="w-full accent-rose-500"
-            />
-            <span className="w-16 shrink-0 text-xs text-stone-600">€{sliderMin}</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-stone-700">Max prijs</label>
-          <div className="mt-1.5 flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={PRICE_MAX}
-              step={PRICE_STEP}
-              value={sliderMax}
-              onChange={(e) => setSliderMax(Number(e.target.value))}
-              onMouseUp={commitPrice}
-              onTouchEnd={commitPrice}
-              className="w-full accent-rose-500"
-            />
-            <span className="w-16 shrink-0 text-xs text-stone-600">{sliderMax < PRICE_MAX ? `€${sliderMax}` : "Alles"}</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-stone-700">Stad</label>
-          <select
-            value={city}
-            onChange={(e) => handleCityChange(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-          >
+          <label className="mb-1.5 block text-xs font-semibold text-stone-600">Stad</label>
+          <select value={city} onChange={(e) => handleCityChange(e.target.value)} className={SELECT_CLASS}>
             <option value="">Alle steden</option>
-            {DUTCH_CITIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
+            {DUTCH_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
         <div>
-          <label className="text-xs font-medium text-stone-700">Stadsdeel</label>
-          <select
-            value={district}
-            onChange={(e) => push({ district: e.target.value })}
-            disabled={availableDistricts.length === 0}
-            className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Alle stadsdelen"}</option>
-            {availableDistricts.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <label className="text-xs font-medium text-stone-700">Type</label>
-          <select
-            value={type}
-            onChange={(e) => push({ type: e.target.value })}
-            className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-          >
+          <label className="mb-1.5 block text-xs font-semibold text-stone-600">Type woning</label>
+          <select value={type} onChange={(e) => push({ type: e.target.value })} className={SELECT_CLASS}>
             <option value="">Alle types</option>
-            {TYPES.map((t) => (
-              <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>
-            ))}
+            {TYPES.map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
           </select>
         </div>
-      </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <label className="text-xs font-medium text-stone-700">Snelfilter:</label>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => push({ type: type === "room_for_rent" ? "" : "room_for_rent" })}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${type === "room_for_rent" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
-            Kamers
-          </button>
-          <button
-            type="button"
-            onClick={() => { const next = currentQ === "appartement" ? "" : "appartement"; setSearchInput(next); push({ q: next }); }}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${currentQ === "appartement" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            Appartementen
-          </button>
-          <button
-            type="button"
-            onClick={() => { const next = currentQ === "studio" ? "" : "studio"; setSearchInput(next); push({ q: next }); }}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${currentQ === "studio" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-            </svg>
-            Studio's
-          </button>
-          <button
-            type="button"
-            onClick={() => { const next = currentQ === "huisgenoot" ? "" : "huisgenoot"; setSearchInput(next); push({ q: next }); }}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${currentQ === "huisgenoot" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Huisgenoot gezocht
-          </button>
-          <button
-            type="button"
-            onClick={() => push({ verified: verified === "1" ? "" : "1" })}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition ${verified === "1" ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
-          >
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            Geverifieerde verhuurders
-          </button>
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-stone-600">Prijs per maand</label>
+          <div className="flex items-center gap-1.5">
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              step={50}
+              value={localMin}
+              onChange={(e) => setLocalMin(e.target.value)}
+              onBlur={commitPrice}
+              placeholder="Min"
+              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            />
+            <span className="shrink-0 text-xs text-stone-400">–</span>
+            <input
+              type="number"
+              min={0}
+              max={9999}
+              step={50}
+              value={localMax}
+              onChange={(e) => setLocalMax(e.target.value)}
+              onBlur={commitPrice}
+              placeholder="Max"
+              className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-3">
-        <label className="text-xs font-medium text-stone-700">Sorteren:</label>
-        <div className="flex flex-wrap gap-2">
+      {/* Quick category chips */}
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {[
+          {
+            label: "Kamers",
+            active: type === "room_for_rent",
+            onClick: () => push({ type: type === "room_for_rent" ? "" : "room_for_rent" }),
+          },
+          {
+            label: "Appartementen",
+            active: currentQ === "appartement",
+            onClick: () => { const n = currentQ === "appartement" ? "" : "appartement"; setSearchInput(n); push({ q: n }); },
+          },
+          {
+            label: "Studio's",
+            active: currentQ === "studio",
+            onClick: () => { const n = currentQ === "studio" ? "" : "studio"; setSearchInput(n); push({ q: n }); },
+          },
+          {
+            label: "Huisgenoot gezocht",
+            active: currentQ === "huisgenoot",
+            onClick: () => { const n = currentQ === "huisgenoot" ? "" : "huisgenoot"; setSearchInput(n); push({ q: n }); },
+          },
+          {
+            label: "Geverifieerd",
+            active: verified === "1",
+            onClick: () => push({ verified: verified === "1" ? "" : "1" }),
+          },
+        ].map(({ label, active, onClick }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={onClick}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              active
+                ? "bg-rose-500 text-white shadow-sm"
+                : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Sort + clear row */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5">
           {SORT_OPTIONS.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => push({ sort: opt.value })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${sort === opt.value ? "bg-rose-500 text-white" : "border border-stone-200 text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"}`}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+                sort === opt.value
+                  ? "bg-stone-800 text-white"
+                  : "border border-stone-200 text-stone-500 hover:border-stone-300 hover:bg-stone-50"
+              }`}
             >
               {opt.label}
             </button>
           ))}
         </div>
+        {activePills.length > 0 && (
+          <button type="button" onClick={clearFilters} className="text-xs text-stone-400 hover:text-rose-600">
+            Wis alles
+          </button>
+        )}
       </div>
 
+      {/* Active filter pill strip */}
+      {activePills.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {activePills.map((pill) => (
+            <button
+              key={pill.key}
+              type="button"
+              onClick={() => push(pill.clear)}
+              className="flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-0.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+            >
+              {pill.label}
+              <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Advanced filters (collapsed) */}
       <div className="mt-4 border-t border-stone-100 pt-4">
         <button
           type="button"
           onClick={() => setAdvancedOpen((o) => !o)}
-          className="flex w-full items-center justify-between text-xs font-semibold text-stone-700 hover:text-rose-600"
+          className="flex w-full items-center justify-between text-xs font-medium text-stone-500 hover:text-stone-800"
         >
           <span className="flex items-center gap-1.5">
-            Geavanceerd zoeken
+            Meer filters
             {advancedCount > 0 && (
               <span className="flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                 {advancedCount}
@@ -364,30 +300,38 @@ export function ListingFilters() {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2.5}
+            strokeWidth={2}
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
 
         {advancedOpen && (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {/* District — secondary, lives here */}
             <div>
-              <label className="text-xs font-medium text-stone-700">Minimaal aantal kamers</label>
+              <label className="mb-1.5 block text-xs font-medium text-stone-600">Stadsdeel</label>
               <select
-                value={rooms}
-                onChange={(e) => push({ rooms: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                value={district}
+                onChange={(e) => push({ district: e.target.value })}
+                disabled={availableDistricts.length === 0}
+                className={SELECT_CLASS + " disabled:cursor-not-allowed disabled:opacity-40"}
               >
-                <option value="">Alle</option>
-                {ROOMS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+                <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Alle stadsdelen"}</option>
+                {availableDistricts.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
 
             <div>
-              <label className="text-xs font-medium text-stone-700">Min. oppervlakte (m²)</label>
+              <label className="mb-1.5 block text-xs font-medium text-stone-600">Min. kamers</label>
+              <select value={rooms} onChange={(e) => push({ rooms: e.target.value })} className={SELECT_CLASS}>
+                <option value="">Alle</option>
+                {ROOMS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-stone-600">Min. oppervlakte (m²)</label>
               <input
                 type="number"
                 min={1}
@@ -395,44 +339,35 @@ export function ListingFilters() {
                 value={minSurface}
                 onChange={(e) => push({ min_surface: e.target.value })}
                 placeholder="Bijv. 20"
-                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
               />
             </div>
 
             <div>
-              <label className="text-xs font-medium text-stone-700">Gender voorkeur</label>
-              <select
-                value={gender}
-                onChange={(e) => push({ gender: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-              >
-                {GENDER_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+              <label className="mb-1.5 block text-xs font-medium text-stone-600">Gender voorkeur</label>
+              <select value={gender} onChange={(e) => push({ gender: e.target.value })} className={SELECT_CLASS}>
+                {GENDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
 
-            <div className="flex items-center gap-3">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700">
+            <div className="flex flex-col gap-2.5 pt-1">
+              <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={pets === "1"}
                   onChange={(e) => push({ pets: e.target.checked ? "1" : "" })}
                   className="h-4 w-4 rounded accent-rose-500"
                 />
-                <span className="text-xs font-medium">Huisdieren toegestaan</span>
+                <span className="text-xs font-medium text-stone-600">Huisdieren toegestaan</span>
               </label>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700">
+              <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
                   checked={smoking === "1"}
                   onChange={(e) => push({ smoking: e.target.checked ? "1" : "" })}
                   className="h-4 w-4 rounded accent-rose-500"
                 />
-                <span className="text-xs font-medium">Roken toegestaan</span>
+                <span className="text-xs font-medium text-stone-600">Roken toegestaan</span>
               </label>
             </div>
           </div>

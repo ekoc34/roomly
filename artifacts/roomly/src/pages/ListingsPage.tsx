@@ -289,12 +289,29 @@ export function ListingsPage() {
         ) : listings.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-20 text-center shadow-sm">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-100">
-              <svg className="h-7 w-7 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <svg className="h-7 w-7 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
             </div>
             <h3 className="mt-4 text-base font-semibold text-stone-800">
-              {q ? `Geen resultaten gevonden voor "${q}"` : "Geen woningen gevonden"}
+              {q ? `Niets gevonden voor "${q}"` : "Nog geen woningen beschikbaar"}
             </h3>
-            <p className="mt-2 text-sm text-stone-500">Probeer andere filters of zoekterm.</p>
+            <p className="mt-2 max-w-xs text-sm text-stone-500">
+              Probeer een andere stad, een ruimer prijsbereik, of verwijder een filter.
+            </p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={() => {
+                  const next = new URLSearchParams();
+                  window.history.pushState({}, "", `/kamers`);
+                  window.location.href = "/kamers";
+                }}
+                className="mt-5 rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              >
+                Alle filters wissen
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
