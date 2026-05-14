@@ -1,7 +1,7 @@
 import { useState, useEffect, useTransition, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { Shield, ShieldCheck, X, Rocket } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
@@ -315,167 +315,90 @@ export function NewListingPage() {
         </nav>
         <h1 className="text-2xl font-bold text-stone-900">Advertentie plaatsen</h1>
         <p className="mt-1 text-sm text-stone-500">Gratis — bereik duizenden huurders in heel Nederland.</p>
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <form ref={formRef} onSubmit={onSubmit} className="space-y-5" data-testid="new-listing-form">
+        <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+          <form ref={formRef} onSubmit={onSubmit} className="space-y-8" data-testid="new-listing-form">
 
-            {/* ── Task 1: Premium Verification Block ── */}
+            {/* Verification nudge — quiet inline */}
             {showVerifyBanner && (
-              <div className="relative rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 pr-10">
-                <button
-                  type="button"
-                  onClick={dismissBanner}
-                  aria-label="Sluiten"
-                  className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-emerald-400 transition hover:bg-emerald-100 hover:text-emerald-700"
-                >
+              <div className="flex items-start justify-between gap-3 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
+                <div className="flex items-start gap-2 text-xs text-stone-600">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                  <span>
+                    Geverifieerde verhuurders ontvangen meer reacties.{" "}
+                    <Link href="/profiel" className="font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-800">
+                      Verifieer je account →
+                    </Link>
+                  </span>
+                </div>
+                <button type="button" onClick={dismissBanner} aria-label="Sluiten"
+                  className="shrink-0 text-stone-300 transition hover:text-stone-500">
                   <X className="h-3.5 w-3.5" />
                 </button>
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-                    <Shield className="h-4 w-4 text-emerald-600" />
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-emerald-900">🛡 Geverifieerde accounts ontvangen gemiddeld meer reacties.</p>
-                    <ul className="mt-2 space-y-1">
-                      <li className="flex items-center gap-2 text-xs text-emerald-800">
-                        {emailVerified
-                          ? <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                          : <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-300" />}
-                        E-mail verificatie{emailVerified ? " — voltooid" : " — niet voltooid"}
-                      </li>
-                      <li className="flex items-center gap-2 text-xs text-emerald-800">
-                        {phoneVerified
-                          ? <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                          : <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-emerald-300" />}
-                        Telefoon verificatie{phoneVerified ? " — voltooid" : " — niet voltooid"}
-                      </li>
-                    </ul>
-                    <Link
-                      href="/profiel"
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700 active:scale-95"
-                    >
-                      <Shield className="h-3.5 w-3.5" />
-                      Verifiëren
-                    </Link>
-                  </div>
-                </div>
               </div>
             )}
 
-            <div>
-              <label htmlFor="nl-title" className={labelClass}>Titel *</label>
-              <input id="nl-title" name="title" type="text" required maxLength={72} placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²" className={inputClass} data-testid="new-listing-title" />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
+            {/* ── Sectie 1: Basis ── */}
+            <section className="space-y-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-stone-400">Basis</p>
               <div>
-                <label htmlFor="nl-type" className={labelClass}>Type</label>
-                <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
-                  {getAvailableTypes(profile?.user_type).map((t) => <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>)}
-                </select>
+                <label htmlFor="nl-title" className={labelClass}>Titel *</label>
+                <input id="nl-title" name="title" type="text" required maxLength={72}
+                  placeholder="Bijv. Ruime kamer in Amsterdam-Oost, 14m²"
+                  className={inputClass} data-testid="new-listing-title" />
               </div>
-              <div>
-                {/* ── Task 2: Price helper text ── */}
-                <label htmlFor="nl-price" className={labelClass}>Prijs per maand (€) *</label>
-                <input id="nl-price" name="price" type="number" required min={1} step={1} placeholder="800" className={inputClass} data-testid="new-listing-price" />
-                <p className="mt-1 text-xs text-stone-400">Een realistische prijs verhoogt je kans op reacties.</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="nl-city" className={labelClass}>Stad *</label>
-                <select
-                  id="nl-city"
-                  value={city}
-                  onChange={handleCityChange}
-                  className={selectClass}
-                  data-testid="new-listing-city"
-                >
-                  <option value="">Kies een stad…</option>
-                  {DUTCH_CITIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="nl-district" className={labelClass}>Stadsdeel / wijk</label>
-                <select
-                  id="nl-district"
-                  value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  disabled={availableDistricts.length === 0}
-                  className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
-                  data-testid="new-listing-district"
-                >
-                  <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
-                  {availableDistricts.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
-                <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
-              </div>
-              <div>
-                <label htmlFor="nl-gender" className={labelClass}>Gender voorkeur</label>
-                <select id="nl-gender" name="gender_preference" className={selectClass}>
-                  <option value="">Geen voorkeur</option>
-                  <option value="man">Alleen mannen</option>
-                  <option value="vrouw">Alleen vrouwen</option>
-                  <option value="gemengd">Gemengd</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="nl-rooms" className={labelClass}>Aantal kamers</label>
-                <input id="nl-rooms" name="rooms" type="number" min={0} step={1} placeholder="bijv. 3" className={inputClass} />
-              </div>
-              <div>
-                <label htmlFor="nl-surface" className={labelClass}>Woonoppervlakte</label>
-                <div className="relative mt-1.5">
-                  <input id="nl-surface" name="surface_area" type="number" min={0} step={1} placeholder="bijv. 20" className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
-                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="nl-type" className={labelClass}>Type</label>
+                  <select id="nl-type" name="type" className={selectClass} data-testid="new-listing-type">
+                    {getAvailableTypes(profile?.user_type).map((t) => (
+                      <option key={t} value={t}>{LISTING_TYPE_LABELS[t]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="nl-price" className={labelClass}>Huurprijs per maand (€) *</label>
+                  <input id="nl-price" name="price" type="number" required min={1} step={1}
+                    placeholder="800" className={inputClass} data-testid="new-listing-price" />
                 </div>
               </div>
-            </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="nl-city" className={labelClass}>Stad *</label>
+                  <select id="nl-city" value={city} onChange={handleCityChange} className={selectClass} data-testid="new-listing-city">
+                    <option value="">Kies een stad…</option>
+                    {DUTCH_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="nl-district" className={labelClass}>Stadsdeel / wijk</label>
+                  <select id="nl-district" value={district} onChange={(e) => setDistrict(e.target.value)}
+                    disabled={availableDistricts.length === 0}
+                    className={`${selectClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                    data-testid="new-listing-district"
+                  >
+                    <option value="">{availableDistricts.length === 0 ? "Kies eerst een stad" : "Heel de stad"}</option>
+                    {availableDistricts.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+            </section>
 
-            <div className="rounded-2xl border border-stone-100 bg-stone-50 p-4 space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Huisregels</p>
-              <label className="flex cursor-pointer items-center justify-between">
-                <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={petsAllowed}
-                  onClick={() => setPetsAllowed((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </label>
-              <label className="flex cursor-pointer items-center justify-between">
-                <span className="text-sm text-stone-700">Roken toegestaan</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={smokingAllowed}
-                  onClick={() => setSmokingAllowed((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
-                >
-                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </label>
-            </div>
+            <hr className="border-stone-100" />
 
-            {/* ── Task 2: Structured description placeholder ── */}
-            <div>
-              <label htmlFor="nl-desc" className={labelClass}>Beschrijving *</label>
+            {/* ── Sectie 2: Foto's ── */}
+            <section className="space-y-3">
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-stone-400">Foto's</p>
+                <p className="mt-1 text-xs text-stone-500">Voeg minimaal 2–3 foto's toe — advertenties met foto's krijgen beduidend meer reacties.</p>
+              </div>
+              <ListingImageUpload value={images} onChange={setImages} />
+            </section>
+
+            <hr className="border-stone-100" />
+
+            {/* ── Sectie 3: Beschrijving ── */}
+            <section className="space-y-3">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-stone-400">Beschrijving</p>
               <textarea
                 id="nl-desc"
                 name="description"
@@ -483,66 +406,110 @@ export function NewListingPage() {
                 rows={6}
                 maxLength={4000}
                 placeholder={"Vertel iets over:\n• de woning\n• de buurt\n• voorzieningen\n• wie je zoekt"}
-                className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                className="w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
                 data-testid="new-listing-description"
               />
-            </div>
+            </section>
 
-            <ListingImageUpload value={images} onChange={setImages} />
+            <hr className="border-stone-100" />
 
-            {/* ── Task 2: Photo tip ── */}
-            <p className="flex items-center gap-1.5 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5 text-xs text-stone-500">
-              <span>💡</span>
-              Advertenties met minimaal 3 foto's krijgen gemiddeld meer reacties.
-            </p>
-
-            {/* ── Task 3: Enhanced Boost Section ── */}
-            {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
-              <div className={`rounded-2xl border p-4 space-y-3 transition ${boosted ? "border-amber-300 bg-amber-50 ring-2 ring-amber-200" : "border-amber-200 bg-amber-50"}`}>
-                <div className="flex items-center gap-2">
-                  <Rocket className="h-4 w-4 text-amber-600" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">🚀 Promotie</p>
+            {/* ── Sectie 4: Details (optioneel) ── */}
+            <section className="space-y-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-stone-400">
+                Details <span className="normal-case font-normal text-stone-300 tracking-normal">(optioneel)</span>
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="nl-avail" className={labelClass}>Beschikbaar per</label>
+                  <input id="nl-avail" name="availability_date" type="date" className={inputClass} data-testid="new-listing-avail" />
                 </div>
-                <label className="flex cursor-pointer items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-amber-900">Advertentie uitlichten</p>
-                    <p className="mt-0.5 text-xs text-amber-700">Verschijn bovenaan bij duizenden woningzoekers en krijg meer reacties.</p>
+                <div>
+                  <label htmlFor="nl-rooms" className={labelClass}>Aantal kamers</label>
+                  <input id="nl-rooms" name="rooms" type="number" min={0} step={1} placeholder="bijv. 3" className={inputClass} />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="nl-surface" className={labelClass}>Woonoppervlakte</label>
+                  <div className="relative mt-1.5">
+                    <input id="nl-surface" name="surface_area" type="number" min={0} step={1} placeholder="bijv. 20"
+                      className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-4 pr-10 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200" />
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">m²</span>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={boosted}
-                    onClick={() => setBoosted((v) => !v)}
-                    className={`relative ml-4 inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${boosted ? "bg-amber-500" : "bg-stone-300"}`}
+                </div>
+                <div>
+                  <label htmlFor="nl-gender" className={labelClass}>Gendervoorkeur</label>
+                  <select id="nl-gender" name="gender_preference" className={selectClass}>
+                    <option value="">Geen voorkeur</option>
+                    <option value="man">Alleen mannen</option>
+                    <option value="vrouw">Alleen vrouwen</option>
+                    <option value="gemengd">Gemengd</option>
+                  </select>
+                </div>
+              </div>
+              <div className="rounded-lg border border-stone-100 bg-stone-50 px-4 py-3 space-y-3">
+                <p className="text-[11px] font-medium uppercase tracking-wide text-stone-400">Huisregels</p>
+                <label className="flex cursor-pointer items-center justify-between">
+                  <span className="text-sm text-stone-700">Huisdieren toegestaan</span>
+                  <button type="button" role="switch" aria-checked={petsAllowed} onClick={() => setPetsAllowed((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${petsAllowed ? "bg-rose-500" : "bg-stone-300"}`}
                   >
-                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${boosted ? "translate-x-5" : "translate-x-0"}`} />
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${petsAllowed ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </label>
+                <label className="flex cursor-pointer items-center justify-between">
+                  <span className="text-sm text-stone-700">Roken toegestaan</span>
+                  <button type="button" role="switch" aria-checked={smokingAllowed} onClick={() => setSmokingAllowed((v) => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-1 ${smokingAllowed ? "bg-rose-500" : "bg-stone-300"}`}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${smokingAllowed ? "translate-x-5" : "translate-x-0"}`} />
                   </button>
                 </label>
               </div>
+            </section>
+
+            {/* Uitlichten — optional, secondary */}
+            {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-stone-200 bg-white px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-stone-700">
+                    Uitlichten <span className="text-xs font-normal text-stone-400">(optioneel)</span>
+                  </p>
+                  <p className="text-xs text-stone-400">Verschijn bovenaan in zoekresultaten. Gebruikt één boost credit.</p>
+                </div>
+                <button type="button" role="switch" aria-checked={boosted} onClick={() => setBoosted((v) => !v)}
+                  className={`relative ml-4 inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-1 ${boosted ? "bg-amber-400" : "bg-stone-300"}`}
+                >
+                  <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${boosted ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
             )}
 
-            {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
+            {error && (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{error}</p>
+            )}
 
-            {/* ── Task 4 + 5: Submit row + reassurance ── */}
-            <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={isPending}
-                data-testid="new-listing-submit"
-                className="flex-1 rounded-2xl bg-rose-500 px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
+            {/* Submit */}
+            <div className="space-y-3">
+              <button type="submit" disabled={isPending} data-testid="new-listing-submit"
+                className="w-full rounded-xl bg-rose-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.99]"
               >
                 {isPending ? "Bezig…" : "Advertentie plaatsen"}
               </button>
-              <button
-                type="button"
-                onClick={handlePreview}
-                className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 active:scale-[0.98]"
-              >
-                Bekijk voorbeeld
-              </button>
-              <Link href="/dashboard" className="rounded-2xl border border-stone-200 px-4 py-3 text-sm font-medium text-stone-700 shadow-sm hover:bg-stone-50">Annuleren</Link>
+              <div className="flex gap-3">
+                <button type="button" onClick={handlePreview}
+                  className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 active:scale-[0.99]"
+                >
+                  Bekijk voorbeeld
+                </button>
+                <Link href="/dashboard"
+                  className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-center text-sm font-medium text-stone-500 transition hover:bg-stone-50"
+                >
+                  Annuleren
+                </Link>
+              </div>
+              <p className="text-center text-xs text-stone-400">Gratis plaatsen · Geen abonnement nodig</p>
             </div>
-            <p className="text-center text-xs text-stone-400">Gratis plaatsen • Geen abonnement nodig</p>
 
           </form>
         </div>
