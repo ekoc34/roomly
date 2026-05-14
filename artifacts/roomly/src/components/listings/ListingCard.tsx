@@ -35,7 +35,7 @@ function getResponseBadge(hours: number | null | undefined): { label: string; cl
 function OwnerAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: string | null }) {
   const initial = (name ?? "?")[0]?.toUpperCase() ?? "?";
   return (
-    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-stone-200 bg-stone-100">
+    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-stone-200 bg-stone-100">
       {avatarUrl ? (
         <img src={avatarUrl} alt={name ?? ""} className="h-full w-full object-cover" />
       ) : (
