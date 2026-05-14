@@ -63,7 +63,7 @@ Schema: `supabase/schema.sql` (run manually in Supabase SQL Editor)
 
 - All UI text in Dutch
 - Tailwind v4 (no config file — CSS-first)
-- After completing a task, confirm completion and stop — do NOT suggest next features or offer follow-ups
+- After completing a task, confirm completion and stop — do NOT suggest next features, follow-ups, or bold suggestions of any kind
 
 ## Gotchas
 
