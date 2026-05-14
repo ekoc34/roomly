@@ -27,7 +27,7 @@ export function Footer() {
             <div className="flex items-center gap-2">
               <img src="/logo.svg" alt="Welkthuis logo" className="h-10 w-10" />
               <p className="text-xl tracking-tight">
-                <span className="font-semibold text-rose-500">Welkthuis</span>
+                <span className="font-semibold text-rose-500">Welkthuis</span><span className="font-normal text-stone-400">.nl</span>
               </p>
             </div>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
