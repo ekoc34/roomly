@@ -9,166 +9,82 @@ export function HeroSearch() {
 
   return (
     <section data-testid="hero-search" className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rose-50 via-white to-amber-50/60 px-6 py-14 shadow-sm ring-1 ring-stone-200/60 sm:px-10 sm:py-20">
-      <div className="relative mx-auto max-w-3xl text-center">
+      <div className="relative mx-auto max-w-2xl text-center">
 
-        {/* a. Headline + Subheadline */}
-        <h1 className="mt-4 text-3xl font-bold tracking-tight text-stone-900 sm:text-5xl sm:leading-tight">
+        {/* Headline */}
+        <h1 className="text-3xl font-bold tracking-tight text-stone-900 sm:text-5xl sm:leading-tight">
           {selectedCity ? (
             <>
-              Alle woningen in{" "}
+              Woningen in{" "}
               <span className="text-rose-500">{selectedCity}</span>
             </>
           ) : (
             <>
-              Vind je volgende thuis{" "}
-              <span className="text-rose-500">zonder gedoe</span>
+              Vind je thuis{" "}
+              <span className="text-rose-500">in Nederland</span>
             </>
           )}
         </h1>
 
-        <p className="mt-4 text-base leading-relaxed text-stone-600 sm:text-lg">
+        <p className="mt-4 text-base leading-relaxed text-stone-500 sm:text-lg">
           {selectedCity
-            ? `Bekijk alle beschikbare kamers en appartementen in ${selectedCity}.`
-            : "Kamers, appartementen en huisgenoten door heel Nederland."}
+            ? `Beschikbare kamers en appartementen in ${selectedCity} — van echte verhuurders.`
+            : "Kamers, studio's en appartementen van echte verhuurders. Geen spam, geen misleiding."}
         </p>
 
-        {/* b. Intent-based CTAs */}
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link
-            href="/kamers"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-8 py-4 text-base font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
-          >
-            🏠 Ik zoek een woning
-          </Link>
-          <Link
-            href="/kamers/nieuw"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-rose-500 bg-white px-8 py-4 text-base font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 active:scale-[0.98]"
-          >
-            📢 Ik wil verhuren
-          </Link>
-        </div>
-
-        {/* c. Search input + button */}
+        {/* Search bar — central element */}
         <CitySearchAutocomplete />
 
-        {/* d. Popular city chips */}
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {/* Secondary CTA */}
+        <p className="mt-3 text-sm text-stone-500">
+          Wil je verhuren?{" "}
+          <Link href="/kamers/nieuw" className="font-medium text-rose-600 underline-offset-4 hover:underline">
+            Advertentie plaatsen →
+          </Link>
+        </p>
+
+        {/* City chips — subtle */}
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
           {POPULAR_CITIES.map((city) => (
             <Link
               key={city}
               href={`/kamers?city=${encodeURIComponent(city)}`}
-              className="rounded-full border border-stone-200 bg-white px-4 py-1.5 text-sm font-medium text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+              className="rounded-full border border-stone-200 bg-white px-3.5 py-1 text-xs font-medium text-stone-500 transition hover:border-rose-200 hover:text-rose-600"
             >
               {city}
             </Link>
           ))}
         </div>
 
-        {/* c. Quick filter chips — two logical groups */}
-        <div className="mt-6 flex flex-wrap justify-center gap-y-3">
-          {/* Group 1: Rental types */}
-          <div className="flex flex-wrap justify-center gap-2 after:content-[''] after:w-full sm:after:hidden">
-            <Link
-              href="/kamers?type=room_for_rent"
-              data-testid="quick-filter-room"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Kamers
-            </Link>
-            <Link
-              href="/kamers?q=appartement"
-              data-testid="quick-filter-apartments"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-              </svg>
-              Appartementen
-            </Link>
-            <Link
-              href="/kamers?q=studio"
-              data-testid="quick-filter-studios"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-              </svg>
-              Studio's
-            </Link>
-            <Link
-              href="/kamers?q=huisgenoot"
-              data-testid="quick-filter-roommate"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Huisgenoot gezocht
-            </Link>
-          </div>
-
-          {/* Divider dot between groups */}
-          <span className="hidden items-center px-1 text-stone-300 sm:flex" aria-hidden>·</span>
-
-          {/* Group 2: Budget / Duration */}
-          <div className="flex flex-wrap justify-center gap-2">
-            <Link
-              href="/kamers?type=short_stay"
-              data-testid="quick-filter-short-stay"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Kort verblijf
-            </Link>
-            <Link
-              href="/kamers?max=800"
-              data-testid="quick-filter-budget"
-              className="flex items-center gap-2 rounded-full border border-stone-200 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Tot €800
-            </Link>
-          </div>
+        {/* Category chips — subtle */}
+        <div className="mt-3 flex flex-wrap justify-center gap-2">
+          <Link href="/kamers?type=room_for_rent" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Kamers</Link>
+          <Link href="/kamers?q=appartement" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Appartementen</Link>
+          <Link href="/kamers?q=studio" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Studio's</Link>
+          <Link href="/kamers?type=short_stay" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Kort verblijf</Link>
+          <Link href="/kamers?max=800" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Tot €800</Link>
         </div>
 
-        {/* d. Trust badges */}
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-medium text-emerald-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        {/* Trust badges — minimal */}
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
+          <span className="flex items-center gap-1.5 text-xs text-stone-400">
+            <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Geverifieerde gebruikers
           </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-medium text-blue-700">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <span className="flex items-center gap-1.5 text-xs text-stone-400">
+            <svg className="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             In-app chat
           </span>
-          <span className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-stone-600 shadow-sm">
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <span className="flex items-center gap-1.5 text-xs text-stone-400">
+            <svg className="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
             </svg>
             Geen spam
           </span>
-        </div>
-
-        {/* e. "Bekijk alle woningen" link at the very bottom */}
-        <div className="mt-6">
-          <Link
-            href="/kamers"
-            data-testid="hero-view-all-link"
-            className="text-sm font-medium text-rose-600 underline-offset-4 hover:underline"
-          >
-            Bekijk alle woningen →
-          </Link>
         </div>
 
       </div>

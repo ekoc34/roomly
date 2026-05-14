@@ -49,11 +49,10 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
           {img ? (
             <img src={img} alt={listing.title} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-stone-100 to-stone-200">
-              <svg className="h-10 w-10 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <div className="flex h-full items-center justify-center bg-stone-100">
+              <svg className="h-12 w-12 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
-              <span className="text-xs text-stone-400">Geen foto</span>
             </div>
           )}
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
@@ -92,72 +91,30 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
             <span className="truncate">{listing.location}</span>
           </p>
 
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
             {listing.type === "roommate_search" ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+              <span className="flex items-center gap-1">
                 <Users className="h-3 w-3 shrink-0" />
                 Huisgenoot gezocht
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
-                {typeLabel}
-              </span>
+              <span>{typeLabel}</span>
             )}
-            {listing.rooms != null && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-                {listing.rooms} kamer{listing.rooms !== 1 ? "s" : ""}
-              </span>
-            )}
-            {listing.surface_area != null && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-                </svg>
-                {listing.surface_area} m²
-              </span>
+            {listing.rooms != null && <span>{listing.rooms} kamer{listing.rooms !== 1 ? "s" : ""}</span>}
+            {listing.surface_area != null && <span>{listing.surface_area} m²</span>}
+            {listing.availability_date && (
+              <span>Vanaf {new Date(listing.availability_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}</span>
             )}
           </div>
 
-          <div className="mt-3 flex items-center">
+          <div className="mt-3 flex items-center justify-between">
             <CompareButton listingId={listing.id} />
-          </div>
-
-          {responseBadge && (
-            <div className="mt-2.5">
-              <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${responseBadge.cls}`}>
-                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {responseBadge.label}
-              </span>
-            </div>
-          )}
-
-          <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
-            {listing.availability_date ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Beschikbaar per {new Date(listing.availability_date).toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Beschikbaar
-              </span>
-            )}
             {verificationBadge && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+              <span className="flex items-center gap-1 text-xs text-emerald-600">
                 <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                {verificationBadge}
+                Geverifieerd
               </span>
             )}
           </div>

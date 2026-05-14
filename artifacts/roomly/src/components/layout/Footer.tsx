@@ -19,7 +19,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t border-stone-200/80 bg-white">
-      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-3">
 
           {/* Brand block */}

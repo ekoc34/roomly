@@ -1,0 +1,78 @@
+You are improving the homepage UI/UX of Welkthuis.nl, a minimalist housing marketplace focused on trust, simplicity, and usability in the Netherlands.
+
+Important context:
+- The platform should feel calm, clean, modern, and trustworthy.
+- Avoid feature overload, heavy animations, visual noise, or “startup SaaS” complexity.
+- The homepage currently contains:
+  - a hero section
+  - two main CTAs
+  - city chips
+  - category chips
+  - trust indicators
+  - a search bar
+  - listing cards
+  - a “How it works” section
+  - a large footer
+- The current structure works, but the hierarchy feels too equal and visually crowded.
+- The goal is refinement, not redesign.
+
+Your tasks:
+
+1. Refactor the hero section:
+- Create a stronger visual hierarchy.
+- Make the housing search flow the primary focus.
+- Keep only ONE primary CTA:
+  - “Zoek woningen”
+- Keep ONE secondary CTA:
+  - “Advertentie plaatsen”
+- Make the search bar the central visual element.
+- Reduce clutter above the fold.
+
+2. Improve homepage copy:
+- Rewrite the hero headline and supporting text so it feels:
+  - trustworthy
+  - human
+  - calm
+  - anti-spam
+  - practical
+- Avoid marketing-heavy language.
+
+3. Simplify supporting UI:
+- Reduce the visual dominance of:
+  - city chips
+  - category chips
+  - trust badges
+- They should support the search flow, not compete with it.
+
+4. Improve listing cards:
+- Keep cards minimal and highly scannable.
+- Emphasize:
+  - price
+  - title
+  - location
+- Reduce visual weight of secondary metadata.
+- Replace plain “Geen foto” text with a professional placeholder image or empty-image component.
+
+5. Improve “How it works” section:
+- Make it shorter and easier to scan.
+- Use concise 3-step guidance.
+- Avoid long explanatory text blocks.
+
+6. Refine the footer:
+- Keep footer minimal.
+- Reduce unnecessary vertical space.
+- Preserve trust and simplicity.
+
+7. General design direction:
+- Maintain current brand identity.
+- Preserve mobile-first behavior.
+- Improve spacing and hierarchy instead of adding more components.
+- The UI should feel similar to:
+  - Airbnb simplicity
+  - Booking clarity
+  - Funda practicality
+- Do not introduce complex gradients, glassmorphism, or flashy modern effects.
+
+Before implementing:
+- Analyze the current component structure first.
+- Then perform the improvements incrementally and carefully.
