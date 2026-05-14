@@ -87,12 +87,9 @@ export function ProfilePage() {
   const [deleteEmail, setDeleteEmail] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteModalRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
-    if (showDeleteModal && deleteModalRef.current) {
-      deleteModalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
+    document.body.style.overflow = showDeleteModal ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [showDeleteModal]);
 
   const [savingPersona, setSavingPersona] = useState(false);
@@ -889,74 +886,6 @@ export function ProfilePage() {
             </section>
           )}
 
-          {/* ── DELETE CONFIRMATION ── */}
-          {showDeleteModal && (
-            <div ref={deleteModalRef} className="rounded-2xl border border-red-100 bg-red-50 p-6 shadow-sm sm:p-7">
-              <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
-              <p className="mt-2 mb-5 text-sm text-stone-500">
-                Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
-              </p>
-              <div className="space-y-3">
-                <div>
-                  <label htmlFor="delete-email" className="text-xs font-medium text-stone-600">
-                    E-mailadres
-                  </label>
-                  <input
-                    id="delete-email"
-                    type="email"
-                    value={deleteEmail}
-                    onChange={(e) => setDeleteEmail(e.target.value)}
-                    placeholder={user?.email ?? "jij@example.nl"}
-                    className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="delete-password" className="text-xs font-medium text-stone-600">
-                    Wachtwoord
-                  </label>
-                  <input
-                    id="delete-password"
-                    type="password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
-                  />
-                </div>
-              </div>
-              <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  disabled={isDeleting}
-                  onClick={() => setShowDeleteModal(false)}
-                  className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-50 sm:w-auto"
-                >
-                  Annuleren
-                </button>
-                <button
-                  type="button"
-                  disabled={
-                    isDeleting ||
-                    deleteEmail.trim().toLowerCase() !== (user?.email ?? "").toLowerCase() ||
-                    deletePassword.length === 0
-                  }
-                  onClick={handleDeleteAccount}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-40 active:scale-[0.98] sm:w-auto"
-                >
-                  {isDeleting ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Verwijderen…
-                    </>
-                  ) : "Verwijder mijn account"}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* ── BEVEILIGING ── */}
           {user && (
             <section>
@@ -1065,6 +994,79 @@ export function ProfilePage() {
         </div>
       )}
 
+      {/* ── DELETE MODAL ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
+            <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
+            <p className="mt-2 mb-5 text-sm text-stone-500">
+              Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="delete-email" className="text-xs font-medium text-stone-600">
+                  E-mailadres
+                </label>
+                <input
+                  id="delete-email"
+                  type="email"
+                  value={deleteEmail}
+                  onChange={(e) => setDeleteEmail(e.target.value)}
+                  placeholder={user?.email ?? "jij@example.nl"}
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
+                />
+              </div>
+              <div>
+                <label htmlFor="delete-password" className="text-xs font-medium text-stone-600">
+                  Wachtwoord
+                </label>
+                <input
+                  id="delete-password"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-50 sm:w-auto"
+              >
+                Annuleren
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isDeleting ||
+                  deleteEmail.trim().toLowerCase() !== (user?.email ?? "").toLowerCase() ||
+                  deletePassword.length === 0
+                }
+                onClick={handleDeleteAccount}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-40 active:scale-[0.98] sm:w-auto"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Verwijderen…
+                  </>
+                ) : "Verwijder mijn account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
