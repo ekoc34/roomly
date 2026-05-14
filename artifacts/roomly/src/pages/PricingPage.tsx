@@ -57,6 +57,7 @@ function PricingContent() {
   const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
+    setProfileLoading(true);
     if (!user || !supabase) { setProfileLoading(false); return; }
     supabase
       .from("profiles")
