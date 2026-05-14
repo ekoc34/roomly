@@ -20,6 +20,11 @@ type Props = {
   currentUserId?: string | null;
 };
 
+function isActiveBoost(boostedAt: string | null | undefined): boolean {
+  if (!boostedAt) return false;
+  return Date.now() - new Date(boostedAt).getTime() < BOOST_WINDOW_MS;
+}
+
 function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
   const diffHours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
   if (diffHours < 24) return "vandaag";
@@ -81,24 +86,18 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
           <span className="text-xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
           <span className="text-xs text-stone-400">/ maand budget</span>
         </div>
-
         {listing.description && (
           <p className="line-clamp-2 text-xs leading-relaxed text-stone-500">{listing.description}</p>
         )}
-
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs text-stone-600"
-              >
+              <span key={tag} className="rounded-full bg-stone-100 px-2.5 py-0.5 text-xs text-stone-600">
                 {tag}
               </span>
             ))}
           </div>
         )}
-
         <span className="mt-auto inline-flex items-center gap-1.5 self-start rounded-xl bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100">
           Bekijk profiel →
         </span>
@@ -115,7 +114,7 @@ function EmptyWoningen() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
         </svg>
       </div>
-      <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen uitgelichte woningen</h3>
+      <h3 className="mt-4 text-base font-semibold text-stone-800">Geen woningen gevonden</h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
       <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -135,7 +134,7 @@ function EmptyHuisgenoten() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       </div>
-      <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen huisgenotenprofielen</h3>
+      <h3 className="mt-4 text-base font-semibold text-stone-800">Geen huisgenotenprofielen gevonden</h3>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
       <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -151,7 +150,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
   const [mainTab, setMainTab] = useState<"uitgelicht" | "nieuw">("uitgelicht");
   const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
 
-  // Tick triggers a re-sort exactly when the next active boost expires.
+  // Tick re-evaluates boost expiry at the right moment
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const now = Date.now();
@@ -166,25 +165,46 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
     return () => clearTimeout(timer);
   }, [listings, roommateListings, tick]);
 
-  // Uitgelicht: boost-sorted (boosted_at DESC NULLS LAST, then created_at DESC)
-  const sortedListings = useMemo(() => sortByBoost(listings), [listings, tick]);
-  const sortedRoommateListings = useMemo(() => sortByBoost(roommateListings), [roommateListings, tick]);
+  // ── Uitgelicht: only actively-boosted listings, sorted by boosted_at DESC ──
+  const uitgelichtListings = useMemo(
+    () =>
+      listings
+        .filter((l) => isActiveBoost(l.boosted_at))
+        .sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
+    [listings, tick]
+  );
+  const uitgelichtRoommateListings = useMemo(
+    () =>
+      roommateListings
+        .filter((l) => isActiveBoost(l.boosted_at))
+        .sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
+    [roommateListings, tick]
+  );
 
-  // Nieuw: strictly newest-first, ignoring boost
-  const newListings = useMemo(
-    () => [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [listings]
+  // ── Nieuw: only non-boosted (or expired-boost) listings, newest first ──
+  const nieuwListings = useMemo(
+    () =>
+      listings
+        .filter((l) => !isActiveBoost(l.boosted_at))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [listings, tick]
   );
-  const newRoommateListings = useMemo(
-    () => [...roommateListings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-    [roommateListings]
+  const nieuwRoommateListings = useMemo(
+    () =>
+      roommateListings
+        .filter((l) => !isActiveBoost(l.boosted_at))
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [roommateListings, tick]
   );
+
+  const currentListings = mainTab === "uitgelicht" ? uitgelichtListings : nieuwListings;
+  const currentRoommateListings = mainTab === "uitgelicht" ? uitgelichtRoommateListings : nieuwRoommateListings;
 
   const mainTabClass = (tab: "uitgelicht" | "nieuw") =>
-    `flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition ${
+    `px-4 py-1.5 rounded-full text-sm font-semibold transition ${
       mainTab === tab
         ? "bg-stone-900 text-white shadow-sm"
-        : "text-stone-600 hover:bg-stone-100"
+        : "text-stone-500 hover:bg-stone-200"
     }`;
 
   const subTabClass = (tab: "woningen" | "huisgenoten") =>
@@ -194,37 +214,36 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
         : "text-stone-600 hover:bg-stone-100"
     }`;
 
-  const currentListings = mainTab === "uitgelicht" ? sortedListings : newListings;
-  const currentRoommateListings = mainTab === "uitgelicht" ? sortedRoommateListings : newRoommateListings;
-
   return (
     <section className="mt-16" data-testid="featured-listings">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      {/* Header row: title left, main tabs right */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Ontdek woningen en huisgenoten</h2>
           <p className="mt-1 text-sm text-stone-500">Ontdek woningen en huisgenoten die nu beschikbaar zijn.</p>
         </div>
+        <div className="flex shrink-0 items-center gap-1 rounded-full bg-stone-100 p-1">
+          <button type="button" onClick={() => setMainTab("uitgelicht")} className={mainTabClass("uitgelicht")}>
+            ⭐ Uitgelicht
+          </button>
+          <button type="button" onClick={() => setMainTab("nieuw")} className={mainTabClass("nieuw")}>
+            🆕 Nieuw
+          </button>
+        </div>
+      </div>
+
+      {/* "Alles bekijken" link */}
+      <div className="mb-5 flex items-center justify-between">
+        {/* Sub-tabs: Woningen / Huisgenoten */}
+        <div className="flex items-center gap-2 rounded-2xl bg-stone-100 p-1 w-fit">
+          <button type="button" onClick={() => setActiveTab("woningen")} className={subTabClass("woningen")}>
+            🏠 Woningen
+          </button>
+          <button type="button" onClick={() => setActiveTab("huisgenoten")} className={subTabClass("huisgenoten")}>
+            🤝 Huisgenoten
+          </button>
+        </div>
         <Link href="/kamers" className="text-sm font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
-      </div>
-
-      {/* Main tabs: Uitgelicht / Nieuw */}
-      <div className="mb-4 flex items-center gap-2 rounded-full bg-stone-100 p-1 w-fit">
-        <button type="button" onClick={() => setMainTab("uitgelicht")} className={mainTabClass("uitgelicht")}>
-          ⭐ Uitgelicht
-        </button>
-        <button type="button" onClick={() => setMainTab("nieuw")} className={mainTabClass("nieuw")}>
-          🆕 Nieuw
-        </button>
-      </div>
-
-      {/* Sub-tabs: Woningen / Huisgenoten */}
-      <div className="mb-5 flex items-center gap-2 rounded-2xl bg-stone-100 p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("woningen")} className={subTabClass("woningen")}>
-          🏢 Woningen
-        </button>
-        <button type="button" onClick={() => setActiveTab("huisgenoten")} className={subTabClass("huisgenoten")}>
-          🤝 Huisgenoten
-        </button>
       </div>
 
       {activeTab === "woningen" && (
