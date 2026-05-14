@@ -12,6 +12,16 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const REPORT_REASONS = ["Spam", "Ongepast gedrag", "Oplichting", "Anders"] as const;
 
+function PersonSilhouette() {
+  return (
+    <span className="flex h-full w-full items-center justify-center">
+      <svg className="h-5 w-5 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    </span>
+  );
+}
+
 function ConversationSkeleton() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4 px-4 py-4 sm:px-6">
@@ -298,10 +308,13 @@ export function ConversationPage() {
           </svg>
         </Link>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
-          {other?.avatar_url
-            ? <img src={other.avatar_url} alt="" className="h-full w-full object-cover" />
-            : <span className="text-sm font-semibold text-stone-500">{initial}</span>
-          }
+          {other?.show_avatar_in_listings === false ? (
+            <PersonSilhouette />
+          ) : other?.avatar_url ? (
+            <img src={other.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <span className="text-sm font-semibold text-stone-500">{initial}</span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
