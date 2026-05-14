@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { MessageSquare, Bell, Home, AlertTriangle, KeyRound, Mail, Phone, CheckCircle2 } from "lucide-react";
+import { MessageSquare, Bell, Home, KeyRound, Mail, Phone, CheckCircle2, Eye, EyeOff, Tag } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
@@ -10,21 +10,62 @@ import { OwnerBadges } from "@/components/listings/OwnerBadges";
 import type { Profile, UserType } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
-const PROFILE_PERSONAS: Record<UserType, { label: string; icon: string; description: string; color: string }> = {
-  verhuurder:       { label: "Verhuurder",          icon: "🏢", description: "Ik verhuur kamers of woningen",               color: "amber"   },
-  huisgenoot_zoeker:{ label: "Huisgenoot zoeker",   icon: "🤝", description: "Ik zoek iemand om mee samen te wonen",        color: "blue"    },
-  student:          { label: "Student",             icon: "🎓", description: "Ik studeer en zoek een kamer of studio",      color: "rose"    },
-  professional:     { label: "Professional / Expat",icon: "💼", description: "Ik werk en zoek een appartement of kamer",    color: "blue"    },
-  alleenstaande:    { label: "Alleenstaande",        icon: "🧍", description: "Ik zoek een woning voor mezelf",             color: "rose"    },
-  family:           { label: "Familie",             icon: "🏡", description: "Wij zoeken een woning als gezin",             color: "emerald" },
+const PROFILE_PERSONAS: Record<UserType, { label: string; icon: string; description: string }> = {
+  verhuurder:        { label: "Verhuurder",           icon: "🏢", description: "Ik verhuur kamers of woningen" },
+  huisgenoot_zoeker: { label: "Huisgenoot zoeker",    icon: "🤝", description: "Ik zoek iemand om mee samen te wonen" },
+  student:           { label: "Student",              icon: "🎓", description: "Ik studeer en zoek een kamer of studio" },
+  professional:      { label: "Professional / Expat", icon: "💼", description: "Ik werk en zoek een appartement of kamer" },
+  alleenstaande:     { label: "Alleenstaande",        icon: "🧍", description: "Ik zoek een woning voor mezelf" },
+  family:            { label: "Familie",              icon: "🏡", description: "Wij zoeken een woning als gezin" },
 };
 
-const PERSONA_BG: Record<string, string> = {
-  rose:    "bg-rose-50 group-hover:bg-rose-100",
-  blue:    "bg-blue-50 group-hover:bg-blue-100",
-  emerald: "bg-emerald-50 group-hover:bg-emerald-100",
-  amber:   "bg-amber-50 group-hover:bg-amber-100",
-};
+const LIFESTYLE_TAGS = [
+  "Student", "Niet roken", "Werkend", "Rustig",
+  "Internationaal", "Sportief", "Houd van koken", "Huisdier vriendelijk",
+];
+
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-stone-400">
+      {children}
+    </p>
+  );
+}
+
+function Toggle({
+  checked,
+  onToggle,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onToggle}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300 ${
+        checked ? "bg-rose-500" : "bg-stone-200"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
+function VerifiedBadge() {
+  return (
+    <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+      <CheckCircle2 className="h-3 w-3" />
+      Geverifieerd
+    </span>
+  );
+}
 
 export function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
@@ -33,11 +74,14 @@ export function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [showVerifiedBanner, setShowVerifiedBanner] = useState(false);
+
   const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "sending" | "code" | "verified">("idle");
   const [pendingPhone, setPendingPhone] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyTimer, setVerifyTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [emailVerifySending, setEmailVerifySending] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState("");
@@ -52,6 +96,13 @@ export function ProfilePage() {
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwErrors, setPwErrors] = useState<{ current?: string; new?: string; confirm?: string }>({});
   const [pwPending, setPwPending] = useState(false);
+
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
+  const [notifyNewMessage, setNotifyNewMessage] = useState(true);
+  const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
+  const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
+  const [lifestyleTags, setLifestyleTags] = useState<string[]>([]);
 
   useEffect(() => {
     if (sessionStorage.getItem("emailJustVerified")) {
@@ -79,6 +130,25 @@ export function ProfilePage() {
     return () => clearInterval(interval);
   }, [phoneVerifyStep, verifyTimer]);
 
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (emailCooldown > 0) {
+      interval = setInterval(() => setEmailCooldown((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [emailCooldown]);
+
+  useEffect(() => {
+    if (profile) {
+      setShowEmail(profile.show_email ?? false);
+      setShowPhone(profile.show_phone ?? false);
+      setNotifyNewMessage(profile.notify_new_message ?? true);
+      setNotifyApplicationUpdate(profile.notify_application_update ?? true);
+      setNotifyMatchingListing(profile.notify_matching_listing ?? true);
+      setLifestyleTags(profile.lifestyle_tags ?? []);
+    }
+  }, [profile]);
+
   const startPhoneVerification = async (phone: string) => {
     const normalized = phone.trim();
     if (!normalized) { toast.error("Voer eerst een telefoonnummer in."); return; }
@@ -87,17 +157,14 @@ export function ProfilePage() {
       return;
     }
     if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
-
     setPhoneVerifyStep("sending");
     setPendingPhone(normalized);
-
     const { error } = await supabase.auth.signInWithOtp({ phone: normalized });
     if (error) {
       toast.error("Versturen mislukt: " + error.message);
       setPhoneVerifyStep("idle");
       return;
     }
-
     setPhoneVerifyStep("code");
     setVerifyTimer(60);
     setVerifyCode("");
@@ -107,33 +174,26 @@ export function ProfilePage() {
   const verifyPhoneCode = async () => {
     if (verifyCode.length !== 6) { toast.error("Voer een 6-cijferige code in."); return; }
     if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
-
     setIsVerifying(true);
-
     const { error: otpErr } = await supabase.auth.verifyOtp({
       phone: pendingPhone,
       token: verifyCode,
       type: "sms",
     });
-
     if (otpErr) {
       toast.error("Ongeldige of verlopen code. Probeer opnieuw.");
       setIsVerifying(false);
       return;
     }
-
-    // OTP verified — persist phone number and set phone_verified flag
     const { error: profileErr } = await supabase
       .from("profiles")
       .update({ phone: pendingPhone, phone_verified: true })
       .eq("id", user.id);
-
     if (profileErr) {
       toast.error("Profiel bijwerken mislukt. Probeer opnieuw.");
       setIsVerifying(false);
       return;
     }
-
     setProfile((prev) => prev ? { ...prev, phone: pendingPhone, phone_verified: true } : prev);
     setPhoneVerifyStep("verified");
     setVerifyCode("");
@@ -146,19 +206,8 @@ export function ProfilePage() {
     const { error } = await supabase.auth.signInWithOtp({ phone: pendingPhone });
     if (error) { toast.error("Versturen mislukt: " + error.message); return; }
     setVerifyTimer(60);
-    toast.success("Nieuwe verificatiecode verzonden naar " + pendingPhone);
+    toast.success("Nieuwe verificatiecode verzonden.");
   };
-
-  const [emailVerifySending, setEmailVerifySending] = useState(false);
-  const [emailCooldown, setEmailCooldown] = useState(0);
-
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (emailCooldown > 0) {
-      interval = setInterval(() => setEmailCooldown((prev) => prev - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [emailCooldown]);
 
   const sendEmailVerification = async () => {
     if (!supabase || !user?.email) { toast.error("Niet ingelogd."); return; }
@@ -168,12 +217,36 @@ export function ProfilePage() {
       options: { shouldCreateUser: false },
     });
     setEmailVerifySending(false);
-    if (error) {
-      toast.error("Versturen mislukt: " + error.message);
-      return;
-    }
-    toast.success(`Verificatielink verzonden naar ${user.email}. Check je inbox!`);
+    if (error) { toast.error("Versturen mislukt: " + error.message); return; }
+    toast.success(`Verificatielink verzonden naar ${user.email}.`);
     setEmailCooldown(60);
+  };
+
+  const handlePrivacyToggle = async (field: "show_email" | "show_phone", value: boolean) => {
+    if (!supabase || !user) return;
+    if (field === "show_email") setShowEmail(value);
+    if (field === "show_phone") setShowPhone(value);
+    await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
+  };
+
+  const handleNotifToggle = async (
+    field: "notify_new_message" | "notify_application_update" | "notify_matching_listing",
+    value: boolean
+  ) => {
+    if (!supabase || !user) return;
+    if (field === "notify_new_message") setNotifyNewMessage(value);
+    if (field === "notify_application_update") setNotifyApplicationUpdate(value);
+    if (field === "notify_matching_listing") setNotifyMatchingListing(value);
+    await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
+  };
+
+  const handleTagToggle = async (tag: string) => {
+    if (!supabase || !user) return;
+    const next = lifestyleTags.includes(tag)
+      ? lifestyleTags.filter((t) => t !== tag)
+      : [...lifestyleTags, tag];
+    setLifestyleTags(next);
+    await supabase.from("profiles").update({ lifestyle_tags: next }).eq("id", user.id);
   };
 
   const handleDeleteAccount = async () => {
@@ -189,17 +262,8 @@ export function ProfilePage() {
         setIsDeleting(false);
         return;
       }
-
-      // Capture session JWT before sign-out — needed for the Edge Function call
       const { data: { session } } = await supabase.auth.getSession();
-
-      // Delete own listings via RPC (direct writes to listings are revoked for security).
-      // The auth-user cascade-delete would also clean these up, but doing it first
-      // ensures conversations referencing those listings degrade gracefully.
       await supabase.rpc("delete_own_listings");
-
-      // Soft-delete: anonymise personal data and set deleted_at timestamp.
-      // This keeps the row (and its FK references) intact while blocking future logins.
       await supabase.from("profiles").update({
         deleted_at: new Date().toISOString(),
         name: "Verwijderde gebruiker",
@@ -212,9 +276,6 @@ export function ProfilePage() {
         student_verified: false,
         verification_badge: null,
       }).eq("id", user.id);
-
-      // Call the Edge Function to permanently delete the auth.users record
-      // so the user can re-register with the same e-mail address later.
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
       let edgeFnOk = false;
       try {
@@ -230,15 +291,12 @@ export function ProfilePage() {
       } catch {
         edgeFnOk = false;
       }
-
       await supabase.auth.signOut();
-
       if (edgeFnOk) {
-        toast.success("Je account is definitief verwijderd. Je kunt nu opnieuw registreren met hetzelfde e-mailadres.");
+        toast.success("Je account is verwijderd. Je kunt opnieuw registreren met hetzelfde e-mailadres.");
       } else {
-        toast.warning("Je account is verwijderd maar er is een fout opgetreden. Neem contact op met support.");
+        toast.warning("Je account is verwijderd. Neem contact op met support als je problemen ervaart.");
       }
-
       navigate("/");
     } catch {
       toast.error("Er is iets misgegaan. Probeer het later opnieuw.");
@@ -258,12 +316,11 @@ export function ProfilePage() {
     const errs: { current?: string; new?: string; confirm?: string } = {};
     if (!pwCurrent) errs.current = "Voer je huidige wachtwoord in.";
     if (!pwNew) errs.new = "Voer een nieuw wachtwoord in.";
-    else if (pwNew.length < 8) errs.new = "Nieuw wachtwoord moet minimaal 8 tekens bevatten.";
+    else if (pwNew.length < 8) errs.new = "Minimaal 8 tekens.";
     if (!pwConfirm) errs.confirm = "Bevestig je nieuwe wachtwoord.";
     else if (pwNew && pwNew !== pwConfirm) errs.confirm = "Wachtwoorden komen niet overeen.";
     if (Object.keys(errs).length > 0) { setPwErrors(errs); return; }
     if (!supabase || !user?.email) { toast.error("Niet ingelogd."); return; }
-
     setPwPending(true);
     const { error: reAuthErr } = await supabase.auth.signInWithPassword({ email: user.email, password: pwCurrent });
     if (reAuthErr) {
@@ -272,72 +329,20 @@ export function ProfilePage() {
       setPwPending(false);
       return;
     }
-
     const { error: updateErr } = await supabase.auth.updateUser({ password: pwNew });
     setPwPending(false);
-    if (updateErr) {
-      toast.error("Wachtwoord bijwerken mislukt: " + updateErr.message);
-      return;
-    }
-
+    if (updateErr) { toast.error("Bijwerken mislukt: " + updateErr.message); return; }
     setPwCurrent(""); setPwNew(""); setPwConfirm(""); setPwErrors({});
-    toast.success("Wachtwoord succesvol bijgewerkt.");
-  };
-
-  const [showEmail, setShowEmail] = useState(false);
-  const [showPhone, setShowPhone] = useState(false);
-  const [notifyNewMessage, setNotifyNewMessage] = useState(true);
-  const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
-  const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
-  const [lifestyleTags, setLifestyleTags] = useState<string[]>([]);
-
-  const LIFESTYLE_TAGS = [
-    "Student",
-    "Niet roken",
-    "Werkend",
-    "Rustig",
-    "Internationaal",
-    "Sportief",
-    "Houd van koken",
-    "Huisdier vriendelijk",
-  ];
-
-  useEffect(() => {
-    if (profile) {
-      setShowEmail(profile.show_email ?? false);
-      setShowPhone(profile.show_phone ?? false);
-      setNotifyNewMessage(profile.notify_new_message ?? true);
-      setNotifyApplicationUpdate(profile.notify_application_update ?? true);
-      setNotifyMatchingListing(profile.notify_matching_listing ?? true);
-      setLifestyleTags(profile.lifestyle_tags ?? []);
-    }
-  }, [profile]);
-
-  const handleTagToggle = async (tag: string) => {
-    if (!supabase || !user) return;
-    const next = lifestyleTags.includes(tag)
-      ? lifestyleTags.filter((t) => t !== tag)
-      : [...lifestyleTags, tag];
-    setLifestyleTags(next);
-    await supabase.from("profiles").update({ lifestyle_tags: next }).eq("id", user.id);
-  };
-
-  const handleNotifToggle = async (
-    field: "notify_new_message" | "notify_application_update" | "notify_matching_listing",
-    value: boolean
-  ) => {
-    if (!supabase || !user) return;
-    if (field === "notify_new_message") setNotifyNewMessage(value);
-    if (field === "notify_application_update") setNotifyApplicationUpdate(value);
-    if (field === "notify_matching_listing") setNotifyMatchingListing(value);
-    await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
+    toast.success("Wachtwoord bijgewerkt.");
   };
 
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <h1 className="text-xl font-semibold text-stone-900">Log in om je profiel te bewerken</h1>
-        <Link href="/inloggen?next=/profiel" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
+        <Link href="/inloggen?next=/profiel" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">
+          Inloggen
+        </Link>
       </div>
     );
   }
@@ -358,29 +363,35 @@ export function ProfilePage() {
         phone,
         avatar_url: profile?.avatar_url ?? null,
         email: user.email ?? null,
-        show_email: showEmail,
-        show_phone: showPhone,
       });
       if (err) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-      setProfile((prev) => prev ? { ...prev, name, bio, phone, show_email: showEmail, show_phone: showPhone } : prev);
-      toast.success("Profiel opgeslagen!");
+      setProfile((prev) => prev ? { ...prev, name, bio, phone } : prev);
+      toast.success("Profiel opgeslagen.");
     });
   };
 
+  const phoneForVerification = (() => {
+    if (typeof document !== "undefined") {
+      const el = document.getElementById("prof-phone") as HTMLInputElement | null;
+      return el?.value ?? profile?.phone ?? "";
+    }
+    return profile?.phone ?? "";
+  });
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-xl px-4 py-8 sm:px-6">
+
+      {/* Verified banner */}
       {showVerifiedBanner && (
         <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <div className="flex items-center gap-2.5">
-            <svg className="h-5 w-5 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm font-medium text-emerald-800">Je e-mailadres is geverifieerd! Je profiel is nu completer.</p>
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <p className="text-sm text-emerald-800">Je e-mailadres is geverifieerd.</p>
           </div>
           <button
             type="button"
             onClick={() => setShowVerifiedBanner(false)}
-            className="shrink-0 rounded-lg p-1 text-emerald-600 transition hover:bg-emerald-100"
+            className="shrink-0 rounded-lg p-1 text-emerald-500 hover:bg-emerald-100"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -389,124 +400,349 @@ export function ProfilePage() {
         </div>
       )}
 
-      <nav className="mb-6 text-sm text-stone-500">
-        <Link href="/dashboard" className="transition hover:text-rose-600">Dashboard</Link>
+      {/* Page header */}
+      <nav className="mb-5 text-sm text-stone-400">
+        <Link href="/dashboard" className="transition hover:text-stone-600">Dashboard</Link>
         <span className="mx-2">›</span>
-        <span className="text-stone-700">Profiel bewerken</span>
+        <span className="text-stone-600">Instellingen</span>
       </nav>
-      <h1 className="text-2xl font-bold text-stone-900">Mijn profiel</h1>
+      <h1 className="mb-8 text-2xl font-bold text-stone-900">Instellingen</h1>
 
-      <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-        {loading ? (
-          <div className="space-y-4">
-            <div className="mx-auto h-24 w-24 skeleton rounded-full" />
-            {[1, 2, 3].map((n) => (
-              <div key={n} className="h-10 skeleton rounded-xl" />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {user && (
-              <div className="flex flex-col items-center border-b border-stone-100 pb-6">
-                <AvatarUpload
-                  userId={user.id}
-                  currentUrl={profile?.avatar_url}
-                  onUploaded={(url) =>
-                    setProfile((prev) => prev ? { ...prev, avatar_url: url } : prev)
-                  }
-                />
-              </div>
-            )}
+      {loading ? (
+        <div className="space-y-3">
+          <div className="mx-auto h-20 w-20 rounded-full bg-stone-100 animate-pulse" />
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="h-10 rounded-xl bg-stone-100 animate-pulse" />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-8">
 
-            <form onSubmit={onSubmit} className="space-y-5" data-testid="profile-form">
-              <div>
-                <label htmlFor="prof-name" className="text-xs font-medium text-stone-700">Naam *</label>
-                <input
-                  id="prof-name"
-                  name="name"
-                  type="text"
-                  required
-                  defaultValue={profile?.name ?? ""}
-                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                  data-testid="profile-name"
-                />
-              </div>
-              <div>
-                <label htmlFor="prof-bio" className="text-xs font-medium text-stone-700">Bio</label>
-                <textarea
-                  id="prof-bio"
-                  name="bio"
-                  rows={4}
-                  defaultValue={profile?.bio ?? ""}
-                  maxLength={500}
-                  placeholder="Vertel iets over jezelf…"
-                  className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
-                  data-testid="profile-bio"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-stone-700">E-mailadres</label>
-                <div className="mt-1.5 flex gap-2">
+          {/* ── PROFIEL ── */}
+          <section>
+            <SectionHeading>Profiel</SectionHeading>
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+              {user && (
+                <div className="mb-6 flex justify-center border-b border-stone-100 pb-6">
+                  <AvatarUpload
+                    userId={user.id}
+                    currentUrl={profile?.avatar_url}
+                    onUploaded={(url) =>
+                      setProfile((prev) => prev ? { ...prev, avatar_url: url } : prev)
+                    }
+                  />
+                </div>
+              )}
+
+              <form onSubmit={onSubmit} className="space-y-4" data-testid="profile-form">
+                <div>
+                  <label htmlFor="prof-name" className="text-xs font-medium text-stone-600">Naam *</label>
                   <input
+                    id="prof-name"
+                    name="name"
+                    type="text"
+                    required
+                    defaultValue={profile?.name ?? ""}
+                    className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                    data-testid="profile-name"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="prof-bio" className="text-xs font-medium text-stone-600">Bio</label>
+                  <textarea
+                    id="prof-bio"
+                    name="bio"
+                    rows={3}
+                    defaultValue={profile?.bio ?? ""}
+                    maxLength={500}
+                    placeholder="Vertel iets over jezelf…"
+                    className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                    data-testid="profile-bio"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="prof-email" className="text-xs font-medium text-stone-600">E-mailadres</label>
+                  <input
+                    id="prof-email"
                     type="email"
                     readOnly
                     value={user?.email ?? ""}
-                    className="flex-1 rounded-xl border border-stone-100 bg-stone-50 px-4 py-2.5 text-sm text-stone-500 cursor-default focus:outline-none"
+                    className="mt-1.5 w-full rounded-xl border border-stone-100 bg-stone-50 px-4 py-2.5 text-sm text-stone-400 cursor-default focus:outline-none"
                   />
-                  {!profile?.email_auto_verified ? (
-                    <button
-                      type="button"
-                      disabled={emailVerifySending || emailCooldown > 0}
-                      onClick={sendEmailVerification}
-                      className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                    >
-                      {emailVerifySending ? "Versturen…" : emailCooldown > 0 ? `Opnieuw versturen (${emailCooldown}s)` : "Verifiëren"}
-                    </button>
-                  ) : (
-                    <span className="flex shrink-0 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      Geverifieerd
-                    </span>
-                  )}
                 </div>
-              </div>
 
-              <div>
-                <label htmlFor="prof-phone" className="text-xs font-medium text-stone-700">Telefoonnummer</label>
-                <div className="mt-1.5 flex gap-2">
+                <div>
+                  <label htmlFor="prof-phone" className="text-xs font-medium text-stone-600">Telefoonnummer</label>
                   <input
                     id="prof-phone"
                     name="phone"
                     type="tel"
                     defaultValue={profile?.phone ?? ""}
                     placeholder="+31 6 12345678"
-                    className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+                    className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
                     data-testid="profile-phone"
                   />
-                  {!profile?.phone_verified && (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") && (
+                  <p className="mt-1 text-xs text-stone-400">Gebruik het internationale formaat, bijv. +31612345678</p>
+                </div>
+
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    data-testid="profile-save"
+                    className="w-full rounded-xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
+                  >
+                    {isPending ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Opslaan…
+                      </span>
+                    ) : "Opslaan"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {/* ── PROFIELTYPE ── */}
+          <section>
+            <SectionHeading>Profieltype</SectionHeading>
+            <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+              {profile?.role === "admin" && (
+                <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                  Admin — testmodus
+                </span>
+              )}
+
+              {profile?.role === "admin" ? (
+                <>
+                  <p className="mb-4 text-sm text-stone-500">Als admin kun je je profieltype wisselen voor testdoeleinden.</p>
+                  <div
+                    className="grid gap-2.5 transition-opacity duration-200"
+                    style={{ opacity: personaAnimating ? 0 : 1 }}
+                  >
+                    {(Object.entries(PROFILE_PERSONAS) as [UserType, typeof PROFILE_PERSONAS[UserType]][]).map(([key, persona]) => {
+                      const isActive = profile?.user_type === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={savingPersona || isActive}
+                          onClick={async () => {
+                            if (!supabase || !user) return;
+                            setSavingPersona(true);
+                            setPersonaAnimating(true);
+                            const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
+                            setSavingPersona(false);
+                            setTimeout(() => setPersonaAnimating(false), 200);
+                            if (error) { toast.error("Opslaan mislukt."); return; }
+                            setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
+                            toast.success(`Profieltype gewijzigd naar "${persona.label}".`);
+                          }}
+                          className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-default ${
+                            isActive
+                              ? "border-rose-400 bg-rose-50"
+                              : "border-stone-200 bg-white hover:border-rose-300 disabled:opacity-50"
+                          }`}
+                        >
+                          <span className="text-lg leading-none">{persona.icon}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className={`text-sm font-semibold ${isActive ? "text-rose-700" : "text-stone-900"}`}>
+                              {persona.label}
+                            </p>
+                            <p className="text-xs text-stone-500">{persona.description}</p>
+                          </div>
+                          {isActive && (
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-rose-500" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : profile?.user_type ? (
+                <>
+                  <p className="mb-3 text-sm text-stone-500">Je profieltype is ingesteld.</p>
+                  {(() => {
+                    const persona = PROFILE_PERSONAS[profile.user_type as UserType];
+                    if (!persona) return null;
+                    return (
+                      <div className="inline-flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+                        <span className="text-2xl leading-none">{persona.icon}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-stone-900">{persona.label}</p>
+                          <p className="text-xs text-stone-500">{persona.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
+                  <p className="text-sm text-stone-600">Profieltype nog niet ingesteld</p>
+                  <Link href="/welkom" className="shrink-0 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600">
+                    Instellen
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ── LEVENSSTIJL TAGS — only for huisgenoot_zoeker ── */}
+          {user && profile?.user_type === "huisgenoot_zoeker" && (
+            <section>
+              <SectionHeading>Levensstijl</SectionHeading>
+              <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+                <div className="mb-1 flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-stone-400" />
+                  <p className="text-sm font-medium text-stone-800">Levensstijl tags</p>
+                </div>
+                <p className="mb-4 text-xs text-stone-500">
+                  Selecteer tags die jouw levensstijl omschrijven. Ze verschijnen op jouw huisgenotenkaart.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {LIFESTYLE_TAGS.map((tag) => {
+                    const active = lifestyleTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagToggle(tag)}
+                        className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition active:scale-95 ${
+                          active
+                            ? "bg-rose-500 text-white shadow-sm"
+                            : "border border-stone-200 bg-white text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                        }`}
+                      >
+                        {active && (
+                          <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+                {lifestyleTags.length > 0 && (
+                  <p className="mt-4 text-xs text-stone-400">
+                    {lifestyleTags.length} tag{lifestyleTags.length !== 1 ? "s" : ""} geselecteerd — automatisch opgeslagen.
+                  </p>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ── ZO ZIEN ANDEREN JOU ── */}
+          {profile && (
+            <section>
+              <SectionHeading>Zo zien anderen jou</SectionHeading>
+              <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
+                <p className="mb-4 text-sm text-stone-500">Dit is hoe verhuurders of huisgenoten jouw profiel zien.</p>
+                <OwnerBadges
+                  profile={{ ...profile, lifestyle_tags: lifestyleTags }}
+                  memberSince={user?.created_at ?? new Date().toISOString()}
+                />
+              </div>
+            </section>
+          )}
+
+          {/* ── VERIFICATIE ── */}
+          <section>
+            <SectionHeading>Verificatie</SectionHeading>
+            <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
+
+              {/* Status summary */}
+              <div className="border-b border-stone-100 px-5 py-4 sm:px-6">
+                {isFullyVerified(profile) ? (
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
+                    <p className="text-sm text-emerald-800">Je account is volledig geverifieerd.</p>
+                  </div>
+                ) : isPartiallyVerified(profile) ? (
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
+                    <p className="text-sm text-stone-700">Gedeeltelijk geverifieerd. Voeg e-mail of telefoon toe voor meer vertrouwen.</p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full bg-stone-300" />
+                    <p className="text-sm text-stone-500">Geverifieerde gegevens vergroten je kansen bij verhuurders.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* E-mail row */}
+              <div className="border-b border-stone-100 px-5 py-4 sm:px-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Mail className="h-4 w-4 text-stone-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">E-mailadres</p>
+                      <p className="text-xs text-stone-400 mt-0.5">{user?.email}</p>
+                    </div>
+                  </div>
+                  {profile?.email_auto_verified ? (
+                    <VerifiedBadge />
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={emailVerifySending || emailCooldown > 0}
+                      onClick={sendEmailVerification}
+                      className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
+                    >
+                      {emailVerifySending ? "Versturen…" : emailCooldown > 0 ? `Opnieuw (${emailCooldown}s)` : "E-mail verifiëren"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Telefoon row */}
+              <div className="px-5 py-4 sm:px-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Phone className="h-4 w-4 text-stone-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">Telefoonnummer</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {profile?.phone ?? "Nog niet ingevuld"}
+                      </p>
+                    </div>
+                  </div>
+                  {profile?.phone_verified ? (
+                    <VerifiedBadge />
+                  ) : (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") ? (
                     <button
                       type="button"
                       disabled={phoneVerifyStep === "sending"}
                       onClick={() => {
                         const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
-                        startPhoneVerification(phoneInput.value);
+                        startPhoneVerification(phoneInput?.value ?? profile?.phone ?? "");
                       }}
-                      className="shrink-0 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
+                      className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
                     >
-                      {phoneVerifyStep === "sending" ? "Versturen…" : "Verifiëren"}
+                      {phoneVerifyStep === "sending" ? "Versturen…" : "Telefoon verifiëren"}
                     </button>
-                  )}
-                  {profile?.phone_verified && (
-                    <span className="flex shrink-0 items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                      Geverifieerd
-                    </span>
-                  )}
+                  ) : null}
                 </div>
+
+                {/* OTP code entry */}
                 {phoneVerifyStep === "code" && (
-                  <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
-                    <p className="text-xs font-semibold text-blue-900">Voer de verificatiecode in</p>
-                    <p className="mt-1 text-xs text-blue-700">We hebben een 6-cijferige code per SMS naar <span className="font-medium">{pendingPhone}</span> gestuurd.</p>
+                  <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
+                    <p className="text-sm font-medium text-stone-800">Verificatiecode invoeren</p>
+                    <p className="mt-0.5 text-xs text-stone-500">
+                      We stuurden een 6-cijferige code per SMS naar <span className="font-medium">{pendingPhone}</span>.
+                    </p>
                     <div className="mt-3 flex gap-2">
                       <input
                         type="text"
@@ -514,565 +750,263 @@ export function ProfilePage() {
                         onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         placeholder="123456"
                         maxLength={6}
-                        className="flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        className="flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
                       />
                       <button
                         type="button"
                         onClick={verifyPhoneCode}
                         disabled={isVerifying || verifyCode.length !== 6}
-                        className="rounded-lg bg-blue-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-600 disabled:opacity-50"
+                        className="rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-700 disabled:opacity-50"
                       >
                         {isVerifying ? "Controleren…" : "Bevestigen"}
                       </button>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs text-blue-600">
+                    <div className="mt-2.5 flex items-center justify-between text-xs text-stone-400">
                       {verifyTimer > 0 ? (
                         <span>Nieuwe code in {verifyTimer}s</span>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={resendVerificationCode}
-                          className="font-semibold hover:underline"
-                        >
+                        <button type="button" onClick={resendVerificationCode} className="text-rose-600 hover:underline">
                           Nieuwe code versturen
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setPhoneVerifyStep("idle")}
-                        className="text-blue-500 hover:underline"
-                      >
+                      <button type="button" onClick={() => setPhoneVerifyStep("idle")} className="hover:underline">
                         Annuleren
                       </button>
                     </div>
                   </div>
                 )}
+
                 {phoneVerifyStep === "verified" && (
-                  <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Telefoonnummer succesvol geverifieerd!
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Telefoonnummer succesvol geverifieerd.
                   </div>
                 )}
               </div>
+            </div>
+          </section>
 
-              {/* TASK 1 — Je account status */}
-              <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
-                <p className="text-xs font-semibold text-stone-500 uppercase tracking-wide mb-3">Je account status</p>
-                {/* Summary line */}
-                <div className="flex items-center gap-2.5 mb-4">
-                  {isFullyVerified(profile) ? (
-                    <>
-                      <span className="h-3 w-3 shrink-0 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200" />
-                      <p className="text-sm font-medium text-emerald-800">Je account is volledig geverifieerd</p>
-                    </>
-                  ) : isPartiallyVerified(profile) ? (
-                    <>
-                      <span className="h-3 w-3 shrink-0 rounded-full bg-amber-400 shadow-sm shadow-amber-200" />
-                      <p className="text-sm font-medium text-amber-800">Je account is gedeeltelijk geverifieerd. Verifieer je e-mailadres voor extra vertrouwen.</p>
-                    </>
-                  ) : (
-                    <>
-                      <span className="h-3 w-3 shrink-0 rounded-full bg-stone-300" />
-                      <p className="text-sm font-medium text-stone-600">Je account is niet geverifieerd. Verifieer je e-mailadres of telefoonnummer om meer vertrouwen te krijgen.</p>
-                    </>
-                  )}
-                </div>
-                {/* Per-item rows */}
-                <div className="flex flex-col gap-2">
-                  {/* E-mail row */}
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <Mail className="h-4 w-4 shrink-0 text-stone-400" />
-                      <div>
-                        <p className="text-xs font-medium text-stone-700">E-mailadres</p>
-                        <p className="text-[11px] text-stone-400">{user?.email}</p>
-                      </div>
-                    </div>
-                    {profile?.email_auto_verified ? (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                        <CheckCircle2 className="h-3 w-3" /> Geverifieerd
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled={emailVerifySending || emailCooldown > 0}
-                        onClick={sendEmailVerification}
-                        className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                      >
-                        {emailVerifySending ? "Versturen…" : emailCooldown > 0 ? `Opnieuw (${emailCooldown}s)` : "E-mail verifiëren"}
-                      </button>
-                    )}
+          {/* ── PRIVACY ── */}
+          <section>
+            <SectionHeading>Privacy</SectionHeading>
+            <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
+              <div className="border-b border-stone-100 px-5 py-4 sm:px-6">
+                <p className="text-xs text-stone-400">Bepaal welke contactgegevens zichtbaar zijn voor anderen op Welkthuis.</p>
+              </div>
+
+              <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                    {showEmail ? <Eye className="h-4 w-4 text-stone-400" /> : <EyeOff className="h-4 w-4 text-stone-300" />}
                   </div>
-                  {/* Telefoon row */}
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      <Phone className="h-4 w-4 shrink-0 text-stone-400" />
-                      <div>
-                        <p className="text-xs font-medium text-stone-700">Telefoonnummer</p>
-                        <p className="text-[11px] text-stone-400">{profile?.phone ? profile.phone : "Nog niet ingevuld"}</p>
-                      </div>
-                    </div>
-                    {profile?.phone_verified ? (
-                      <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                        <CheckCircle2 className="h-3 w-3" /> Geverifieerd
-                      </span>
-                    ) : (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") ? (
-                      <button
-                        type="button"
-                        disabled={phoneVerifyStep === "sending"}
-                        onClick={() => {
-                          const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
-                          startPhoneVerification(phoneInput?.value ?? "");
-                        }}
-                        className="shrink-0 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-60"
-                      >
-                        {phoneVerifyStep === "sending" ? "Versturen…" : "Telefoon verifiëren"}
-                      </button>
-                    ) : null}
+                  <div>
+                    <p className="text-sm font-medium text-stone-800">E-mailadres zichtbaar</p>
+                    <p className="text-xs text-stone-400 mt-0.5">Anderen zien je e-mailadres op je profiel</p>
                   </div>
                 </div>
+                <Toggle checked={showEmail} onToggle={() => handlePrivacyToggle("show_email", !showEmail)} />
               </div>
 
-              <div className="rounded-2xl border border-stone-100 bg-stone-50/60 p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Privacyinstellingen</p>
-                <p className="mb-3 text-xs text-stone-400">Bepaal welke contactgegevens zichtbaar zijn voor anderen op Welkthuis.</p>
-                <div className="flex flex-col gap-3">
-                  <label className="flex cursor-pointer items-center justify-between gap-3">
-                    <span className="text-sm text-stone-700">E-mailadres zichtbaar voor anderen</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={showEmail}
-                      onClick={() => setShowEmail((v) => !v)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${showEmail ? "bg-rose-500" : "bg-stone-300"}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showEmail ? "translate-x-5" : "translate-x-0.5"}`}
-                      />
-                    </button>
-                  </label>
-                  <label className="flex cursor-pointer items-center justify-between gap-3">
-                    <span className="text-sm text-stone-700">Telefoonnummer zichtbaar voor anderen</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={showPhone}
-                      onClick={() => setShowPhone((v) => !v)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${showPhone ? "bg-rose-500" : "bg-stone-300"}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showPhone ? "translate-x-5" : "translate-x-0.5"}`}
-                      />
-                    </button>
-                  </label>
+              <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                    {showPhone ? <Eye className="h-4 w-4 text-stone-400" /> : <EyeOff className="h-4 w-4 text-stone-300" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-stone-800">Telefoonnummer zichtbaar</p>
+                    <p className="text-xs text-stone-400 mt-0.5">Anderen zien je telefoonnummer op je profiel</p>
+                  </div>
                 </div>
+                <Toggle checked={showPhone} onToggle={() => handlePrivacyToggle("show_phone", !showPhone)} />
               </div>
+            </div>
+          </section>
 
-              <button
-                type="submit"
-                disabled={isPending}
-                data-testid="profile-save"
-                className="w-full rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
-              >
-                {isPending ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Opslaan…
-                  </span>
-                ) : "Profiel opslaan"}
-              </button>
-            </form>
-          </div>
-        )}
-      </div>
+          {/* ── NOTIFICATIES ── */}
+          {profile && (
+            <section>
+              <SectionHeading>Notificaties</SectionHeading>
+              <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
+                <div className="border-b border-stone-100 px-5 py-4 sm:px-6">
+                  <p className="text-xs text-stone-400">Kies voor welke activiteiten je een melding wilt ontvangen.</p>
+                </div>
 
-      {/* Profieltype — one-time selector for users who skipped onboarding */}
-      {!loading && (
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-base font-semibold text-stone-900">Je profieltype</p>
-            {profile?.role === "admin" && (
-              <span className="flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                Admin — testmodus
-              </span>
-            )}
-          </div>
-          {profile?.role === "admin" ? (
-            <>
-              <p className="mt-1 mb-4 text-sm text-stone-500">
-                Als admin kun je je profieltype op elk moment wisselen voor testdoeleinden.
-              </p>
-              <div
-                className="grid gap-3 transition-opacity duration-200"
-                style={{ opacity: personaAnimating ? 0 : 1 }}
-              >
-                {(Object.entries(PROFILE_PERSONAS) as [UserType, typeof PROFILE_PERSONAS[UserType]][]).map(([key, persona]) => {
-                  const isActive = profile?.user_type === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      disabled={savingPersona || isActive}
-                      onClick={async () => {
-                        if (!supabase || !user) return;
-                        setSavingPersona(true);
-                        setPersonaAnimating(true);
-                        const { error } = await supabase.from("profiles").update({ user_type: key }).eq("id", user.id);
-                        setSavingPersona(false);
-                        setTimeout(() => setPersonaAnimating(false), 200);
-                        if (error) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-                        setProfile((prev) => prev ? { ...prev, user_type: key } : prev);
-                        toast.success(`Profieltype gewijzigd naar "${persona.label}".`);
-                      }}
-                      className={`group flex items-center gap-4 rounded-2xl border-2 p-4 shadow-sm transition active:scale-[0.99] disabled:cursor-default ${
-                        isActive
-                          ? "border-rose-400 bg-rose-50"
-                          : "border-stone-200 bg-white hover:border-rose-300 hover:shadow-md disabled:opacity-50"
-                      }`}
-                    >
-                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl leading-none transition ${
-                        isActive ? "bg-rose-100" : "bg-stone-100 group-hover:bg-rose-50"
-                      }`}>
-                        {persona.icon}
-                      </div>
-                      <div className="min-w-0 flex-1 text-left">
-                        <p className={`text-sm font-bold ${isActive ? "text-rose-700" : "text-stone-900 group-hover:text-rose-600"}`}>
-                          {persona.label}
-                        </p>
-                        <p className="mt-0.5 text-xs text-stone-500">{persona.description}</p>
-                      </div>
-                      {isActive ? (
-                        <svg className="h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      ) : savingPersona ? (
-                        <svg className="h-4 w-4 shrink-0 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4 shrink-0 text-stone-300 group-hover:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          ) : profile?.user_type ? (
-            <>
-              <p className="mt-1 mb-4 text-sm text-stone-500">Je profieltype is ingesteld en kan niet worden gewijzigd.</p>
-              {(() => {
-                const persona = PROFILE_PERSONAS[profile.user_type as UserType];
-                if (!persona) return null;
-                return (
-                  <div className="inline-flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3">
-                    <span className="text-2xl leading-none">{persona.icon}</span>
+                <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <MessageSquare className="h-4 w-4 text-stone-400" />
+                    </div>
                     <div>
-                      <p className="text-sm font-semibold text-stone-900">{persona.label}</p>
-                      <p className="text-xs text-stone-500">{persona.description}</p>
+                      <p className="text-sm font-medium text-stone-800">Nieuwe berichten</p>
+                      <p className="text-xs text-stone-400 mt-0.5">Melding bij een nieuw chatbericht</p>
                     </div>
                   </div>
-                );
-              })()}
-            </>
-          ) : (
-            <div className="mt-2 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-amber-800">Profieltype nog niet ingesteld</p>
-                <p className="mt-0.5 text-xs text-amber-700">Voltooi je registratie om je profiel te activeren.</p>
-              </div>
-              <Link href="/welkom" className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-amber-600">
-                Instellen
-              </Link>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Notification preferences — separate card, saves immediately on toggle */}
-      {!loading && profile && (
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <p className="text-base font-semibold text-stone-900">Notificatievoorkeuren</p>
-          <p className="mt-1 mb-5 text-sm text-stone-500">Bepaal voor welke activiteiten je een melding wilt ontvangen.</p>
-          <div className="flex flex-col divide-y divide-stone-100">
-
-            {/* Nieuwe berichten */}
-            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50">
-                  <MessageSquare className="h-4 w-4 text-amber-500" />
+                  <Toggle
+                    checked={notifyNewMessage}
+                    onToggle={() => handleNotifToggle("notify_new_message", !notifyNewMessage)}
+                  />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-stone-800">Nieuwe berichten</p>
-                  <p className="text-xs text-stone-400">Melding bij een nieuw chatbericht van een andere gebruiker.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={notifyNewMessage}
-                onClick={() => handleNotifToggle("notify_new_message", !notifyNewMessage)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyNewMessage ? "bg-rose-500" : "bg-stone-300"}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyNewMessage ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
-            </div>
 
-            {/* Aanvraag updates */}
-            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                  <Bell className="h-4 w-4 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-stone-800">Aanvraag updates</p>
-                  <p className="text-xs text-stone-400">Melding als je aanvraag wordt geaccepteerd of afgewezen.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={notifyApplicationUpdate}
-                onClick={() => handleNotifToggle("notify_application_update", !notifyApplicationUpdate)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyApplicationUpdate ? "bg-rose-500" : "bg-stone-300"}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyApplicationUpdate ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
-            </div>
-
-            {/* Nieuwe woningen */}
-            <div className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-50">
-                  <Home className="h-4 w-4 text-purple-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-stone-800">Nieuwe woningen</p>
-                  <p className="text-xs text-stone-400">Melding als een nieuwe woning overeenkomt met je opgeslagen zoekopdracht.</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={notifyMatchingListing}
-                onClick={() => handleNotifToggle("notify_matching_listing", !notifyMatchingListing)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus:outline-none ${notifyMatchingListing ? "bg-rose-500" : "bg-stone-300"}`}
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${notifyMatchingListing ? "translate-x-5" : "translate-x-0.5"}`} />
-              </button>
-            </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* TASK 3 — Zo zien anderen jou */}
-      {!loading && profile && (
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <div className="mb-1 flex items-center gap-2.5">
-            <p className="text-base font-semibold text-stone-900">Zo zien anderen jou</p>
-          </div>
-          <p className="mb-5 text-sm text-stone-500">Dit is hoe verhuurders of huisgenoten jouw profiel zien.</p>
-          <OwnerBadges
-            profile={{ ...profile, lifestyle_tags: lifestyleTags }}
-            memberSince={user?.created_at ?? new Date().toISOString()}
-          />
-        </div>
-      )}
-
-      {/* Levensstijl tags — only for huisgenoot_zoeker */}
-      {!loading && user && profile?.user_type === "huisgenoot_zoeker" && (
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-center gap-2.5">
-            <svg className="h-5 w-5 shrink-0 text-stone-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-            </svg>
-            <p className="text-base font-semibold text-stone-900">Levensstijl tags</p>
-          </div>
-          <p className="mt-1 mb-5 text-sm text-stone-500">
-            Selecteer tags die jouw levensstijl omschrijven. Ze verschijnen op jouw huisgenotenkaart op de homepage.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {LIFESTYLE_TAGS.map((tag) => {
-              const active = lifestyleTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => handleTagToggle(tag)}
-                  className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition active:scale-95 ${
-                    active
-                      ? "bg-rose-500 text-white shadow-sm"
-                      : "border border-stone-200 bg-white text-stone-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                  }`}
-                >
-                  {active && (
-                    <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                  )}
-                  {tag}
-                </button>
-              );
-            })}
-          </div>
-          {lifestyleTags.length > 0 && (
-            <p className="mt-4 text-xs text-stone-400">
-              {lifestyleTags.length} tag{lifestyleTags.length !== 1 ? "s" : ""} geselecteerd — automatisch opgeslagen.
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Wachtwoord wijzigen */}
-      {!loading && user && (
-        <div className="mt-6 rounded-3xl border border-stone-200/80 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-center gap-2.5">
-            <KeyRound className="h-5 w-5 shrink-0 text-stone-500" />
-            <p className="text-base font-semibold text-stone-900">Wachtwoord wijzigen</p>
-          </div>
-          <p className="mt-1 mb-5 text-sm text-stone-500">Werk je wachtwoord bij voor extra beveiliging. Gebruik minimaal 8 tekens.</p>
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-stone-700">Huidig wachtwoord</label>
-              <div className="mt-1.5">
-                <PasswordInput
-                  value={pwCurrent}
-                  onChange={(e) => { setPwCurrent(e.target.value); setPwErrors((p) => ({ ...p, current: undefined })); }}
-                  placeholder="••••••••"
-                  className={pwErrors.current ? "border-rose-400 bg-rose-50" : ""}
-                />
-              </div>
-              {pwErrors.current && <p className="mt-1 text-xs text-rose-500">{pwErrors.current}</p>}
-            </div>
-            <div>
-              <label className="text-xs font-medium text-stone-700">Nieuw wachtwoord</label>
-              <div className="mt-1.5">
-                <PasswordInput
-                  value={pwNew}
-                  onChange={(e) => { setPwNew(e.target.value); setPwErrors((p) => ({ ...p, new: undefined })); }}
-                  placeholder="Minimaal 8 tekens"
-                  className={pwErrors.new ? "border-rose-400 bg-rose-50" : ""}
-                />
-              </div>
-              {pwNew && (() => {
-                const strength = getPasswordStrength(pwNew);
-                const segments = [
-                  strength >= 1
-                    ? strength === 1 ? "bg-rose-500" : strength === 2 ? "bg-amber-400" : "bg-emerald-500"
-                    : "bg-stone-200",
-                  strength >= 2
-                    ? strength === 2 ? "bg-amber-400" : "bg-emerald-500"
-                    : "bg-stone-200",
-                  strength >= 3 ? "bg-emerald-500" : "bg-stone-200",
-                ];
-                const label = strength === 1 ? "Zwak" : strength === 2 ? "Matig" : "Sterk";
-                const labelColor = strength === 1 ? "text-rose-500" : strength === 2 ? "text-amber-500" : "text-emerald-600";
-                return (
-                  <div className="mt-2">
-                    <div className="flex gap-1">
-                      {segments.map((cls, i) => (
-                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${cls}`} />
-                      ))}
+                <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Bell className="h-4 w-4 text-stone-400" />
                     </div>
-                    <p className={`mt-1 text-xs font-medium ${labelColor}`}>{label}</p>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">Aanvraag updates</p>
+                      <p className="text-xs text-stone-400 mt-0.5">Melding als je aanvraag wordt geaccepteerd of afgewezen</p>
+                    </div>
                   </div>
-                );
-              })()}
-              {pwErrors.new && <p className="mt-1 text-xs text-rose-500">{pwErrors.new}</p>}
-            </div>
-            <div>
-              <label className="text-xs font-medium text-stone-700">Bevestig nieuw wachtwoord</label>
-              <div className="mt-1.5">
-                <PasswordInput
-                  value={pwConfirm}
-                  onChange={(e) => { setPwConfirm(e.target.value); setPwErrors((p) => ({ ...p, confirm: undefined })); }}
-                  placeholder="Herhaal nieuw wachtwoord"
-                  className={pwErrors.confirm ? "border-rose-400 bg-rose-50" : ""}
-                />
+                  <Toggle
+                    checked={notifyApplicationUpdate}
+                    onToggle={() => handleNotifToggle("notify_application_update", !notifyApplicationUpdate)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Home className="h-4 w-4 text-stone-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">Nieuwe woningen</p>
+                      <p className="text-xs text-stone-400 mt-0.5">Melding als een woning overeenkomt met je zoekopdracht</p>
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={notifyMatchingListing}
+                    onToggle={() => handleNotifToggle("notify_matching_listing", !notifyMatchingListing)}
+                  />
+                </div>
               </div>
-              {pwErrors.confirm && <p className="mt-1 text-xs text-rose-500">{pwErrors.confirm}</p>}
-            </div>
-          </div>
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              disabled={pwPending}
-              onClick={handlePasswordChange}
-              className="flex items-center gap-2 rounded-2xl bg-stone-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-stone-700 disabled:opacity-50 active:scale-[0.98]"
-            >
-              {pwPending ? (
-                <>
-                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  Bijwerken…
-                </>
-              ) : (
-                <>
-                  <KeyRound className="h-4 w-4" />
-                  Wachtwoord bijwerken
-                </>
-              )}
-            </button>
-          </div>
+            </section>
+          )}
+
+          {/* ── BEVEILIGING ── */}
+          {user && (
+            <section>
+              <SectionHeading>Beveiliging</SectionHeading>
+              <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
+
+                {/* Wachtwoord wijzigen */}
+                <div className="px-5 py-5 sm:px-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-stone-400" />
+                    <p className="text-sm font-medium text-stone-800">Wachtwoord wijzigen</p>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-stone-600">Huidig wachtwoord</label>
+                      <div className="mt-1.5">
+                        <PasswordInput
+                          value={pwCurrent}
+                          onChange={(e) => { setPwCurrent(e.target.value); setPwErrors((p) => ({ ...p, current: undefined })); }}
+                          placeholder="••••••••"
+                          className={pwErrors.current ? "border-rose-300" : ""}
+                        />
+                      </div>
+                      {pwErrors.current && <p className="mt-1 text-xs text-rose-500">{pwErrors.current}</p>}
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600">Nieuw wachtwoord</label>
+                      <div className="mt-1.5">
+                        <PasswordInput
+                          value={pwNew}
+                          onChange={(e) => { setPwNew(e.target.value); setPwErrors((p) => ({ ...p, new: undefined })); }}
+                          placeholder="Minimaal 8 tekens"
+                          className={pwErrors.new ? "border-rose-300" : ""}
+                        />
+                      </div>
+                      {pwNew && (() => {
+                        const strength = getPasswordStrength(pwNew);
+                        const labels = ["", "Zwak", "Matig", "Sterk"];
+                        const colors = ["", "bg-rose-400", "bg-amber-400", "bg-emerald-500"];
+                        const textColors = ["", "text-rose-500", "text-amber-500", "text-emerald-600"];
+                        return (
+                          <div className="mt-2">
+                            <div className="flex gap-1">
+                              {[1, 2, 3].map((i) => (
+                                <div key={i} className={`h-1 flex-1 rounded-full transition-colors duration-300 ${i <= strength ? colors[strength] : "bg-stone-100"}`} />
+                              ))}
+                            </div>
+                            <p className={`mt-1 text-xs font-medium ${textColors[strength]}`}>{labels[strength]}</p>
+                          </div>
+                        );
+                      })()}
+                      {pwErrors.new && <p className="mt-1 text-xs text-rose-500">{pwErrors.new}</p>}
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-stone-600">Bevestig nieuw wachtwoord</label>
+                      <div className="mt-1.5">
+                        <PasswordInput
+                          value={pwConfirm}
+                          onChange={(e) => { setPwConfirm(e.target.value); setPwErrors((p) => ({ ...p, confirm: undefined })); }}
+                          placeholder="Herhaal nieuw wachtwoord"
+                          className={pwErrors.confirm ? "border-rose-300" : ""}
+                        />
+                      </div>
+                      {pwErrors.confirm && <p className="mt-1 text-xs text-rose-500">{pwErrors.confirm}</p>}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={pwPending}
+                      onClick={handlePasswordChange}
+                      className="flex items-center gap-2 rounded-xl border border-stone-200 bg-stone-50 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:opacity-50 active:scale-[0.98]"
+                    >
+                      {pwPending ? (
+                        <>
+                          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Bijwerken…
+                        </>
+                      ) : "Wachtwoord bijwerken"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Account verwijderen */}
+                <div className="border-t border-stone-100 px-5 py-5 sm:px-6">
+                  <p className="text-sm font-medium text-stone-800 mb-1">Account beëindigen</p>
+                  <p className="text-xs text-stone-400 mb-3">
+                    Al je gegevens worden definitief verwijderd conform de AVG/GDPR richtlijnen.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setDeleteEmail(""); setDeletePassword(""); setShowDeleteModal(true); }}
+                    className="text-xs font-medium text-stone-400 underline underline-offset-2 transition hover:text-stone-700"
+                  >
+                    Account verwijderen
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <div className="h-4" />
         </div>
       )}
 
-      {/* Danger zone — account deletion */}
-      {!loading && user && (
-        <div className="mt-6 rounded-3xl border border-red-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex items-center gap-2.5">
-            <AlertTriangle className="h-5 w-5 shrink-0 text-red-500" />
-            <p className="text-base font-semibold text-stone-900">Account verwijderen</p>
-          </div>
-          <p className="mt-2 text-sm text-stone-500">
-            Je account permanent verwijderen. Deze actie kan niet ongedaan worden gemaakt. Al je gegevens worden definitief verwijderd volgens de AVG/GDPR richtlijnen.
-          </p>
-          <button
-            type="button"
-            onClick={() => { setDeleteEmail(""); setDeletePassword(""); setShowDeleteModal(true); }}
-            className="mt-4 rounded-2xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-600 active:scale-[0.98]"
-          >
-            Account verwijderen
-          </button>
-        </div>
-      )}
-
-      {/* Delete confirmation modal */}
+      {/* ── DELETE MODAL ── */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
           <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => !isDeleting && setShowDeleteModal(false)}
           />
-          <div className="relative w-full max-w-md rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-8">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <h2 className="text-base font-semibold text-stone-900">Weet je zeker dat je je account wilt verwijderen?</h2>
-                <p className="mt-1.5 text-sm text-stone-500">
-                  Dit is permanent. Je verliest al je listings, berichten, favorieten, en verificaties. Deze actie kan <span className="font-semibold text-red-600">NIET</span> ongedaan worden gemaakt.
-                </p>
-              </div>
-            </div>
+          <div className="relative w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
+            <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
+            <p className="mt-2 mb-5 text-sm text-stone-500">
+              Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
+            </p>
 
-            <div className="mt-6 space-y-4">
+            <div className="space-y-3">
               <div>
-                <label htmlFor="delete-email" className="text-xs font-medium text-stone-700">
-                  Bevestig je e-mailadres
+                <label htmlFor="delete-email" className="text-xs font-medium text-stone-600">
+                  E-mailadres
                 </label>
                 <input
                   id="delete-email"
@@ -1080,12 +1014,12 @@ export function ProfilePage() {
                   value={deleteEmail}
                   onChange={(e) => setDeleteEmail(e.target.value)}
                   placeholder={user?.email ?? "jij@example.nl"}
-                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
                 />
               </div>
               <div>
-                <label htmlFor="delete-password" className="text-xs font-medium text-stone-700">
-                  Wachtwoord ter bevestiging
+                <label htmlFor="delete-password" className="text-xs font-medium text-stone-600">
+                  Wachtwoord
                 </label>
                 <input
                   id="delete-password"
@@ -1093,17 +1027,17 @@ export function ProfilePage() {
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
                   placeholder="••••••••"
-                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-100"
+                  className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-stone-400 focus:outline-none focus:ring-2 focus:ring-stone-100"
                 />
               </div>
             </div>
 
-            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <div className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 disabled={isDeleting}
                 onClick={() => setShowDeleteModal(false)}
-                className="w-full rounded-2xl border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50 disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 disabled:opacity-50 sm:w-auto"
               >
                 Annuleren
               </button>
@@ -1115,7 +1049,7 @@ export function ProfilePage() {
                   deletePassword.length === 0
                 }
                 onClick={handleDeleteAccount}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-600 disabled:opacity-50 active:scale-[0.98] sm:w-auto"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-stone-700 disabled:opacity-40 active:scale-[0.98] sm:w-auto"
               >
                 {isDeleting ? (
                   <>
@@ -1125,7 +1059,7 @@ export function ProfilePage() {
                     </svg>
                     Verwijderen…
                   </>
-                ) : "Verwijder mijn account"}
+                ) : "Account verwijderen"}
               </button>
             </div>
           </div>
