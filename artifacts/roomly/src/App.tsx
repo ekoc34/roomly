@@ -134,13 +134,21 @@ function AppContent() {
       <ActivityTracker />
       <EmailVerificationHandler />
       <OAuthProfileHandler />
-      <Header />
+      <ErrorBoundary fallback={<div className="h-16 border-b border-stone-200 bg-white" />}>
+        <Header />
+      </ErrorBoundary>
       <main className="flex-1">
         <Router />
       </main>
-      <Footer />
-      <MobileBottomNav />
-      <CompareBar />
+      <ErrorBoundary fallback={null}>
+        <Footer />
+      </ErrorBoundary>
+      <ErrorBoundary fallback={null}>
+        <MobileBottomNav />
+      </ErrorBoundary>
+      <ErrorBoundary fallback={null}>
+        <CompareBar />
+      </ErrorBoundary>
     </>
   );
 }
@@ -151,7 +159,9 @@ export default function App() {
       <CompareProvider>
         <div className="flex min-h-screen flex-col bg-stone-50">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AppContent />
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
           </WouterRouter>
           <Toaster position="bottom-right" richColors closeButton toastOptions={{ classNames: { closeButton: "!left-auto !right-0 !translate-x-1/2 !-translate-y-1/2" } }} />
         </div>
