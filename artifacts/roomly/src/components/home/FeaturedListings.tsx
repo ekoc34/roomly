@@ -46,17 +46,34 @@ function Initials({ name }: { name: string | null }) {
   );
 }
 
-function RoommateCard({ listing, profile }: { listing: Listing; profile: RoommateProfile | undefined }) {
+function RoommateCard({ listing, profile, boostedAt }: { listing: Listing; profile: RoommateProfile | undefined; boostedAt?: string | null }) {
   const name = profile?.name ?? "Anoniem";
   const tags = profile?.lifestyle_tags ?? [];
   const newLabel = getNewLabel(listing.created_at);
+  const showBoost = !!boostedAt && (Date.now() - new Date(boostedAt).getTime() < BOOST_WINDOW_MS);
 
   return (
     <Link
       href={`/kamers/${listing.id}`}
-      className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="relative flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
     >
-      <div className="flex items-center gap-3 border-b border-stone-100 px-4 py-4">
+      {/* Badge overlay — "Nieuw vandaag" left, "Uitgelicht" right, never touching */}
+      {(newLabel || showBoost) && (
+        <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-start justify-between gap-2 px-3 pt-3">
+          <div>
+            {newLabel && (
+              <span className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold shadow-sm ${newLabel === "vandaag" ? "bg-rose-500 text-white" : "bg-stone-700 text-white"}`}>
+                {newLabel === "vandaag" ? "Nieuw vandaag" : "Nieuw"}
+              </span>
+            )}
+          </div>
+          <div>
+            {showBoost && <BoostBadge boostedAt={boostedAt!} />}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 border-b border-stone-100 px-4 pb-4 pt-10">
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-rose-50 border border-rose-100">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
@@ -74,11 +91,6 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
             {listing.location}
           </p>
         </div>
-        {newLabel && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${newLabel === "vandaag" ? "bg-rose-500 text-white" : "bg-stone-700 text-white"}`}>
-            {newLabel === "vandaag" ? "Nieuw vandaag" : "Nieuw"}
-          </span>
-        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 px-4 py-4">
@@ -282,14 +294,12 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {currentRoommateListings.map((l) => (
-                <div key={l.id} className="relative">
-                  {mainTab === "uitgelicht" && l.boosted_at && (
-                    <div className="absolute right-3 top-3 z-10">
-                      <BoostBadge boostedAt={l.boosted_at} />
-                    </div>
-                  )}
-                  <RoommateCard listing={l} profile={roommateProfiles[l.user_id]} />
-                </div>
+                <RoommateCard
+                  key={l.id}
+                  listing={l}
+                  profile={roommateProfiles[l.user_id]}
+                  boostedAt={l.boosted_at}
+                />
               ))}
             </div>
           )}
