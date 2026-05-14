@@ -1,0 +1,144 @@
+You are refining the “Ontdek woningen en huisgenoten” discovery section on the Welkthuis.nl homepage.
+
+Important context:
+- Welkthuis is intentionally minimalist, calm, trustworthy, and marketplace-focused.
+- The current section already works well structurally.
+- The goal is visual refinement and stronger consistency.
+- Do NOT redesign the section.
+- Do NOT add new features or complex interactions.
+
+Current section includes:
+- Toggle tabs:
+  - 🏠 Woningen
+  - 🤝 Huisgenoten
+- Listing/profile cards
+- Status badges:
+  - ⭐ Uitgelicht
+  - 🆕 Nieuw
+  - Nieuw vandaag
+- A top-right segmented switch:
+  - Uitgelicht
+  - Nieuw
+- Placeholder image states
+
+Main issue:
+- Too many competing accent colors and badge styles.
+- The UI feels slightly busier than the rest of the product.
+- Some badges visually overpower the actual content.
+
+Your tasks:
+
+1. Simplify badge system globally
+Apply the same refined badge system consistently across BOTH:
+- Woningen
+- Huisgenoten
+
+Reduce visual noise and improve hierarchy.
+
+2. Refine “Uitgelicht” and “Nieuw” badges
+Current issue:
+- Orange, pink, black, yellow, and blue accents compete too much.
+
+New direction:
+- “Uitgelicht” should feel premium but subtle.
+- “Nieuw” should feel fresh but lightweight.
+- Avoid loud marketplace-style promotion colors.
+
+Design goals:
+- Softer tones
+- Smaller visual footprint
+- Better spacing
+- More elegant typography
+- Less aggressive contrast
+
+3. Improve dual-badge layout
+Some cards contain:
+- Nieuw vandaag
+- Uitgelicht
+
+Current issue:
+- The stacked badges feel crowded.
+
+Refine:
+- badge spacing
+- alignment
+- padding
+- corner positioning
+
+Make the top-left corner feel cleaner and more intentional.
+
+4. Refine top-right “Uitgelicht / Nieuw” switch
+Current issue:
+- The black active state feels visually too dominant compared to the rest of the page.
+
+Improve:
+- active/inactive balance
+- background subtlety
+- spacing
+- typography weight
+
+The control should feel:
+- calm
+- premium
+- lightweight
+- integrated into the page
+
+Avoid:
+- heavy dark pills
+- overly saturated active states
+
+5. Refine icons and emoji usage
+Current issue:
+- Some emoji/icon usage feels slightly more playful than the rest of the interface.
+
+Refine:
+- icon sizing
+- spacing
+- visual consistency
+
+Maintain friendliness, but align it more with the calm marketplace aesthetic.
+
+6. Improve visual hierarchy of cards
+Ensure:
+- title
+- price
+- location
+remain visually dominant.
+
+Badges and labels should support the content, not compete with it.
+
+7. Refine placeholder image states
+The current placeholder structure is good.
+
+Improve:
+- icon subtlety
+- background tone
+- visual polish
+
+The placeholder should feel:
+- intentional
+- clean
+- premium
+- calm
+
+8. Maintain:
+- current layout structure
+- current functionality
+- minimalist direction
+- mobile-first responsiveness
+
+9. Avoid:
+- redesigning the homepage
+- adding animations
+- flashy gradients
+- heavy shadows
+- glassmorphism
+- neon accent colors
+- excessive rounded UI
+- startup/SaaS aesthetics
+
+Reference direction:
+- Airbnb restraint
+- Funda practicality
+- Booking clarity
+- Apple-level spacing discipline

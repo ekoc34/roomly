@@ -45,31 +45,36 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
         data-testid={`listing-card-${listing.id}`}
         className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
       >
-        <div className="relative aspect-[4/3] bg-stone-100">
+        <div className="relative aspect-[4/3] bg-stone-50">
           {img ? (
             <img src={img} alt={listing.title} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
           ) : (
-            <div className="flex h-full items-center justify-center bg-stone-100">
-              <svg className="h-12 w-12 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <div className="flex h-full items-center justify-center bg-stone-50">
+              <svg className="h-9 w-9 text-stone-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
               </svg>
             </div>
           )}
           <div className="absolute left-3 top-3 flex flex-col gap-1">
             {newLabel === "vandaag" && (
-              <span className="rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">✦ Nieuw vandaag</span>
+              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium tracking-wide text-emerald-700">
+                Nieuw vandaag
+              </span>
             )}
             {newLabel === "nieuw" && (
-              <span className="rounded-full bg-amber-400 px-2.5 py-1 text-xs font-semibold text-white shadow-sm">Nieuw</span>
+              <span className="inline-flex items-center rounded-full border border-stone-200 bg-white px-2 py-0.5 text-[10px] font-medium tracking-wide text-stone-500">
+                Nieuw
+              </span>
             )}
             {listing.boosted_at && (
               <BoostBadge boostedAt={listing.boosted_at} />
             )}
             {isLandlordVerified && (
-              <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 shadow-sm">
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                <svg className="h-2.5 w-2.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
+                Geverifieerd
               </span>
             )}
           </div>
