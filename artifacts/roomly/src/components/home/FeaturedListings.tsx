@@ -106,7 +106,7 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
   );
 }
 
-function EmptyWoningen() {
+function EmptyWoningen({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
@@ -115,18 +115,22 @@ function EmptyWoningen() {
         </svg>
       </div>
       <h3 className="mt-4 text-base font-semibold text-stone-800">Geen woningen gevonden</h3>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
-      <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Plaats als eerste een advertentie
-      </Link>
+      {!isLoggedIn && (
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
+      )}
+      {!isLoggedIn && (
+        <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Plaats als eerste een advertentie
+        </Link>
+      )}
     </div>
   );
 }
 
-function EmptyHuisgenoten() {
+function EmptyHuisgenoten({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
       <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-50">
@@ -135,13 +139,17 @@ function EmptyHuisgenoten() {
         </svg>
       </div>
       <h3 className="mt-4 text-base font-semibold text-stone-800">Geen huisgenotenprofielen gevonden</h3>
-      <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
-      <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
-        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Profiel aanmaken
-      </Link>
+      {!isLoggedIn && (
+        <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
+      )}
+      {!isLoggedIn && (
+        <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Profiel aanmaken
+        </Link>
+      )}
     </div>
   );
 }
@@ -249,7 +257,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
       {activeTab === "woningen" && (
         <>
           {currentListings.length === 0 ? (
-            <EmptyWoningen />
+            <EmptyWoningen isLoggedIn={!!currentUserId} />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {currentListings.map((l) => (
@@ -270,7 +278,7 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
       {activeTab === "huisgenoten" && (
         <>
           {currentRoommateListings.length === 0 ? (
-            <EmptyHuisgenoten />
+            <EmptyHuisgenoten isLoggedIn={!!currentUserId} />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {currentRoommateListings.map((l) => (
