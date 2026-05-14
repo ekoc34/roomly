@@ -9,6 +9,16 @@ import {
 } from "@/lib/landlordUtils";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
+function PersonSilhouette() {
+  return (
+    <span className="flex h-full w-full items-center justify-center">
+      <svg className="h-6 w-6 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    </span>
+  );
+}
+
 type OtherApp = {
   id: string;
   status: string;
@@ -187,7 +197,9 @@ export function ApplicantProfilePanel({
             {/* Identity block */}
             <div className="flex items-start gap-3 p-5">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
-                {profile?.avatar_url ? (
+                {profile?.show_avatar_in_listings === false ? (
+                  <PersonSilhouette />
+                ) : profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <span className="text-lg font-semibold text-stone-500">{initial}</span>

@@ -2,6 +2,16 @@ import { AlertTriangle } from "lucide-react";
 import type { Profile } from "@/types/database";
 import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
+function PersonSilhouette() {
+  return (
+    <span className="flex h-full w-full items-center justify-center">
+      <svg className="h-5 w-5 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    </span>
+  );
+}
+
 const USER_TYPE_LABELS: Record<string, string> = {
   verhuurder:        "Verhuurder",
   huisgenoot_zoeker: "Huisgenoot zoeker",
@@ -41,7 +51,9 @@ export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
 
       <div className="flex items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
-          {profile?.avatar_url ? (
+          {profile?.show_avatar_in_listings === false ? (
+            <PersonSilhouette />
+          ) : profile?.avatar_url ? (
             <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" />
           ) : (
             <span className="text-base font-semibold text-stone-500">{initial}</span>
