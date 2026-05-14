@@ -88,14 +88,6 @@ export function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (showDeleteModal) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => { document.body.style.overflow = ""; };
-  }, [showDeleteModal]);
 
   const [savingPersona, setSavingPersona] = useState(false);
   const [personaAnimating, setPersonaAnimating] = useState(false);
@@ -1001,12 +993,8 @@ export function ProfilePage() {
 
       {/* ── DELETE MODAL ── */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => !isDeleting && setShowDeleteModal(false)}
-          />
-          <div className="relative z-10 w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
+        <div className="mt-4">
+          <div className="w-full rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
             <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
             <p className="mt-2 mb-5 text-sm text-stone-500">
               Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
@@ -1077,3 +1065,4 @@ export function ProfilePage() {
     </div>
   );
 }
+
