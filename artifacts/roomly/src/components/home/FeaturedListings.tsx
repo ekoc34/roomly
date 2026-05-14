@@ -77,7 +77,7 @@ function RoommateCard({ listing, profile, boostedAt }: { listing: Listing; profi
         </div>
       )}
 
-      <div className="flex items-center gap-3 border-b border-stone-100 px-4 pb-4 pt-10">
+      <div className="flex items-center gap-3 border-b border-stone-100 px-4 pb-4 pt-14">
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-stone-100 border border-stone-200">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
