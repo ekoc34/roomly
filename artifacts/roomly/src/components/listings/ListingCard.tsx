@@ -99,7 +99,6 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
 
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start gap-3">
-            <OwnerAvatar avatarUrl={ownerAvatarUrl} name={ownerName} />
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-1">
                 <span className="text-2xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
@@ -116,6 +115,7 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
                 <span className="truncate">{listing.location}</span>
               </p>
             </div>
+            <OwnerAvatar avatarUrl={ownerAvatarUrl} name={ownerName} />
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
