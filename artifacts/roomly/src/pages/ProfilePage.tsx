@@ -1001,12 +1001,13 @@ export function ProfilePage() {
 
       {/* ── DELETE MODAL ── */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => !isDeleting && setShowDeleteModal(false)}
           />
-          <div className="relative w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
+          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative z-10 w-full max-w-sm rounded-3xl border border-stone-200 bg-white p-6 shadow-xl sm:p-7">
             <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
             <p className="mt-2 mb-5 text-sm text-stone-500">
               Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
@@ -1071,6 +1072,7 @@ export function ProfilePage() {
                 ) : "Account verwijderen"}
               </button>
             </div>
+          </div>
           </div>
         </div>
       )}
