@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { ListingCard } from "@/components/listings/ListingCard";
-import { BoostBadge, BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
+import { BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
 import type { Listing, UserType } from "@/types/database";
 
 type RoommateProfile = {
@@ -32,98 +32,6 @@ function isActiveBoost(boostedAt: string | null | undefined): boolean {
   return Date.now() - new Date(boostedAt).getTime() < BOOST_WINDOW_MS;
 }
 
-function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
-  const diffHours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
-  if (diffHours < 24) return "vandaag";
-  if (diffHours < 72) return "nieuw";
-  return null;
-}
-
-function PersonSilhouette() {
-  return (
-    <span className="flex h-full w-full items-center justify-center">
-      <svg className="h-5 w-5 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-      </svg>
-    </span>
-  );
-}
-
-function RoommateCard({ listing, profile, boostedAt }: { listing: Listing; profile: RoommateProfile | undefined; boostedAt?: string | null }) {
-  const name = profile?.name ?? "Anoniem";
-  const tags = profile?.lifestyle_tags ?? [];
-  const newLabel = getNewLabel(listing.created_at);
-  const showBoost = !!boostedAt && (Date.now() - new Date(boostedAt).getTime() < BOOST_WINDOW_MS);
-
-  return (
-    <Link
-      href={`/kamers/${listing.id}`}
-      className="relative flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-    >
-      {/* Badge overlay — "Nieuw vandaag" left, "Uitgelicht" right, never touching */}
-      {(newLabel || showBoost) && (
-        <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-start justify-between gap-2 px-3 pt-3">
-          <div>
-            {newLabel && (
-              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide ${
-                newLabel === "vandaag"
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-stone-200 bg-white text-stone-500"
-              }`}>
-                {newLabel === "vandaag" ? "Nieuw vandaag" : "Nieuw"}
-              </span>
-            )}
-          </div>
-          <div>
-            {showBoost && <BoostBadge boostedAt={boostedAt!} />}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center gap-3 border-b border-stone-100 px-4 pb-4 pt-14">
-        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-stone-100 bg-stone-50">
-          {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
-          ) : (
-            <PersonSilhouette />
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-stone-900">{name}</p>
-          <p className="flex items-center gap-1 truncate text-xs text-stone-400">
-            <svg className="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            {listing.location}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-3 px-4 py-4">
-        <div className="flex items-baseline gap-1">
-          <span className="text-xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
-          <span className="text-xs text-stone-400">/ maand budget</span>
-        </div>
-        {listing.description && (
-          <p className="line-clamp-2 text-xs leading-relaxed text-stone-500">{listing.description}</p>
-        )}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="rounded-full border border-stone-100 bg-stone-50 px-2.5 py-0.5 text-xs text-stone-500">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-        <span className="mt-auto inline-flex items-center gap-1 self-start text-xs font-medium text-rose-600 transition hover:text-rose-700">
-          Bekijk profiel →
-        </span>
-      </div>
-    </Link>
-  );
-}
 
 function EmptyState({
   section,
@@ -380,11 +288,15 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {currentRoommateListings.map((l) => (
-                <RoommateCard
+                <ListingCard
                   key={l.id}
                   listing={l}
-                  profile={roommateProfiles[l.user_id]}
-                  boostedAt={l.boosted_at}
+                  isFavorited={favoriteIds.includes(l.id)}
+                  verificationBadge={verificationBadges?.[l.user_id] ?? null}
+                  avgResponseTimeHours={responseTimeBadges?.[l.user_id] ?? null}
+                  currentUserId={currentUserId}
+                  ownerAvatarUrl={roommateProfiles[l.user_id]?.avatar_url ?? null}
+                  ownerName={roommateProfiles[l.user_id]?.name ?? null}
                 />
               ))}
             </div>
