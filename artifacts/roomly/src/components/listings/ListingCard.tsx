@@ -33,14 +33,15 @@ function getResponseBadge(hours: number | null | undefined): { label: string; cl
 }
 
 function OwnerAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: string | null }) {
-  const initial = (name ?? "?")[0]?.toUpperCase() ?? "?";
   return (
-    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-stone-200 bg-stone-100">
+    <div className="relative h-8 w-8 shrink-0 overflow-hidden rounded-full border border-stone-100 bg-stone-50">
       {avatarUrl ? (
         <img src={avatarUrl} alt={name ?? ""} className="h-full w-full object-cover" />
       ) : (
-        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-stone-400">
-          {initial}
+        <span className="flex h-full w-full items-center justify-center">
+          <svg className="h-4 w-4 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+          </svg>
         </span>
       )}
     </div>

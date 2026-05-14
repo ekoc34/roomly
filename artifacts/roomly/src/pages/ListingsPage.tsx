@@ -132,15 +132,16 @@ export function ListingsPage() {
       if (ownerIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, verification_badge, avg_response_time_hours, name, avatar_url")
+          .select("id, verification_badge, avg_response_time_hours, name, avatar_url, show_avatar_in_listings")
           .in("id", ownerIds);
         const vMap = new Map<string, string | null>();
         const rtMap = new Map<string, number | null>();
         const avatarMap = new Map<string, { name: string | null; avatar_url: string | null }>();
-        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null; avg_response_time_hours: number | null; name: string | null; avatar_url: string | null }[]) {
+        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null; avg_response_time_hours: number | null; name: string | null; avatar_url: string | null; show_avatar_in_listings: boolean | null }[]) {
+          const avatarVisible = p.show_avatar_in_listings !== false;
           vMap.set(p.id, p.verification_badge ?? null);
           rtMap.set(p.id, p.avg_response_time_hours ?? null);
-          avatarMap.set(p.id, { name: p.name, avatar_url: p.avatar_url });
+          avatarMap.set(p.id, { name: p.name, avatar_url: avatarVisible ? p.avatar_url : null });
         }
         setVerificationMap(vMap);
         setResponseTimeMap(rtMap);

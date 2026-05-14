@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
-import { MessageSquare, Bell, Home, KeyRound, Mail, Phone, CheckCircle2, Eye, EyeOff, Tag } from "lucide-react";
+import { MessageSquare, Bell, Home, KeyRound, Mail, Phone, CheckCircle2, Eye, EyeOff, Tag, UserCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
@@ -105,6 +105,7 @@ export function ProfilePage() {
 
   const [showEmail, setShowEmail] = useState(false);
   const [showPhone, setShowPhone] = useState(false);
+  const [showAvatarInListings, setShowAvatarInListings] = useState(true);
   const [notifyNewMessage, setNotifyNewMessage] = useState(true);
   const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
   const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
@@ -148,6 +149,7 @@ export function ProfilePage() {
     if (profile) {
       setShowEmail(profile.show_email ?? false);
       setShowPhone(profile.show_phone ?? false);
+      setShowAvatarInListings(profile.show_avatar_in_listings ?? true);
       setNotifyNewMessage(profile.notify_new_message ?? true);
       setNotifyApplicationUpdate(profile.notify_application_update ?? true);
       setNotifyMatchingListing(profile.notify_matching_listing ?? true);
@@ -228,10 +230,11 @@ export function ProfilePage() {
     setEmailCooldown(60);
   };
 
-  const handlePrivacyToggle = async (field: "show_email" | "show_phone", value: boolean) => {
+  const handlePrivacyToggle = async (field: "show_email" | "show_phone" | "show_avatar_in_listings", value: boolean) => {
     if (!supabase || !user) return;
     if (field === "show_email") setShowEmail(value);
     if (field === "show_phone") setShowPhone(value);
+    if (field === "show_avatar_in_listings") setShowAvatarInListings(value);
     await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
   };
 
@@ -813,7 +816,7 @@ export function ProfilePage() {
                 <Toggle checked={showEmail} onToggle={() => handlePrivacyToggle("show_email", !showEmail)} />
               </div>
 
-              <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+              <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
                 <div className="flex items-center gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
                     {showPhone ? <Eye className="h-4 w-4 text-stone-400" /> : <EyeOff className="h-4 w-4 text-stone-300" />}
@@ -824,6 +827,19 @@ export function ProfilePage() {
                   </div>
                 </div>
                 <Toggle checked={showPhone} onToggle={() => handlePrivacyToggle("show_phone", !showPhone)} />
+              </div>
+
+              <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                    <UserCircle2 className={`h-4 w-4 ${showAvatarInListings ? "text-stone-400" : "text-stone-300"}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-stone-800">Profielfoto in advertenties</p>
+                    <p className="text-xs text-stone-400 mt-0.5">Toon je profielfoto naast je advertenties in het woningoverzicht</p>
+                  </div>
+                </div>
+                <Toggle checked={showAvatarInListings} onToggle={() => handlePrivacyToggle("show_avatar_in_listings", !showAvatarInListings)} />
               </div>
             </div>
           </section>

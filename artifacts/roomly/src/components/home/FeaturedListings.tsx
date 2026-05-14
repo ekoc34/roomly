@@ -39,16 +39,12 @@ function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
   return null;
 }
 
-function Initials({ name }: { name: string | null }) {
-  const letters = (name ?? "?")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join("");
+function PersonSilhouette() {
   return (
-    <span className="flex h-full w-full items-center justify-center text-base font-semibold text-stone-400">
-      {letters || "?"}
+    <span className="flex h-full w-full items-center justify-center">
+      <svg className="h-5 w-5 text-stone-300" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 12c2.67 0 4.8-2.13 4.8-4.8S14.67 2.4 12 2.4 7.2 4.53 7.2 7.2 9.33 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
     </span>
   );
 }
@@ -85,11 +81,11 @@ function RoommateCard({ listing, profile, boostedAt }: { listing: Listing; profi
       )}
 
       <div className="flex items-center gap-3 border-b border-stone-100 px-4 pb-4 pt-14">
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-stone-100 border border-stone-200">
+        <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-stone-100 bg-stone-50">
           {profile?.avatar_url ? (
             <img src={profile.avatar_url} alt={name} className="h-full w-full object-cover" />
           ) : (
-            <Initials name={name} />
+            <PersonSilhouette />
           )}
         </div>
         <div className="min-w-0 flex-1">

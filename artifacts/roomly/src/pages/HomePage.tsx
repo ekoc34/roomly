@@ -79,12 +79,13 @@ function HomePageContent() {
         if (allOwnerIds.length > 0) {
           const { data: profiles } = await supabase
             .from("profiles")
-            .select("id, email_auto_verified, phone_verified, name, avatar_url, lifestyle_tags, avg_response_time_hours")
+            .select("id, email_auto_verified, phone_verified, name, avatar_url, lifestyle_tags, avg_response_time_hours, show_avatar_in_listings")
             .in("id", allOwnerIds);
 
           const badgeMap: Record<string, string | null> = {};
           const rtMap: Record<string, number | null> = {};
           const rmProfileMap: Record<string, RoommateProfile> = {};
+          const ownerProfileMap: Record<string, { name: string | null; avatar_url: string | null }> = {};
 
           for (const p of (profiles ?? []) as {
             id: string;
@@ -94,19 +95,20 @@ function HomePageContent() {
             avatar_url: string | null;
             lifestyle_tags: string[] | null;
             avg_response_time_hours: number | null;
+            show_avatar_in_listings: boolean | null;
           }[]) {
+            const avatarVisible = p.show_avatar_in_listings !== false;
             badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
             rtMap[p.id] = p.avg_response_time_hours ?? null;
             rmProfileMap[p.id] = {
               name: p.name,
-              avatar_url: p.avatar_url,
+              avatar_url: avatarVisible ? p.avatar_url : null,
               lifestyle_tags: p.lifestyle_tags,
             };
-          }
-
-            const ownerProfileMap: Record<string, { name: string | null; avatar_url: string | null }> = {};
-          for (const p of (profiles ?? []) as { id: string; name: string | null; avatar_url: string | null; email_auto_verified: boolean; phone_verified: boolean; lifestyle_tags: string[] | null; avg_response_time_hours: number | null }[]) {
-            ownerProfileMap[p.id] = { name: p.name, avatar_url: p.avatar_url };
+            ownerProfileMap[p.id] = {
+              name: p.name,
+              avatar_url: avatarVisible ? p.avatar_url : null,
+            };
           }
 
           setVerificationBadges(badgeMap);

@@ -31,6 +31,7 @@ export type Profile = {
   verification_badge: string | null;
   show_email: boolean;
   show_phone: boolean;
+  show_avatar_in_listings?: boolean | null;
   notify_new_message?: boolean | null;
   notify_application_update?: boolean | null;
   notify_matching_listing?: boolean | null;

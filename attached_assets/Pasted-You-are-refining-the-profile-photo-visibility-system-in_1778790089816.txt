@@ -1,0 +1,119 @@
+You are refining the profile-photo visibility system inside the homepage listing cards of Welkthuis.nl.
+
+Important context:
+- Welkthuis is a calm, privacy-conscious housing marketplace.
+- Profile photos were recently added to listing cards to improve trust and make listings feel more human.
+- This should NEVER feel like a social network or dating app.
+- The purpose is trust and authenticity — not social engagement.
+
+Current areas affected:
+- 🏠 Woningen cards
+- 🤝 Huisgenoten cards
+- Featured (Uitgelicht)
+- New (Nieuw)
+- Homepage discovery section
+- Search/listing grids
+
+Main goal:
+Create a refined and privacy-first profile photo system.
+
+Your tasks:
+
+1. Add profile-photo visibility control
+Create a user privacy setting such as:
+- “Toon profielfoto in advertenties”
+or
+- “Profiel zichtbaar in woningoverzicht”
+
+Users should be able to:
+- enable
+- disable
+their profile photo visibility inside listing cards.
+
+2. Visibility logic
+Only show profile photos when:
+- the user is authenticated correctly
+- the profile is public
+- the visibility toggle is enabled
+- a valid profile image exists
+
+Otherwise:
+- show a subtle fallback avatar
+or
+- a neutral placeholder state
+
+3. Refine avatar presentation in cards
+Current implementation is good but needs refinement.
+
+Improve:
+- avatar sizing
+- spacing
+- positioning
+- visual hierarchy
+
+The avatar should:
+- support trust
+- feel lightweight
+- not compete with:
+  - price
+  - title
+  - location
+
+4. Avoid social-media feeling
+The profile photo must NOT:
+- dominate the card
+- feel like a social feed
+- resemble dating apps
+- encourage profile-centric browsing
+
+Listings must remain the primary focus.
+
+5. Improve visual integration
+Ensure the avatar feels intentionally integrated into:
+- listing cards
+- roommate cards
+- compact mobile layouts
+
+Refine:
+- border treatment
+- shadow subtlety
+- corner placement
+- alignment with metadata
+
+6. Improve fallback states
+If no image exists or visibility is disabled:
+- use a calm neutral placeholder
+- preserve layout consistency
+- avoid broken/empty feeling
+
+Fallbacks should feel:
+- premium
+- intentional
+- privacy-respecting
+
+7. Improve mobile responsiveness
+Ensure:
+- avatars do not overcrowd small cards
+- touch targets remain comfortable
+- spacing remains breathable
+
+8. Preserve:
+- minimalist design
+- trust-focused UX
+- calm marketplace feeling
+- privacy-first philosophy
+
+9. Avoid:
+- circular avatar dominance
+- profile-centric UI
+- large social profile imagery
+- flashy borders
+- status-ring styling
+- online indicators
+- story/social features
+- gamification
+
+Reference direction:
+- Airbnb trust presentation
+- Funda restraint
+- European privacy-first UX
