@@ -452,8 +452,12 @@ export function DashboardPage() {
   async function handleDeleteListingFromDashboard(listingId: string) {
     if (!supabase || !user) return;
     setDeletingListingId(null);
-    const { error } = await supabase.from("listings").delete().eq("id", listingId).eq("user_id", user.id);
-    if (error) { toast.error("Verwijderen mislukt. Probeer het opnieuw."); return; }
+    const { error } = await supabase.rpc("delete_listing", { p_listing_id: listingId });
+    if (error) {
+      console.error("[DashboardPage] delete_listing RPC error:", error.message, error.details, error.hint);
+      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+      return;
+    }
     toast.success("Advertentie verwijderd.");
     setMyListings((prev) => prev.filter((l) => l.id !== listingId));
   }

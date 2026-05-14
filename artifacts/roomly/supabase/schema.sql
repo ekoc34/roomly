@@ -796,3 +796,30 @@ create policy "admins can update user_reports"
     )
   )
   with check (true);
+
+-- ============================================================
+-- delete_listing RPC
+-- SECURITY DEFINER so that the cascade deletes on child tables
+-- (applications, conversations, favorites, listing_views, etc.)
+-- run as the function owner and bypass child-table RLS policies
+-- that have no DELETE rule (which would otherwise block the cascade).
+-- The function itself enforces ownership via auth.uid().
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.delete_listing(p_listing_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+  -- Verify that the authenticated caller owns this listing
+  IF NOT EXISTS (
+    SELECT 1 FROM public.listings
+    WHERE id = p_listing_id AND user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'not_owner: caller does not own listing %', p_listing_id;
+  END IF;
+
+  DELETE FROM public.listings WHERE id = p_listing_id;
+END;
+$$;
