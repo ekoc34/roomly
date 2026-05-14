@@ -1072,7 +1072,7 @@ export function DashboardPage() {
             </div>
 
             {/* Boost credits — compact secondary */}
-            {!loading && (
+            {!loading && (profile?.role === "admin" || profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
               <div className="flex items-center justify-between gap-4 border-t border-stone-100 pt-4 text-xs text-stone-500">
                 <span className="flex items-center gap-1.5">
                   <Zap className="h-3.5 w-3.5 text-amber-500" />

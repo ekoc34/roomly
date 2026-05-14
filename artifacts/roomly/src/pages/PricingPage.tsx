@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Elements } from "@stripe/react-stripe-js";
 import { Zap, Star, Rocket, Info } from "lucide-react";
@@ -52,6 +52,25 @@ function formatPrice(price: number) {
 function PricingContent() {
   const { user, loading: authLoading } = useAuth();
   const [loadingId, setLoadingId] = useState<PackageId | null>(null);
+  const [userType, setUserType] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user || !supabase) { setProfileLoading(false); return; }
+    supabase
+      .from("profiles")
+      .select("user_type, role")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setUserType(data?.user_type ?? null);
+        setUserRole(data?.role ?? null);
+        setProfileLoading(false);
+      });
+  }, [user]);
+
+  const canBuy = userRole === "admin" || userType === "verhuurder" || userType === "huisgenoot_zoeker";
 
   const handleBuy = async (packageId: PackageId) => {
     if (!supabase || !user) return;
@@ -134,9 +153,16 @@ function PricingContent() {
               </p>
 
               <div className="mt-auto pt-6">
-                {authLoading ? (
+                {authLoading || profileLoading ? (
                   <div className="h-10 w-full animate-pulse rounded-2xl bg-stone-100" />
-                ) : user ? (
+                ) : !user ? (
+                  <Link
+                    href="/inloggen?next=/pricing"
+                    className="block w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
+                  >
+                    Inloggen om te kopen
+                  </Link>
+                ) : canBuy ? (
                   <button
                     onClick={() => handleBuy(pkg.id)}
                     disabled={isLoading || anyLoading}
@@ -145,12 +171,15 @@ function PricingContent() {
                     {isLoading ? "Laden…" : "Koop nu"}
                   </button>
                 ) : (
-                  <Link
-                    href="/inloggen?next=/pricing"
-                    className="block w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
-                  >
-                    Inloggen om te kopen
-                  </Link>
+                  <div className="space-y-1.5">
+                    <button
+                      disabled
+                      className="w-full cursor-not-allowed rounded-2xl bg-stone-100 px-4 py-2.5 text-sm font-semibold text-stone-400"
+                    >
+                      Koop nu
+                    </button>
+                    <p className="text-center text-[11px] text-stone-400">Alleen beschikbaar voor verhuurders.</p>
+                  </div>
                 )}
               </div>
             </div>

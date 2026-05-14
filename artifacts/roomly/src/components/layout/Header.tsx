@@ -176,7 +176,7 @@ export function Header() {
                   </div>
 
                   {/* ── Boost credits ───────────────────────────── */}
-                  {boostCredits !== null && (
+                  {boostCredits !== null && (userRole === "admin" || userType === "verhuurder" || userType === "huisgenoot_zoeker") && (
                     <Link
                       href="/pricing"
                       onClick={() => setDropdownOpen(false)}
