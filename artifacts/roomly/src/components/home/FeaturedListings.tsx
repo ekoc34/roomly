@@ -107,7 +107,48 @@ function RoommateCard({ listing, profile }: { listing: Listing; profile: Roommat
   );
 }
 
+function EmptyWoningen() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
+        <svg className="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      </div>
+      <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen uitgelichte woningen</h3>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
+      <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Plaats als eerste een advertentie
+      </Link>
+    </div>
+  );
+}
+
+function EmptyHuisgenoten() {
+  return (
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-50">
+        <svg className="h-7 w-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+      <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen huisgenotenprofielen</h3>
+      <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
+      <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        Profiel aanmaken
+      </Link>
+    </div>
+  );
+}
+
 export function FeaturedListings({ listings, favoriteIds, verificationBadges, responseTimeBadges, roommateListings, roommateProfiles, currentUserId }: Props) {
+  const [mainTab, setMainTab] = useState<"uitgelicht" | "nieuw">("uitgelicht");
   const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
 
   // Tick triggers a re-sort exactly when the next active boost expires.
@@ -125,56 +166,74 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
     return () => clearTimeout(timer);
   }, [listings, roommateListings, tick]);
 
+  // Uitgelicht: boost-sorted (boosted_at DESC NULLS LAST, then created_at DESC)
   const sortedListings = useMemo(() => sortByBoost(listings), [listings, tick]);
   const sortedRoommateListings = useMemo(() => sortByBoost(roommateListings), [roommateListings, tick]);
 
-  const tabClass = (tab: "woningen" | "huisgenoten") =>
+  // Nieuw: strictly newest-first, ignoring boost
+  const newListings = useMemo(
+    () => [...listings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [listings]
+  );
+  const newRoommateListings = useMemo(
+    () => [...roommateListings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [roommateListings]
+  );
+
+  const mainTabClass = (tab: "uitgelicht" | "nieuw") =>
+    `flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold transition ${
+      mainTab === tab
+        ? "bg-stone-900 text-white shadow-sm"
+        : "text-stone-600 hover:bg-stone-100"
+    }`;
+
+  const subTabClass = (tab: "woningen" | "huisgenoten") =>
     `flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${
       activeTab === tab
         ? "bg-rose-500 text-white shadow-sm"
         : "text-stone-600 hover:bg-stone-100"
     }`;
 
+  const currentListings = mainTab === "uitgelicht" ? sortedListings : newListings;
+  const currentRoommateListings = mainTab === "uitgelicht" ? sortedRoommateListings : newRoommateListings;
+
   return (
     <section className="mt-16" data-testid="featured-listings">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Nieuw op Welkthuis</h2>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Ontdek woningen en huisgenoten</h2>
           <p className="mt-1 text-sm text-stone-500">Ontdek woningen en huisgenoten die nu beschikbaar zijn.</p>
         </div>
         <Link href="/kamers" className="text-sm font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
       </div>
 
+      {/* Main tabs: Uitgelicht / Nieuw */}
+      <div className="mb-4 flex items-center gap-2 rounded-full bg-stone-100 p-1 w-fit">
+        <button type="button" onClick={() => setMainTab("uitgelicht")} className={mainTabClass("uitgelicht")}>
+          ⭐ Uitgelicht
+        </button>
+        <button type="button" onClick={() => setMainTab("nieuw")} className={mainTabClass("nieuw")}>
+          🆕 Nieuw
+        </button>
+      </div>
+
+      {/* Sub-tabs: Woningen / Huisgenoten */}
       <div className="mb-5 flex items-center gap-2 rounded-2xl bg-stone-100 p-1 w-fit">
-        <button type="button" onClick={() => setActiveTab("woningen")} className={tabClass("woningen")}>
+        <button type="button" onClick={() => setActiveTab("woningen")} className={subTabClass("woningen")}>
           🏢 Woningen
         </button>
-        <button type="button" onClick={() => setActiveTab("huisgenoten")} className={tabClass("huisgenoten")}>
+        <button type="button" onClick={() => setActiveTab("huisgenoten")} className={subTabClass("huisgenoten")}>
           🤝 Huisgenoten
         </button>
       </div>
 
       {activeTab === "woningen" && (
         <>
-          {listings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-50">
-                <svg className="h-7 w-7 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen uitgelichte woningen</h3>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Er zijn momenteel nog geen advertenties. Plaats als eerste een advertentie en help het platform groeien.</p>
-              <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Plaats als eerste een advertentie
-              </Link>
-            </div>
+          {currentListings.length === 0 ? (
+            <EmptyWoningen />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {sortedListings.map((l) => (
+              {currentListings.map((l) => (
                 <ListingCard
                   key={l.id}
                   listing={l}
@@ -191,27 +250,13 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
 
       {activeTab === "huisgenoten" && (
         <>
-          {roommateListings.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-16 text-center shadow-sm">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-50">
-                <svg className="h-7 w-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <h3 className="mt-4 text-base font-semibold text-stone-800">Nog geen huisgenotenprofielen</h3>
-              <p className="mt-2 max-w-sm text-sm leading-relaxed text-stone-500">Zoek jij een huisgenoot of wil je zelf een profiel aanmaken?</p>
-              <Link href="/kamers/nieuw" className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-95">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                Profiel aanmaken
-              </Link>
-            </div>
+          {currentRoommateListings.length === 0 ? (
+            <EmptyHuisgenoten />
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {sortedRoommateListings.map((l) => (
+              {currentRoommateListings.map((l) => (
                 <div key={l.id} className="relative">
-                  {l.boosted_at && (
+                  {mainTab === "uitgelicht" && l.boosted_at && (
                     <div className="absolute right-3 top-3 z-10">
                       <BoostBadge boostedAt={l.boosted_at} />
                     </div>
