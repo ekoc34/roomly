@@ -23,6 +23,7 @@ function HomePageContent() {
   const [responseTimeBadges, setResponseTimeBadges] = useState<Record<string, number | null>>({});
   const [roommateListings, setRoommateListings] = useState<Listing[]>([]);
   const [roommateProfiles, setRoommateProfiles] = useState<Record<string, RoommateProfile>>({});
+  const [ownerProfiles, setOwnerProfiles] = useState<Record<string, { name: string | null; avatar_url: string | null }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -102,9 +103,15 @@ function HomePageContent() {
             };
           }
 
+          const ownerProfileMap: Record<string, { name: string | null; avatar_url: string | null }> = {};
+          for (const p of (profiles ?? []) as { id: string; name: string | null; avatar_url: string | null; email_auto_verified: boolean; phone_verified: boolean; lifestyle_tags: string[] | null; avg_response_time_hours: number | null }[]) {
+            ownerProfileMap[p.id] = { name: p.name, avatar_url: p.avatar_url };
+          }
+
           setVerificationBadges(badgeMap);
           setResponseTimeBadges(rtMap);
           setRoommateProfiles(rmProfileMap);
+          setOwnerProfiles(ownerProfileMap);
         }
       } catch {
         // silently fail — show empty state
@@ -134,6 +141,7 @@ function HomePageContent() {
           responseTimeBadges={responseTimeBadges}
           roommateListings={roommateListings}
           roommateProfiles={roommateProfiles}
+          ownerProfiles={ownerProfiles}
           currentUserId={user?.id ?? null}
         />
       )}

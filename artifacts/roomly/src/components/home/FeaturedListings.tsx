@@ -10,6 +10,11 @@ type RoommateProfile = {
   lifestyle_tags: string[] | null;
 };
 
+type OwnerProfile = {
+  name: string | null;
+  avatar_url: string | null;
+};
+
 type Props = {
   listings: Listing[];
   favoriteIds: string[];
@@ -17,6 +22,7 @@ type Props = {
   responseTimeBadges?: Record<string, number | null>;
   roommateListings: Listing[];
   roommateProfiles: Record<string, RoommateProfile>;
+  ownerProfiles?: Record<string, OwnerProfile>;
   currentUserId?: string | null;
 };
 
@@ -188,7 +194,7 @@ const SparkleIcon = () => (
   </svg>
 );
 
-export function FeaturedListings({ listings, favoriteIds, verificationBadges, responseTimeBadges, roommateListings, roommateProfiles, currentUserId }: Props) {
+export function FeaturedListings({ listings, favoriteIds, verificationBadges, responseTimeBadges, roommateListings, roommateProfiles, ownerProfiles, currentUserId }: Props) {
   const [mainTab, setMainTab] = useState<"uitgelicht" | "nieuw">("uitgelicht");
   const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
 
@@ -305,6 +311,8 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
                   verificationBadge={verificationBadges?.[l.user_id] ?? null}
                   avgResponseTimeHours={responseTimeBadges?.[l.user_id] ?? null}
                   currentUserId={currentUserId}
+                  ownerAvatarUrl={ownerProfiles?.[l.user_id]?.avatar_url ?? null}
+                  ownerName={ownerProfiles?.[l.user_id]?.name ?? null}
                 />
               ))}
             </div>

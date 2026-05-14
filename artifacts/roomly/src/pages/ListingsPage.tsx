@@ -48,6 +48,7 @@ export function ListingsPage() {
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationMap, setVerificationMap] = useState<Map<string, string | null>>(new Map());
   const [responseTimeMap, setResponseTimeMap] = useState<Map<string, number | null>>(new Map());
+  const [ownerAvatarMap, setOwnerAvatarMap] = useState<Map<string, { name: string | null; avatar_url: string | null }>>(new Map());
   const [loading, setLoading] = useState(true);
   const searchString = useSearch();
   const { user } = useAuth();
@@ -131,16 +132,19 @@ export function ListingsPage() {
       if (ownerIds.length > 0) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, verification_badge, avg_response_time_hours")
+          .select("id, verification_badge, avg_response_time_hours, name, avatar_url")
           .in("id", ownerIds);
         const vMap = new Map<string, string | null>();
         const rtMap = new Map<string, number | null>();
-        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null; avg_response_time_hours: number | null }[]) {
+        const avatarMap = new Map<string, { name: string | null; avatar_url: string | null }>();
+        for (const p of (profiles ?? []) as { id: string; verification_badge: string | null; avg_response_time_hours: number | null; name: string | null; avatar_url: string | null }[]) {
           vMap.set(p.id, p.verification_badge ?? null);
           rtMap.set(p.id, p.avg_response_time_hours ?? null);
+          avatarMap.set(p.id, { name: p.name, avatar_url: p.avatar_url });
         }
         setVerificationMap(vMap);
         setResponseTimeMap(rtMap);
+        setOwnerAvatarMap(avatarMap);
       }
 
       setLoading(false);
@@ -323,6 +327,8 @@ export function ListingsPage() {
                 verificationBadge={verificationMap.get(l.user_id) ?? null}
                 avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null}
                 currentUserId={user?.id ?? null}
+                ownerAvatarUrl={ownerAvatarMap.get(l.user_id)?.avatar_url ?? null}
+                ownerName={ownerAvatarMap.get(l.user_id)?.name ?? null}
               />
             ))}
           </div>

@@ -13,6 +13,8 @@ type Props = {
   verificationBadge?: string | null;
   avgResponseTimeHours?: number | null;
   currentUserId?: string | null;
+  ownerAvatarUrl?: string | null;
+  ownerName?: string | null;
 };
 
 function getNewLabel(createdAt: string): "vandaag" | "nieuw" | null {
@@ -30,7 +32,22 @@ function getResponseBadge(hours: number | null | undefined): { label: string; cl
   return null;
 }
 
-export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours, currentUserId }: Props) {
+function OwnerAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: string | null }) {
+  const initial = (name ?? "?")[0]?.toUpperCase() ?? "?";
+  return (
+    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-stone-200 bg-stone-100">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name ?? ""} className="h-full w-full object-cover" />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center text-sm font-semibold text-stone-400">
+          {initial}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours, currentUserId, ownerAvatarUrl, ownerName }: Props) {
   const isLandlordVerified = !!verificationBadge;
   const img = listing.images[0];
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
@@ -81,20 +98,25 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
         </div>
 
         <div className="flex flex-1 flex-col p-4">
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
-            <span className="text-sm font-normal text-stone-400">/ maand</span>
+          <div className="flex items-start gap-3">
+            <OwnerAvatar avatarUrl={ownerAvatarUrl} name={ownerName} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-stone-900">€{Number(listing.price).toFixed(0)}</span>
+                <span className="text-sm font-normal text-stone-400">/ maand</span>
+              </div>
+
+              <p className="mt-1 line-clamp-1 font-semibold leading-snug text-stone-800 group-hover:text-rose-600">{listing.title}</p>
+
+              <p className="mt-1 flex items-center gap-1 text-sm text-stone-500">
+                <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="truncate">{listing.location}</span>
+              </p>
+            </div>
           </div>
-
-          <p className="mt-1.5 line-clamp-1 font-semibold leading-snug text-stone-800 group-hover:text-rose-600">{listing.title}</p>
-
-          <p className="mt-1 flex items-center gap-1 text-sm text-stone-500">
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="truncate">{listing.location}</span>
-          </p>
 
           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-400">
             {listing.type === "roommate_search" ? (
