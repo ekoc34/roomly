@@ -88,6 +88,15 @@ export function ProfilePage() {
   const [deletePassword, setDeletePassword] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
+  useEffect(() => {
+    if (showDeleteModal) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showDeleteModal]);
+
   const [savingPersona, setSavingPersona] = useState(false);
   const [personaAnimating, setPersonaAnimating] = useState(false);
 
@@ -992,7 +1001,7 @@ export function ProfilePage() {
 
       {/* ── DELETE MODAL ── */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4">
           <div
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
             onClick={() => !isDeleting && setShowDeleteModal(false)}
