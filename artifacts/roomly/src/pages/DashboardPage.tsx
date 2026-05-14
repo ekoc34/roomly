@@ -1180,47 +1180,31 @@ export function DashboardPage() {
                 </Link>
               )}
 
-              {/* KPI grid — always visible */}
-              {loading ? (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {[1, 2, 3].map((n) => <div key={n} className="h-20 animate-pulse rounded-lg bg-stone-200" />)}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {[
-                    { label: "Favorieten", value: favoritesCount, href: "/favorieten", sub: null as string | null },
-                    { label: "Verzonden reacties", value: myApplications.length, href: "#aanvragen", sub: recentApplicationsCount ? `+${recentApplicationsCount} in 30 dagen` : null },
-                    { label: "Opgeslagen zoekopdrachten", value: savedSearchesCount, href: "/opgeslagen-zoekopdrachten", sub: null },
-                  ].map((stat) => (
-                    <a key={stat.label} href={stat.href}
-                      className="flex flex-col gap-1 rounded-lg border border-stone-200 bg-white p-4 transition hover:bg-stone-50"
-                    >
-                      <p className="text-xs text-stone-500">{stat.label}</p>
-                      <p className="text-2xl font-bold text-stone-900">{stat.value}</p>
-                      {stat.sub && <p className="text-xs text-stone-400">{stat.sub}</p>}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* TASK 2 — Aanbevolen voor jou (8 items, scroll on mobile, grid on desktop) */}
+              {/* Aanbevolen voor jou — primaire sectie */}
               <div ref={recommendationsRef}>
-                <div className="mb-4 flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
-                  {(cityFromSearch ?? cityFromViews) && (
-                    <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
-                      {cityFromSearch ?? cityFromViews}
-                    </span>
-                  )}
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
+                    {(cityFromSearch ?? cityFromViews) && (
+                      <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
+                        {cityFromSearch ?? cityFromViews}
+                      </span>
+                    )}
+                  </div>
+                  <Link href="/kamers" className="text-xs font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
                 </div>
                 {loading ? (
                   <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
-                    {[1, 2, 3, 4].map((n) => <div key={n} className="min-w-[200px] animate-pulse rounded-2xl bg-stone-200 h-52 sm:min-w-0" />)}
+                    {[1, 2, 3, 4].map((n) => <div key={n} className="min-w-[200px] animate-pulse rounded-lg bg-stone-200 h-48 sm:min-w-0" />)}
                   </div>
                 ) : recommendedListings.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-10 text-center shadow-sm">
-                    <p className="text-sm text-stone-500">Geen aanbevelingen beschikbaar.</p>
-                    <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">Bekijk alle woningen →</Link>
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 bg-white px-6 py-12 text-center">
+                    <Home className="h-8 w-8 text-stone-300" />
+                    <p className="mt-3 text-sm font-semibold text-stone-800">Nog geen aanbevelingen</p>
+                    <p className="mt-1 text-sm text-stone-500">Zoek woningen om aanbevelingen op maat te ontvangen.</p>
+                    <Link href="/kamers" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600">
+                      Bekijk alle woningen
+                    </Link>
                   </div>
                 ) : (
                   <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
@@ -1228,18 +1212,9 @@ export function DashboardPage() {
                       const thumb = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
                       const boosted = isBoostActive(l.boosted_at);
                       const isNew = !boosted && new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000);
-                      const cityMatch = !!(cityFromSearch ?? cityFromViews);
                       const isFav = favoritedIds.has(l.id);
-                      const reason = boosted
-                        ? "Uitgelicht voor jou"
-                        : isNew
-                        ? "Nieuw vandaag"
-                        : cityMatch
-                        ? "Op basis van jouw zoekopdracht"
-                        : "Populair in deze buurt";
                       return (
                         <div key={l.id} className="group relative flex min-w-[180px] flex-col overflow-hidden rounded-lg border border-stone-200 bg-white sm:min-w-0">
-                          {/* Image */}
                           <div className="relative aspect-[4/3] w-full overflow-hidden bg-stone-100">
                             <Link href={`/kamers/${l.id}`}>
                               {thumb
@@ -1252,24 +1227,16 @@ export function DashboardPage() {
                               </span>
                             )}
                             {isNew && !boosted && (
-                              <span className="absolute left-2 top-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">
-                                Nieuw
-                              </span>
+                              <span className="absolute left-2 top-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">Nieuw</span>
                             )}
-                            {/* Quick-action buttons */}
                             <div className="absolute right-2 top-2 flex flex-col gap-1">
-                              <button
-                                type="button"
-                                aria-label={isFav ? "Verwijder uit favorieten" : "Favoriet"}
+                              <button type="button" aria-label={isFav ? "Verwijder uit favorieten" : "Favoriet"}
                                 onClick={(e) => { e.preventDefault(); handleToggleFavorite(l.id); }}
                                 className={`flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white transition ${isFav ? "text-rose-500" : "text-stone-400 hover:text-rose-500"}`}
                               >
                                 <Heart className={`h-3.5 w-3.5 ${isFav ? "fill-current" : ""}`} />
                               </button>
-                              <button
-                                type="button"
-                                aria-label="Snel reageren"
-                                disabled={quickApplyLoading}
+                              <button type="button" aria-label="Snel reageren" disabled={quickApplyLoading}
                                 onClick={(e) => { e.preventDefault(); handleQuickApply(l.id); }}
                                 className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-400 transition hover:text-amber-500 disabled:opacity-50"
                               >
@@ -1277,7 +1244,6 @@ export function DashboardPage() {
                               </button>
                             </div>
                           </div>
-                          {/* Info */}
                           <div className="flex flex-1 flex-col gap-0.5 p-3">
                             <p className="line-clamp-2 text-xs font-semibold text-stone-900 leading-snug">{l.title}</p>
                             <p className="text-xs text-stone-500 truncate">{l.location}</p>
@@ -1292,6 +1258,28 @@ export function DashboardPage() {
                   </div>
                 )}
               </div>
+
+              {/* Snelle links — compact chip-balk */}
+              {!loading && (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-stone-100 bg-stone-50 px-4 py-3">
+                  <Link href="/favorieten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
+                    <Heart className="h-3 w-3" />
+                    {favoritesCount > 0 ? `${favoritesCount} favorieten` : "Favorieten opslaan"}
+                  </Link>
+                  <a href="#aanvragen" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
+                    <SendHorizontal className="h-3 w-3" />
+                    {myApplications.length > 0 ? `${myApplications.length} ${myApplications.length === 1 ? "reactie" : "reacties"}` : "Nog geen reacties"}
+                  </a>
+                  <Link href="/opgeslagen-zoekopdrachten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
+                    <Search className="h-3 w-3" />
+                    {savedSearchesCount > 0 ? `${savedSearchesCount} ${savedSearchesCount === 1 ? "zoekopdracht" : "zoekopdrachten"}` : "Zoekopdrachten opslaan"}
+                  </Link>
+                  <Link href="/berichten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
+                    <MessageSquare className="h-3 w-3" />
+                    Berichten
+                  </Link>
+                </div>
+              )}
 
               {/* Mijn aanvragen */}
               <div id="aanvragen">
