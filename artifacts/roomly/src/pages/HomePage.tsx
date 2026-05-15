@@ -185,7 +185,7 @@ function HomePageContent() {
               </div>
               <div>
                 <p className="font-semibold text-stone-900">Verifieer je profiel</p>
-                <p className="mt-1 text-sm leading-relaxed text-stone-500">Praat met echte mensen via geverifieerde accounts. Verifieer je profiel voor meer vertrouwen tussen huurders en verhuurders.</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Verifieer je profiel en kom betrouwbaarder over.</p>
               </div>
             </div>
             {/* Stap 3 */}
