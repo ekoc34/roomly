@@ -139,6 +139,9 @@ export function LoginPage() {
               <div className="mt-1.5">
                 <PasswordInput id="password" name="password" required autoComplete="current-password" data-testid="login-password" placeholder="••••••••" />
               </div>
+              <div className="mt-1.5 flex justify-end">
+                <Link href="/wachtwoord-vergeten" className="text-xs text-stone-400 hover:text-stone-600 transition-colors min-h-[1.75rem] inline-flex items-center">Wachtwoord vergeten?</Link>
+              </div>
             </div>
             {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{error}</p>}
             <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="login-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
@@ -150,10 +153,6 @@ export function LoginPage() {
               is van toepassing.
             </p>
           </form>
-
-          <p className="mt-4 text-center text-sm">
-            <Link href="/wachtwoord-vergeten" className="text-stone-500 hover:text-rose-600 hover:underline">Wachtwoord vergeten?</Link>
-          </p>
           <p className="mt-3 text-center text-sm text-stone-500">
             Nog geen account?{" "}
             <Link href={nextParam !== "/dashboard" ? `/registreren?next=${encodeURIComponent(nextParam)}` : "/registreren"} data-testid="login-register-link" className="font-medium text-rose-600 hover:underline">Aanmelden →</Link>
