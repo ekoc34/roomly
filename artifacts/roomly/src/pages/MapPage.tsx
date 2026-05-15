@@ -93,6 +93,7 @@ export function MapPage() {
   const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
   const [fitTarget, setFitTarget] = useState<[number, number][] | null>(null);
   const [zoom, setZoom] = useState(8);
+  const [mapTab, setMapTab] = useState<"woningen" | "huisgenoten">("woningen");
   const geocodingActive = { current: false };
 
   useEffect(() => {
@@ -156,7 +157,13 @@ export function MapPage() {
     });
   }, [listings]);
 
-  const mappable = listings
+  const filteredListings = listings.filter((l) =>
+    mapTab === "woningen"
+      ? l.type === "room_for_rent" || l.type === "short_stay"
+      : l.type === "roommate_search"
+  );
+
+  const mappable = filteredListings
     .map((l) => {
       const c = guessCoords(l.location) ?? coords.get(l.id) ?? null;
       return { listing: l, coords: c };
@@ -200,18 +207,34 @@ export function MapPage() {
         <div>
           <h1 className="text-base font-semibold text-stone-900">Kaartoverzicht</h1>
           <p className="text-xs text-stone-500">
-            {loading ? "Laden…" : `${mappable.length} van ${listings.length} woningen zichtbaar op kaart`}
+            {loading ? "Laden…" : `${mappable.length} van ${filteredListings.length} woningen zichtbaar op kaart`}
           </p>
         </div>
-        <Link
-          href={listHref}
-          className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
-        >
-          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-          </svg>
-          Bekijk als lijst
-        </Link>
+        <div className="flex items-center gap-3">
+          <div className="flex rounded-xl border border-stone-200 bg-stone-50 p-0.5">
+            <button
+              onClick={() => setMapTab("woningen")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${mapTab === "woningen" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              🏠 Woningen
+            </button>
+            <button
+              onClick={() => setMapTab("huisgenoten")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${mapTab === "huisgenoten" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-700"}`}
+            >
+              🤝 Huisgenoten
+            </button>
+          </div>
+          <Link
+            href={listHref}
+            className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 shadow-sm transition hover:bg-stone-50"
+          >
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+            Bekijk als lijst
+          </Link>
+        </div>
       </div>
 
       {loading ? (
