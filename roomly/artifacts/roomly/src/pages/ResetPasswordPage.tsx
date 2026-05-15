@@ -2,6 +2,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 
+const RECOVERY_FLAG = "roomly_recovery_pending";
+
 export function ResetPasswordPage() {
   const [, navigate] = useLocation();
   const [isPending, startTransition] = useTransition();
@@ -9,20 +11,25 @@ export function ResetPasswordPage() {
   const [done, setDone] = useState(false);
   const [sessionReady, setSessionReady] = useState<boolean | null>(null);
 
-  // Wait for the PASSWORD_RECOVERY auth event which signals a valid recovery
-  // session has been established. If the event never fires (direct visit without
-  // a token) we mark the session as not ready and show a helpful error.
   useEffect(() => {
+    // ── Immediate check via sessionStorage flag ────────────────────────────
+    if (sessionStorage.getItem(RECOVERY_FLAG) === "1") {
+      sessionStorage.removeItem(RECOVERY_FLAG);
+      setSessionReady(true);
+      return;
+    }
+
     if (!supabase) { setSessionReady(false); return; }
 
+    // ── Event-based fallback ───────────────────────────────────────────────
     const timeout = setTimeout(() => {
-      // After 3 s with no PASSWORD_RECOVERY event, assume no valid token.
       setSessionReady((prev) => (prev === null ? false : prev));
-    }, 3000);
+    }, 4000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         clearTimeout(timeout);
+        sessionStorage.removeItem(RECOVERY_FLAG);
         setSessionReady(true);
       }
     });
