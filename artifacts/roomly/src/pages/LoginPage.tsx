@@ -59,7 +59,7 @@ export function LoginPage() {
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `https://welkthuis.nl${nextParam}`,
+        redirectTo: `${window.location.origin}${nextParam}`,
       },
     });
     if (err) {
