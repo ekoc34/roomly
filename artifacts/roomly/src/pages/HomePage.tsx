@@ -197,7 +197,7 @@ function HomePageContent() {
               </div>
               <div>
                 <p className="font-semibold text-stone-900">Reageer direct</p>
-                <p className="mt-1 text-sm leading-relaxed text-stone-500">Chat veilig via Welkthuis.</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Chat veilig via Welkthuis en kom eenvoudig met elkaar in contact.</p>
               </div>
             </div>
           </div>
