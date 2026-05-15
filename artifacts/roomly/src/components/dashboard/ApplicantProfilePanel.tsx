@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
 import {
@@ -25,6 +26,14 @@ type OtherApp = {
   listings: { title: string; user_id: string } | null;
 };
 
+type OtherListing = {
+  id: string;
+  title: string;
+  price: number | null;
+  city: string | null;
+  images: string[] | null;
+};
+
 type Props = {
   profileId: string | null;
   onClose: () => void;
@@ -32,6 +41,7 @@ type Props = {
   viewerUserId?: string;
   viewerLandlordId?: string;
   applicationId?: string;
+  currentListingId?: string;
 };
 
 const statusMap: Record<string, { label: string; cls: string }> = {
@@ -65,9 +75,12 @@ export function ApplicantProfilePanel({
   viewerUserId,
   viewerLandlordId,
   applicationId,
+  currentListingId,
 }: Props) {
+  const [, navigate] = useLocation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [otherApps, setOtherApps] = useState<OtherApp[]>([]);
+  const [otherListings, setOtherListings] = useState<OtherListing[]>([]);
   const [listingsCount, setListingsCount] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [emailRevealed, setEmailRevealed] = useState(false);
@@ -129,6 +142,22 @@ export function ApplicantProfilePanel({
       });
     }
   }, [profileId, mode, viewerUserId, viewerLandlordId]);
+
+  useEffect(() => {
+    if (!profileId || !supabase) { setOtherListings([]); return; }
+    let query = supabase
+      .from("listings")
+      .select("id, title, price, city, images")
+      .eq("user_id", profileId)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(currentListingId ? 6 : 5);
+    if (currentListingId) query = query.neq("id", currentListingId);
+    query.then(({ data }) => {
+      const rows = (data ?? []) as OtherListing[];
+      setOtherListings(currentListingId ? rows.slice(0, 5) : rows);
+    });
+  }, [profileId, currentListingId]);
 
   const handleRevealEmail = async () => {
     setRevealing(true);
@@ -373,6 +402,50 @@ export function ApplicantProfilePanel({
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Other listings by this user */}
+            {otherListings.length > 0 && (
+              <div className="px-5 py-4">
+                <p className="mb-2.5 text-[10px] font-semibold uppercase tracking-wider text-stone-400">
+                  Andere advertenties ({otherListings.length})
+                </p>
+                <div className="flex flex-col gap-2">
+                  {otherListings.map((listing) => {
+                    const thumb = Array.isArray(listing.images) && listing.images.length > 0 ? listing.images[0] : null;
+                    return (
+                      <button
+                        key={listing.id}
+                        type="button"
+                        onClick={() => { navigate(`/kamers/${listing.id}`); onClose(); }}
+                        className="flex w-full items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5 text-left transition hover:border-rose-200 hover:bg-rose-50/40"
+                      >
+                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-stone-200">
+                          {thumb ? (
+                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center">
+                              <svg className="h-4 w-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                              </svg>
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-stone-800">{listing.title}</p>
+                          <p className="mt-0.5 text-[10px] text-stone-400">
+                            {listing.price != null ? `€ ${listing.price.toLocaleString("nl-NL")}/mnd` : "Prijs op aanvraag"}
+                            {listing.city ? ` · ${listing.city}` : ""}
+                          </p>
+                        </div>
+                        <svg className="h-3.5 w-3.5 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
