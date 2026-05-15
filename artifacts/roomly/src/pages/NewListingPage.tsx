@@ -12,6 +12,7 @@ import { mapRpcError } from "@/lib/rpcErrors";
 import type { ListingType, SavedSearch, Profile, Listing } from "@/types/database";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
+const NEW_LISTING_IMAGES_KEY = "roomly_new_listing_images";
 
 const ALL_TYPES = Object.keys(LISTING_TYPE_LABELS) as ListingType[];
 
@@ -123,7 +124,14 @@ export function NewListingPage() {
   const [, navigate] = useLocation();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>(() => {
+    try {
+      const stored = sessionStorage.getItem(NEW_LISTING_IMAGES_KEY);
+      return stored ? (JSON.parse(stored) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [boosted, setBoosted] = useState(false);
@@ -158,6 +166,17 @@ export function NewListingPage() {
       }
     });
   }, [user]);
+
+  // Persist uploaded images to sessionStorage so tab switches don't lose them
+  useEffect(() => {
+    try {
+      if (images.length > 0) {
+        sessionStorage.setItem(NEW_LISTING_IMAGES_KEY, JSON.stringify(images));
+      } else {
+        sessionStorage.removeItem(NEW_LISTING_IMAGES_KEY);
+      }
+    } catch {}
+  }, [images]);
 
   const dismissBanner = () => {
     localStorage.setItem(BANNER_DISMISSED_KEY, "1");
@@ -270,6 +289,7 @@ export function NewListingPage() {
         setError(mapRpcError(err, "Advertentie kon niet worden geplaatst. Probeer opnieuw."));
         return;
       }
+      sessionStorage.removeItem(NEW_LISTING_IMAGES_KEY);
       toast.success("Advertentie geplaatst!");
 
       notifyMatchingSavedSearches(

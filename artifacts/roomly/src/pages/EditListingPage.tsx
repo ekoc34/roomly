@@ -42,6 +42,7 @@ export function EditListingPage() {
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [notFound, setNotFound] = useState(false);
+  const editImagesKey = `roomly_edit_listing_images_${params.id}`;
   const [petsAllowed, setPetsAllowed] = useState(false);
   const [smokingAllowed, setSmokingAllowed] = useState(false);
   const [boosted, setBoosted] = useState(false);
@@ -57,6 +58,17 @@ export function EditListingPage() {
   const originalBoostedRef = useRef<boolean>(false);
 
   const availableDistricts = city ? (CITY_DISTRICTS[city.toLowerCase()] ?? []) : [];
+
+  // Persist uploaded images to sessionStorage so tab switches don't lose them
+  useEffect(() => {
+    try {
+      if (images.length > 0) {
+        sessionStorage.setItem(editImagesKey, JSON.stringify(images));
+      } else {
+        sessionStorage.removeItem(editImagesKey);
+      }
+    } catch {}
+  }, [images, editImagesKey]);
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setCity(e.target.value);
@@ -78,7 +90,14 @@ export function EditListingPage() {
       if (!data) { setNotFound(true); setLoading(false); return; }
       const l = data as Listing;
       setListing(l);
-      setImages(l.images ?? []);
+      // Restore sessionStorage draft if present, otherwise use DB images
+      try {
+        const stored = sessionStorage.getItem(`roomly_edit_listing_images_${params.id}`);
+        const storedImages = stored ? (JSON.parse(stored) as string[]) : null;
+        setImages(storedImages && storedImages.length > 0 ? storedImages : (l.images ?? []));
+      } catch {
+        setImages(l.images ?? []);
+      }
       setPetsAllowed(l.pets_allowed ?? false);
       setSmokingAllowed(l.smoking_allowed ?? false);
       // Derive active boost status from boosted_at (no boolean column anymore).
@@ -105,6 +124,7 @@ export function EditListingPage() {
         toast.error(mapRpcError(err, "Verwijderen mislukt. Probeer opnieuw."));
         return;
       }
+      sessionStorage.removeItem(editImagesKey);
       toast.success("Advertentie verwijderd.");
       navigate("/dashboard");
     });
@@ -184,6 +204,7 @@ export function EditListingPage() {
         console.log("[EditListing] boost_listing succeeded");
       }
 
+      sessionStorage.removeItem(editImagesKey);
       toast.success("Wijzigingen opgeslagen!");
       navigate(`/kamers/${params.id}`);
     });
