@@ -29,9 +29,11 @@ export function EditListingPage() {
     async function fetchListing() {
       const { data } = await supabase!.from("listings").select("*").eq("id", params.id).maybeSingle();
       if (!data) { setNotFound(true); setLoading(false); return; }
-      setListing(data as Listing);
-      setImages((data as Listing).images ?? []);
-      setDescription((data as Listing).description ?? "");
+      const l = data as Listing;
+      if (l.user_id !== user?.id) { setNotFound(true); setLoading(false); return; }
+      setListing(l);
+      setImages(l.images ?? []);
+      setDescription(l.description ?? "");
       setLoading(false);
     }
     fetchListing();

@@ -89,6 +89,7 @@ export function EditListingPage() {
       const { data } = await supabase!.from("listings").select("*").eq("id", params.id).maybeSingle();
       if (!data) { setNotFound(true); setLoading(false); return; }
       const l = data as Listing;
+      if (l.user_id !== user?.id) { setNotFound(true); setLoading(false); return; }
       setListing(l);
       // Restore sessionStorage draft if present, otherwise use DB images
       try {
