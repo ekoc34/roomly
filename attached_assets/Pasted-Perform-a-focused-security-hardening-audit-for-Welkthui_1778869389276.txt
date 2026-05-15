@@ -1,0 +1,123 @@
+Perform a focused security hardening audit for Welkthuis.nl.
+
+This is NOT a redesign task and NOT a refactor task.
+
+Your goal is to inspect the current codebase and identify any security, privacy, or trust risks related to:
+- RLS / data access
+- listing ownership
+- notifications
+- role handling
+- admin access
+- message privacy
+- account deletion
+- privileged operations
+
+Important:
+- audit BOTH code paths if there are duplicated app roots or source copies
+- inspect the actual source used by the deployed app
+- do not make changes yet
+- first report findings clearly and honestly
+
+--------------------------------------------------
+PRIMARY AUDIT TARGETS
+--------------------------------------------------
+
+1. ROW LEVEL SECURITY / DATA ACCESS
+Inspect all Supabase table access patterns and schema policies.
+
+Look for:
+- missing or weak RLS assumptions
+- client-side filtering used as a substitute for real security
+- queries that rely only on frontend guards
+- tables readable or writable by the wrong users
+- user_id checks missing from updates/deletes
+- any place where a user could access another user's data
+
+Focus especially on:
+- profiles
+- listings / kamers
+- messages / conversations
+- notifications
+- reports / blocks
+- admin-related tables
+- boost / credits tables
+- verification-related tables
+
+2. LISTING OWNERSHIP
+Inspect listing edit/delete/update flows.
+
+Verify:
+- whether a user can open edit pages for listings they do not own
+- whether ownership is checked before sensitive actions
+- whether the UI exposes actions before the backend confirms ownership
+- whether RPCs or Edge Functions enforce ownership server-side
+
+3. NOTIFICATIONS
+Inspect how notifications are created and written.
+
+Look for:
+- client-side inserts into notifications
+- any flow where one user can create notifications for another user directly
+- whether notification creation should be server-side instead
+- whether notification RLS policies are safe
+
+4. ROLE HANDLING
+Inspect how user roles are assigned and enforced.
+
+Look for:
+- role being written directly from the client
+- role escalation risks
+- admin access checks that happen only after page render
+- any role-based pages that depend only on frontend redirects
+
+5. ADMIN ACCESS
+Inspect admin dashboard access and related data fetches.
+
+Look for:
+- admin guards that happen too late
+- data being fetched before authorization resolves
+- admin-only tables or actions exposed through public queries
+- any trust mismatch between UI protection and backend protection
+
+6. ACCOUNT DELETION / PRIVILEGED ACTIONS
+Inspect account deletion and other sensitive operations.
+
+Verify:
+- whether a user can delete only their own account
+- whether deleted users leave orphaned listings, messages, or uploads
+- whether service role usage is safe
+- whether any privileged operations are exposed to the browser
+
+--------------------------------------------------
+WHAT TO REPORT
+--------------------------------------------------
+
+Return a structured report with:
+
+1. What already looks safe
+2. What is risky
+3. What is incomplete
+4. What is only protected by frontend logic
+5. What must be verified directly in Supabase dashboard / policies
+6. What is definitely fixable in the codebase right now
+
+For every issue found, include:
+- severity: critical / high / medium / low
+- exact file(s)
+- exact flow or function
+- why it is risky
+- whether it is a frontend-only risk or a backend/security risk
+
+--------------------------------------------------
+IMPORTANT RULES
+--------------------------------------------------
+
+- Do not redesign UI
+- Do not add new features
+- Do not silently fix things before reporting them
+- Do not assume RLS is correct unless you can verify it in code
+- Be explicit when something cannot be confirmed from source alone
+- Think like a privacy-conscious EU marketplace reviewer before launch
+- Prioritize trust and real security over cosmetic correctness
+
+After the report, stop and wait for the next instruction.
