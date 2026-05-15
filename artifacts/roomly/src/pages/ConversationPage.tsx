@@ -126,24 +126,24 @@ export function ConversationPage() {
       setOther(otherProfile as Profile | null);
 
       if (user && otherProfile) {
-        const [{ data: blockByOtherRow }, { data: blockByMeRow }] = await Promise.all([
+        const [{ data: blockByOtherRows }, { data: blockByMeRows }] = await Promise.all([
           supabase!
             .from("user_reports")
             .select("id")
             .eq("reporter_id", otherProfile.id)
             .eq("reported_id", user.id)
             .eq("reason", "blocked")
-            .maybeSingle(),
+            .limit(1),
           supabase!
             .from("user_reports")
             .select("id")
             .eq("reporter_id", user.id)
             .eq("reported_id", otherProfile.id)
             .eq("reason", "blocked")
-            .maybeSingle(),
+            .limit(1),
         ]);
-        setBlockedByOther(!!blockByOtherRow);
-        setBlockedByMe(!!blockByMeRow);
+        setBlockedByOther(Array.isArray(blockByOtherRows) && blockByOtherRows.length > 0);
+        setBlockedByMe(Array.isArray(blockByMeRows) && blockByMeRows.length > 0);
       }
 
       await fetchMessages();
@@ -235,8 +235,18 @@ export function ConversationPage() {
       reason: "blocked",
     });
     if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
-    setBlockedByMe(true);
-    toast.success("Gebruiker geblokkeerd.");
+    // Confirm actual DB state after insert (catches silent RLS failures)
+    const { data: confirmedRows } = await supabase
+      .from("user_reports")
+      .select("id")
+      .eq("reporter_id", user.id)
+      .eq("reported_id", other.id)
+      .eq("reason", "blocked")
+      .limit(1);
+    const isNowBlocked = Array.isArray(confirmedRows) && confirmedRows.length > 0;
+    setBlockedByMe(isNowBlocked);
+    if (isNowBlocked) toast.success("Gebruiker geblokkeerd.");
+    else toast.error("Blokkade kon niet worden ingesteld. Probeer opnieuw.");
   }, [user, other]);
 
   const handleUnblock = useCallback(async () => {
@@ -249,14 +259,15 @@ export function ConversationPage() {
       .eq("reason", "blocked");
     if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
     // Confirm actual DB state after delete (catches silent RLS failures)
-    const { data: stillBlocked } = await supabase
+    const { data: remainingRows } = await supabase
       .from("user_reports")
       .select("id")
       .eq("reporter_id", user.id)
       .eq("reported_id", other.id)
       .eq("reason", "blocked")
-      .maybeSingle();
-    setBlockedByMe(!!stillBlocked);
+      .limit(1);
+    const stillBlocked = Array.isArray(remainingRows) && remainingRows.length > 0;
+    setBlockedByMe(stillBlocked);
     if (!stillBlocked) toast.success("Blokkade opgeheven.");
     else toast.error("Blokkade kon niet worden opgeheven. Probeer opnieuw.");
   }, [user, other]);
