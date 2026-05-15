@@ -71,8 +71,18 @@ function FitBoundsController({ positions }: { positions: [number, number][] | nu
   const map = useMap();
   useEffect(() => {
     if (!positions || positions.length === 0) return;
-    map.fitBounds(positions, { padding: [50, 50], maxZoom: 14 });
+    map.fitBounds(positions, { padding: [50, 50], maxZoom: 16 });
   }, [map, positions]);
+  return null;
+}
+
+function ZoomTracker({ onZoom }: { onZoom: (z: number) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const handler = () => onZoom(map.getZoom());
+    map.on("zoomend", handler);
+    return () => { map.off("zoomend", handler); };
+  }, [map, onZoom]);
   return null;
 }
 
@@ -82,6 +92,7 @@ export function MapPage() {
   const [loading, setLoading] = useState(true);
   const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
   const [fitTarget, setFitTarget] = useState<[number, number][] | null>(null);
+  const [zoom, setZoom] = useState(8);
   const geocodingActive = { current: false };
 
   useEffect(() => {
@@ -152,7 +163,7 @@ export function MapPage() {
     })
     .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
 
-  const clusterRadius = 0.01;
+  const clusterRadius = Math.min(0.05, 1.28 / Math.pow(2, zoom));
   const clusters: Array<{ center: [number, number]; listings: Listing[] }> = [];
   const clustered = new Set<string>();
 
@@ -223,17 +234,26 @@ export function MapPage() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
             <FitBoundsController positions={fitTarget} />
-            {clusters.map((cluster, idx) => (
+            <ZoomTracker onZoom={setZoom} />
+            {clusters.map((cluster, idx) => {
+              const clusterCoords = cluster.listings
+                .map((l) => guessCoords(l.location) ?? coords.get(l.id))
+                .filter((c): c is [number, number] => c !== null);
+              const allSameCoords =
+                clusterCoords.length > 1 &&
+                clusterCoords.every(
+                  (c) =>
+                    Math.abs(c[0] - clusterCoords[0][0]) < 0.0001 &&
+                    Math.abs(c[1] - clusterCoords[0][1]) < 0.0001
+                );
+              return (
               <Marker
                 key={idx}
                 position={cluster.center}
                 eventHandlers={{
                   click: () => {
-                    if (cluster.listings.length > 1) {
-                      const bounds = cluster.listings
-                        .map((l) => guessCoords(l.location) ?? coords.get(l.id))
-                        .filter((b): b is [number, number] => b !== null);
-                      if (bounds.length > 0) setFitTarget(bounds);
+                    if (cluster.listings.length > 1 && !allSameCoords) {
+                      if (clusterCoords.length > 0) setFitTarget([...clusterCoords]);
                     }
                   },
                 }}
@@ -263,6 +283,22 @@ export function MapPage() {
                       </Link>
                     </div>
                   </Popup>
+                ) : allSameCoords ? (
+                  <Popup maxWidth={260}>
+                    <p className="mb-2 text-sm font-semibold text-stone-900">{cluster.listings.length} woningen op deze locatie</p>
+                    <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
+                      {cluster.listings.map((l) => (
+                        <Link
+                          key={l.id}
+                          href={`/kamers/${l.id}`}
+                          className="block rounded-lg border border-stone-100 bg-stone-50 px-2 py-1.5 hover:bg-rose-50"
+                        >
+                          <p className="text-xs font-semibold leading-snug text-stone-900 line-clamp-1">{l.title}</p>
+                          <p className="text-xs text-rose-600 font-bold">€{Number(l.price).toFixed(0)}<span className="font-normal text-stone-400"> /mnd</span></p>
+                        </Link>
+                      ))}
+                    </div>
+                  </Popup>
                 ) : (
                   <Popup maxWidth={240}>
                     <p className="text-sm font-semibold text-stone-900">{cluster.listings.length} woningen op deze locatie</p>
@@ -270,7 +306,8 @@ export function MapPage() {
                   </Popup>
                 )}
               </Marker>
-            ))}
+              );
+            })}
           </MapContainer>
         </div>
       )}
