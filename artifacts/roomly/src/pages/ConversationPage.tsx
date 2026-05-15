@@ -142,8 +142,8 @@ export function ConversationPage() {
             .eq("reason", "blocked")
             .maybeSingle(),
         ]);
-        if (blockByOtherRow) setBlockedByOther(true);
-        if (blockByMeRow) setBlockedByMe(true);
+        setBlockedByOther(!!blockByOtherRow);
+        setBlockedByMe(!!blockByMeRow);
       }
 
       await fetchMessages();
@@ -248,8 +248,17 @@ export function ConversationPage() {
       .eq("reported_id", other.id)
       .eq("reason", "blocked");
     if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
-    setBlockedByMe(false);
-    toast.success("Blokkade opgeheven.");
+    // Confirm actual DB state after delete (catches silent RLS failures)
+    const { data: stillBlocked } = await supabase
+      .from("user_reports")
+      .select("id")
+      .eq("reporter_id", user.id)
+      .eq("reported_id", other.id)
+      .eq("reason", "blocked")
+      .maybeSingle();
+    setBlockedByMe(!!stillBlocked);
+    if (!stillBlocked) toast.success("Blokkade opgeheven.");
+    else toast.error("Blokkade kon niet worden opgeheven. Probeer opnieuw.");
   }, [user, other]);
 
   const handleReport = useCallback(async (reason: string) => {
