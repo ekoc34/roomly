@@ -797,6 +797,13 @@ create policy "admins can update user_reports"
   )
   with check (true);
 
+-- Users can delete their own rows (e.g. remove a block they placed)
+-- Without this policy, DELETE is silently ignored by RLS and returns no error.
+create policy "users can delete their own user_reports"
+  on public.user_reports for delete
+  to authenticated
+  using (auth.uid() = reporter_id);
+
 -- ============================================================
 -- delete_listing RPC
 -- SECURITY DEFINER so that the cascade deletes on child tables
