@@ -29,8 +29,8 @@ const STEP2_ALL: Step2Option[] = [
   },
   {
     key: "family",
-    label: "Familie",
-    description: "Wij zoeken een woning als gezin",
+    label: "Familie · Stel",
+    description: "We zoeken naar een huis",
     icon: <span className="text-2xl leading-none">🏡</span>,
   },
 ];
@@ -152,7 +152,7 @@ export function UserPersonaSelector() {
                 </div>
                 <div className="text-left">
                   <p className="text-lg font-bold text-stone-900 group-hover:text-blue-600">Huisgenoot zoeker</p>
-                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Ik zoek een huisgenoot</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-stone-500">Op zoek naar een huisgenoot</p>
                   <p className="mt-1 text-xs text-stone-400">Ik heb een woning en zoek iemand om mee te delen.</p>
                 </div>
                 <svg className="ml-auto h-5 w-5 shrink-0 text-stone-300 transition group-hover:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
