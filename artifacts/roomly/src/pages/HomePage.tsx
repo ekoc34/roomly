@@ -197,7 +197,7 @@ function HomePageContent() {
               </div>
               <div>
                 <p className="font-semibold text-stone-900">Verhuis naar je nieuwe thuis</p>
-                <p className="mt-1 text-sm leading-relaxed text-stone-500">Spreek een bezichtiging af en rond alles af binnen het platform.</p>
+                <p className="mt-1 text-sm leading-relaxed text-stone-500">Plan een bezichtiging en regel de rest eenvoudig via Welkthuis.</p>
               </div>
             </div>
           </div>
