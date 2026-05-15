@@ -1,0 +1,174 @@
+You are refining the legal/footer pages of Welkthuis.nl.
+
+The pages already exist and are visually aligned with the platform.
+Your task is NOT to redesign them completely.
+
+Your task is to:
+- improve clarity
+- increase trust
+- make the content feel slightly more complete and professional
+- preserve the calm minimalist tone
+
+Important:
+Do NOT turn these pages into heavy legal documents.
+Do NOT introduce aggressive legal jargon.
+Do NOT create giant walls of text.
+
+The tone should remain:
+- human
+- understandable
+- trustworthy
+- modern
+- privacy-conscious
+
+--------------------------------------------------
+GENERAL IMPROVEMENTS
+--------------------------------------------------
+
+Across all legal pages:
+- improve readability
+- tighten spacing consistency
+- improve heading hierarchy
+- improve paragraph rhythm
+- ensure mobile readability
+- preserve minimalist Dutch marketplace aesthetics
+
+Add:
+- slightly better section separation
+- calm muted dividers
+- max-width reading container
+- consistent typography rhythm
+
+Avoid:
+- corporate SaaS styling
+- oversized headings
+- dense legal formatting
+
+--------------------------------------------------
+1. PRIVACY PAGE IMPROVEMENTS
+--------------------------------------------------
+
+Refine the existing privacy page.
+
+Add clearer detail for:
+- data retention periods
+- legal basis for processing
+- account deletion behavior
+- analytics usage
+- verification document handling
+
+Without sounding overly legalistic.
+
+Add subtle explanatory examples where helpful.
+
+Example:
+- explain that verification documents are never visible to other users
+- explain that messages are only accessible to involved parties
+- explain that some data may remain temporarily for fraud prevention or legal obligations
+
+Improve the “Jouw rechten” section:
+- make rights more scannable
+- add subtle icon support if appropriate
+
+Add a calmer ending section:
+- reassure users that privacy and trust are important to Welkthuis
+
+--------------------------------------------------
+2. VOORWAARDEN PAGE IMPROVEMENTS
+--------------------------------------------------
+
+Refine the terms page for clarity and fairness.
+
+Improve:
+- payment and boost explanation
+- moderation policy explanation
+- account restriction wording
+- anti-spam section
+- dispute responsibility explanation
+
+Goals:
+- sound fair, not threatening
+- protect the platform without sounding aggressive
+
+Clarify:
+- Welkthuis is a platform/intermediary
+- users remain responsible for agreements and interactions
+- verification improves trust but is not a guarantee
+
+Improve readability:
+- convert dense sections into bullets where appropriate
+- shorten long paragraphs
+
+--------------------------------------------------
+3. COOKIES PAGE IMPROVEMENTS
+--------------------------------------------------
+
+Refine the cookie information page.
+
+Add slightly more transparency about:
+- cookie duration
+- analytics providers (if used)
+- what functional cookies remember
+- whether third parties are involved
+
+Important:
+Keep explanations simple and understandable.
+
+Do NOT:
+- overload users with technical cookie tables
+- create a giant compliance wall
+
+Improve hierarchy:
+- cookie categories should feel visually separated
+- optional vs required cookies should be very clear
+
+Add subtle helper text:
+- users can change preferences anytime
+
+--------------------------------------------------
+4. COOKIEVOORKEUREN PAGE IMPROVEMENTS
+--------------------------------------------------
+
+Refine the cookie settings page.
+
+Improve:
+- toggle clarity
+- spacing between categories
+- visual distinction between required and optional cookies
+
+Add:
+- short helper descriptions beneath each category
+- lightweight confirmation feedback after saving preferences
+
+Important:
+The page should feel:
+- transparent
+- respectful
+- non-manipulative
+
+Avoid:
+- dark patterns
+- bright accept-all emphasis
+- guilt-based consent wording
+
+The “necessary cookies” category should remain:
+- visible
+- locked
+- clearly explained
+
+--------------------------------------------------
+FINAL GOAL
+--------------------------------------------------
+
+All legal pages should now feel:
+- slightly more mature
+- more trustworthy
+- more complete
+- more product-polished
+
+while still remaining:
+- readable
+- human
+- calm
+- minimalist
+- aligned with Welkthuis brand identity
