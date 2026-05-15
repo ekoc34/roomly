@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { EmailVerificationHandler } from "@/components/EmailVerificationHandler";
 import { OAuthProfileHandler } from "@/components/OAuthProfileHandler";
 import { EmailVerificationGate } from "@/components/EmailVerificationGate";
+import { PasswordRecoveryHandler } from "@/components/PasswordRecoveryHandler";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -124,6 +125,7 @@ function Router() {
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const [path] = useLocation();
 
   if (loading) {
     return (
@@ -133,7 +135,9 @@ function AppContent() {
     );
   }
 
-  if (user && !user.email_confirmed_at) {
+  // Skip the email verification gate during password recovery so the reset
+  // form is never blocked by an unconfirmed-email wall.
+  if (user && !user.email_confirmed_at && path !== "/wachtwoord-instellen") {
     return <EmailVerificationGate user={user} />;
   }
 
@@ -142,6 +146,7 @@ function AppContent() {
       <ErrorBoundary fallback={null}><ActivityTracker /></ErrorBoundary>
       <ErrorBoundary fallback={null}><EmailVerificationHandler /></ErrorBoundary>
       <ErrorBoundary fallback={null}><OAuthProfileHandler /></ErrorBoundary>
+      <ErrorBoundary fallback={null}><PasswordRecoveryHandler /></ErrorBoundary>
       <ErrorBoundary fallback={<div className="h-16 border-b border-stone-200 bg-white" />}>
         <Header />
       </ErrorBoundary>

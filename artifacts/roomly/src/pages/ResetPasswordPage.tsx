@@ -1,5 +1,5 @@
-import { useState, useTransition } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState, useTransition } from "react";
+import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 
 export function ResetPasswordPage() {
@@ -7,6 +7,31 @@ export function ResetPasswordPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [sessionReady, setSessionReady] = useState<boolean | null>(null);
+
+  // Wait for the PASSWORD_RECOVERY auth event which signals a valid recovery
+  // session has been established. If the event never fires (direct visit without
+  // a token) we mark the session as not ready and show a helpful error.
+  useEffect(() => {
+    if (!supabase) { setSessionReady(false); return; }
+
+    const timeout = setTimeout(() => {
+      // After 3 s with no PASSWORD_RECOVERY event, assume no valid token.
+      setSessionReady((prev) => (prev === null ? false : prev));
+    }, 3000);
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        clearTimeout(timeout);
+        setSessionReady(true);
+      }
+    });
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -29,7 +54,7 @@ export function ResetPasswordPage() {
     <div className="mx-auto max-w-md px-4 py-16 sm:px-6">
       <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
         <div className="text-center">
-          <p className="text-3xl font-black text-rose-600">Welkthuis</p>
+          <p className="text-3xl tracking-tight"><span className="font-semibold text-rose-500">Welkthuis<span className="font-normal text-rose-500">.nl</span></span></p>
           <h1 className="mt-2 text-xl font-bold text-stone-900">Nieuw wachtwoord instellen</h1>
           <p className="mt-1 text-sm text-stone-500">Kies een sterk nieuw wachtwoord.</p>
         </div>
@@ -41,6 +66,23 @@ export function ResetPasswordPage() {
             </svg>
             <p className="mt-3 text-sm font-semibold text-emerald-800">Wachtwoord gewijzigd!</p>
             <p className="mt-1 text-xs text-emerald-700">Je wordt automatisch doorgestuurd naar inloggen…</p>
+          </div>
+        ) : sessionReady === null ? (
+          <div className="mt-8 flex justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500" />
+          </div>
+        ) : sessionReady === false ? (
+          <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
+            <p className="text-sm font-semibold text-amber-800">Ongeldige of verlopen link</p>
+            <p className="mt-1 text-xs text-amber-700">
+              De reset link is verlopen of al gebruikt. Vraag een nieuwe aan.
+            </p>
+            <Link
+              href="/wachtwoord-vergeten"
+              className="mt-4 inline-block rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600"
+            >
+              Nieuwe reset link aanvragen
+            </Link>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-4">

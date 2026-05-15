@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 import { PageLoader } from "@/components/PageLoader";
+import { PasswordRecoveryHandler } from "@/components/PasswordRecoveryHandler";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -98,6 +99,7 @@ export default function App() {
       <SelectedCityProvider>
         <div className="flex min-h-screen flex-col bg-stone-50">
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <PasswordRecoveryHandler />
             <Header />
             <main className="flex-1">
               <Router />
