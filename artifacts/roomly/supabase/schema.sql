@@ -778,6 +778,13 @@ create policy "admins can select user_reports"
     )
   );
 
+-- Users can read rows where they are the reporter or the reported party.
+-- Required for Supabase realtime to deliver INSERT/DELETE events to the client.
+create policy "users can select their own user_reports"
+  on public.user_reports for select
+  to authenticated
+  using (auth.uid() = reporter_id or auth.uid() = reported_id);
+
 -- ============================================================
 -- MIGRATION: avg_response_time_hours on profiles
 -- Run in Supabase SQL Editor

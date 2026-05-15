@@ -61,6 +61,7 @@ export function ConversationPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
+  const blockChannelRef = useRef<RealtimeChannel | null>(null);
 
   // Close report dropdown on outside click
   useEffect(() => {
@@ -220,8 +221,63 @@ export function ConversationPage() {
         supabase.removeChannel(typingChannelRef.current);
         typingChannelRef.current = null;
       }
+      if (blockChannelRef.current && supabase) {
+        supabase.removeChannel(blockChannelRef.current);
+        blockChannelRef.current = null;
+      }
     };
   }, [params.id, user, authLoading, fetchMessages]);
+
+  // Realtime subscription: update blockedByOther live when the other user
+  // inserts or removes a block row — no page refresh needed.
+  useEffect(() => {
+    if (!supabase || !user || !other) return;
+
+    if (blockChannelRef.current) {
+      supabase.removeChannel(blockChannelRef.current);
+      blockChannelRef.current = null;
+    }
+
+    try {
+      const blockChannel = supabase
+        .channel(`block:${user.id}:${other.id}:${Date.now()}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "user_reports", filter: `reporter_id=eq.${other.id}` },
+          (payload) => {
+            if (payload.new.reported_id === user.id && payload.new.reason === "blocked") {
+              setBlockedByOther(true);
+            }
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "user_reports", filter: `reporter_id=eq.${other.id}` },
+          async () => {
+            // DELETE payload only carries the PK — re-query to get the true state.
+            const { data: rows } = await supabase!
+              .from("user_reports")
+              .select("id")
+              .eq("reporter_id", other.id)
+              .eq("reported_id", user.id)
+              .eq("reason", "blocked")
+              .limit(1);
+            setBlockedByOther(rows != null && rows.length > 0);
+          }
+        )
+        .subscribe();
+      blockChannelRef.current = blockChannel;
+    } catch (e) {
+      console.warn("Block status channel error:", e);
+    }
+
+    return () => {
+      if (blockChannelRef.current && supabase) {
+        supabase.removeChannel(blockChannelRef.current);
+        blockChannelRef.current = null;
+      }
+    };
+  }, [user, other]);
 
   const trackTyping = useCallback((isTyping: boolean) => {
     typingChannelRef.current?.track({ typing: isTyping });
