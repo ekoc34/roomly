@@ -38,7 +38,7 @@ export function RegisterPage() {
       const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
       if (err) { setError(err.message); return; }
       if (data.user) {
-        await supabase.from("profiles").upsert({ id: data.user.id, email, name, role: "student", phone_verified: false, email_auto_verified: false, student_verified: false });
+        await supabase.from("profiles").upsert({ id: data.user.id, email, name });
       }
       navigate("/welkom");
     });

@@ -837,3 +837,34 @@ BEGIN
   DELETE FROM public.listings WHERE id = p_listing_id;
 END;
 $$;
+
+-- ============================================================
+-- SECURITY MIGRATION: Prevent client-side role escalation
+-- Run in Supabase SQL Editor
+-- ============================================================
+-- This trigger fires BEFORE every UPDATE on profiles.
+-- If the role column is being changed, it checks whether the
+-- caller (auth.uid()) is already an admin. Non-admins have
+-- their role silently reset to the existing value — no error,
+-- no hint to the attacker that the attempt was blocked.
+-- SECURITY DEFINER lets the inner SELECT bypass RLS so it
+-- always reads the authoritative role from the database.
+CREATE OR REPLACE FUNCTION public.prevent_role_escalation()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF NEW.role IS DISTINCT FROM OLD.role THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'admin'
+    ) THEN
+      NEW.role := OLD.role;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS profiles_prevent_role_escalation ON public.profiles;
+CREATE TRIGGER profiles_prevent_role_escalation
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE PROCEDURE public.prevent_role_escalation();

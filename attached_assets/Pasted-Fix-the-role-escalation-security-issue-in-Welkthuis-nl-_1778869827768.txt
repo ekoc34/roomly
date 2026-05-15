@@ -1,0 +1,87 @@
+Fix the role escalation security issue in Welkthuis.nl.
+
+This is a critical backend/security fix, not a UI redesign.
+
+Current problem:
+- The profiles.role field is writable from the client.
+- An authenticated user can potentially update their own profile role to "admin" and gain admin access.
+- The current registration flow also writes role directly from the client.
+
+Your task:
+- make user roles immutable from the client
+- ensure normal users can never promote themselves
+- keep admin/privileged role assignment server-side only
+- preserve the current UX and onboarding flow
+
+--------------------------------------------------
+PRIMARY GOAL
+--------------------------------------------------
+
+Only trusted backend logic should be able to assign or change privileged roles.
+
+Normal users should only ever be able to have non-privileged roles.
+
+--------------------------------------------------
+WHAT TO INSPECT
+--------------------------------------------------
+
+1. Registration flow
+- inspect RegisterPage.tsx and any signup helper code
+- remove any client-side trust in the role field
+- if the client currently sends role in the profile upsert, stop trusting that value
+
+2. Profiles table / RLS
+- inspect profiles policies in schema.sql
+- determine whether users can update the role column directly
+- if so, tighten the policy so role cannot be changed from the browser
+
+3. Backend role assignment path
+- identify the safe place where a default role should be assigned
+- use a DB default, trigger, or secure server-side function if needed
+- ensure admin role can only be set by trusted backend logic, not by browser requests
+
+4. Profile update flow
+- inspect ProfilePage.tsx and any profile edit logic
+- make sure normal profile edits are still allowed
+- but role changes are ignored or blocked for non-admin users
+- the UI should not break for regular profile edits
+
+--------------------------------------------------
+REQUIRED BEHAVIOR
+--------------------------------------------------
+
+- New users should receive a safe default role such as:
+  - student
+  - user
+  - or the current non-privileged default used by the app
+- The client must not be able to set role = "admin"
+- The client must not be able to escalate itself to any privileged role
+- Admin role assignment must remain possible only through trusted backend/admin-only code
+- Existing profile editing should continue to work for safe fields like:
+  - name
+  - bio
+  - photo
+  - visibility settings
+  - phone/email preferences
+
+--------------------------------------------------
+WHAT TO RETURN
+--------------------------------------------------
+
+Before making changes, inspect the current implementation and then:
+1. explain exactly where the role escalation risk exists
+2. show which file(s) are affected
+3. implement the fix
+4. confirm that client-side role escalation is no longer possible from the normal app flow
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+- Do not redesign UI
+- Do not add new features
+- Do not silently leave the role field writable
+- Do not break normal profile editing
+- Be explicit about any remaining assumptions that still depend on Supabase policy or database defaults
+
+Think like a security reviewer for a privacy-conscious EU marketplace before launch.

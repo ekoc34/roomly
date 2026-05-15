@@ -45,7 +45,7 @@ export function RegisterPage() {
         return; 
       }
       if (data.user) {
-        await supabase.from("profiles").upsert({ id: data.user.id, email, name, role: "student", user_type: "tenant", phone_verified: false, email_auto_verified: false, student_verified: false });
+        await supabase.from("profiles").upsert({ id: data.user.id, email, name });
       }
       navigate("/welkom");
     });
