@@ -73,11 +73,11 @@ export function Footer() {
       <div className="border-t border-stone-100 bg-stone-50/80 px-4 py-4 text-center text-xs text-stone-400">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           <Link href="/privacy" className="hover:text-stone-600">Privacy</Link>
-          <span className="text-stone-200">·</span>
+          <span className="text-stone-500">·</span>
           <Link href="/voorwaarden" className="hover:text-stone-600">Voorwaarden</Link>
-          <span className="text-stone-200">·</span>
+          <span className="text-stone-500">·</span>
           <Link href="/cookies" className="hover:text-stone-600">Cookies</Link>
-          <span className="text-stone-200">·</span>
+          <span className="text-stone-500">·</span>
           <Link href="/cookievoorkeuren" className="hover:text-stone-600">Cookievoorkeuren</Link>
         </div>
         <p className="mt-2">Gemaakt voor huurders en verhuurders in Nederland.</p>
