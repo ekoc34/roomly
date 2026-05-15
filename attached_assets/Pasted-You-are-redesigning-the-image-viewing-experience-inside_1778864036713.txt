@@ -1,0 +1,155 @@
+You are redesigning the image viewing experience inside the listing detail page of Welkthuis.nl.
+
+Current problem:
+- When users click listing photos, the image opens incorrectly.
+- Images appear partially cut off / cropped awkwardly.
+- The viewing experience feels unfinished and not premium.
+- Mobile experience is especially weak.
+
+Important product context:
+- Welkthuis is a calm, minimalist Dutch housing marketplace.
+- The platform should feel:
+  - trustworthy
+  - modern
+  - lightweight
+  - premium without being flashy
+- The gallery should support:
+  - viewing the property clearly
+  - building trust
+  - encouraging applications
+- It should NOT feel like:
+  - Instagram
+  - a social media gallery
+  - an over-animated image carousel
+
+Your task:
+Completely refine and modernize the listing image viewing experience.
+
+--------------------------------------------------
+MAIN GOALS
+--------------------------------------------------
+
+1. Fix image display behavior
+Images must:
+- always display correctly
+- never appear half-cut
+- preserve aspect ratio
+- scale responsively
+- support portrait and landscape photos naturally
+
+Use:
+- object-contain where appropriate
+- responsive sizing
+- proper overflow handling
+
+Avoid:
+- aggressive cropping
+- stretched images
+- broken aspect ratios
+
+--------------------------------------------------
+2. Create a premium lightbox/modal experience
+When users click a photo:
+- open a clean fullscreen modal/lightbox
+- darkened but soft backdrop
+- focus entirely on the image
+
+Requirements:
+- ESC closes modal
+- click outside closes modal
+- swipe support on mobile
+- keyboard navigation on desktop
+- next/previous navigation buttons
+- image counter (1/8)
+- smooth transitions (subtle only)
+
+Avoid:
+- flashy animations
+- giant zoom effects
+- social-media interactions
+- cluttered controls
+
+--------------------------------------------------
+3. Improve gallery layout on listing detail page
+Refine:
+- image spacing
+- border radius
+- thumbnail hierarchy
+- mobile responsiveness
+
+Gallery should feel:
+- breathable
+- structured
+- calm
+
+Desktop:
+- clean main image
+- optional secondary thumbnails/grid
+
+Mobile:
+- swipeable
+- optimized height
+- no layout jumping
+
+--------------------------------------------------
+4. Improve loading behavior
+Add:
+- image skeleton/loading state
+- smooth fade-in
+- lazy loading for non-primary images
+
+Prevent:
+- layout shifts
+- flashing content
+- sudden resizing
+
+--------------------------------------------------
+5. Improve trust & housing-first feeling
+The gallery should support:
+- property clarity
+- trust
+- realism
+
+Avoid:
+- overly artistic presentation
+- social feed feeling
+- heavy overlays
+- oversized controls
+
+This is a housing marketplace, not a social platform.
+
+--------------------------------------------------
+6. Improve accessibility
+Ensure:
+- keyboard navigation works
+- focus trapping inside modal
+- accessible close button
+- aria labels for controls
+- good contrast
+
+--------------------------------------------------
+7. Improve performance
+Optimize:
+- responsive image sizes
+- lazy loading
+- image preloading for first photo
+- smooth transitions without heavy JS
+
+--------------------------------------------------
+8. Preserve Welkthuis design language
+Maintain:
+- minimalist Dutch marketplace aesthetics
+- calm visual rhythm
+- trust-focused UI
+- subtle neutral tones
+
+Avoid:
+- excessive shadows
+- neon highlights
+- glassmorphism
+- overly modern startup aesthetics
+
+Reference direction:
+- Airbnb gallery behavior
+- Funda.nl image viewing simplicity
+- calm premium marketplace UX
