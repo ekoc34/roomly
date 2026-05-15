@@ -126,14 +126,8 @@ export function ConversationPage() {
       setOther(otherProfile as Profile | null);
 
       if (user && otherProfile) {
-        const [{ data: blockByOtherRows }, { data: blockByMeRows }] = await Promise.all([
-          supabase!
-            .from("user_reports")
-            .select("id")
-            .eq("reporter_id", otherProfile.id)
-            .eq("reported_id", user.id)
-            .eq("reason", "blocked")
-            .limit(1),
+        // Fetch block status — use .limit(1) and check array length (never .maybeSingle())
+        const [{ data: byMeRows }, { data: byOtherRows }] = await Promise.all([
           supabase!
             .from("user_reports")
             .select("id")
@@ -141,9 +135,16 @@ export function ConversationPage() {
             .eq("reported_id", otherProfile.id)
             .eq("reason", "blocked")
             .limit(1),
+          supabase!
+            .from("user_reports")
+            .select("id")
+            .eq("reporter_id", otherProfile.id)
+            .eq("reported_id", user.id)
+            .eq("reason", "blocked")
+            .limit(1),
         ]);
-        setBlockedByOther(Array.isArray(blockByOtherRows) && blockByOtherRows.length > 0);
-        setBlockedByMe(Array.isArray(blockByMeRows) && blockByMeRows.length > 0);
+        setBlockedByMe(Array.isArray(byMeRows) && byMeRows.length > 0);
+        setBlockedByOther(Array.isArray(byOtherRows) && byOtherRows.length > 0);
       }
 
       await fetchMessages();
@@ -235,18 +236,8 @@ export function ConversationPage() {
       reason: "blocked",
     });
     if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
-    // Confirm actual DB state after insert (catches silent RLS failures)
-    const { data: confirmedRows } = await supabase
-      .from("user_reports")
-      .select("id")
-      .eq("reporter_id", user.id)
-      .eq("reported_id", other.id)
-      .eq("reason", "blocked")
-      .limit(1);
-    const isNowBlocked = Array.isArray(confirmedRows) && confirmedRows.length > 0;
-    setBlockedByMe(isNowBlocked);
-    if (isNowBlocked) toast.success("Gebruiker geblokkeerd.");
-    else toast.error("Blokkade kon niet worden ingesteld. Probeer opnieuw.");
+    setBlockedByMe(true);
+    toast.success("Gebruiker geblokkeerd.");
   }, [user, other]);
 
   const handleUnblock = useCallback(async () => {
@@ -258,18 +249,8 @@ export function ConversationPage() {
       .eq("reported_id", other.id)
       .eq("reason", "blocked");
     if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
-    // Confirm actual DB state after delete (catches silent RLS failures)
-    const { data: remainingRows } = await supabase
-      .from("user_reports")
-      .select("id")
-      .eq("reporter_id", user.id)
-      .eq("reported_id", other.id)
-      .eq("reason", "blocked")
-      .limit(1);
-    const stillBlocked = Array.isArray(remainingRows) && remainingRows.length > 0;
-    setBlockedByMe(stillBlocked);
-    if (!stillBlocked) toast.success("Blokkade opgeheven.");
-    else toast.error("Blokkade kon niet worden opgeheven. Probeer opnieuw.");
+    setBlockedByMe(false);
+    toast.success("Blokkade opgeheven.");
   }, [user, other]);
 
   const handleReport = useCallback(async (reason: string) => {
@@ -464,11 +445,9 @@ export function ConversationPage() {
         const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
         const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
-        const blockedMessage = blockedByMe
-          ? "Je hebt deze gebruiker geblokkeerd."
-          : blockedByOther
-            ? "Je kunt geen berichten sturen naar deze gebruiker."
-            : undefined;
+        const blockedMessage = (blockedByMe || blockedByOther)
+          ? "Je kunt geen berichten sturen naar deze gebruiker."
+          : undefined;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
             {!blockedMessage && (
