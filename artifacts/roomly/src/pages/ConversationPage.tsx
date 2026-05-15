@@ -126,14 +126,24 @@ export function ConversationPage() {
       setOther(otherProfile as Profile | null);
 
       if (user && otherProfile) {
-        const { data: blockedRows } = await supabase!
-          .from("user_reports")
-          .select("id")
-          .eq("reporter_id", user.id)
-          .eq("reported_id", otherProfile.id)
-          .eq("reason", "blocked")
-          .limit(1);
-        setBlockedByMe(blockedRows != null && blockedRows.length > 0);
+        const [{ data: byMeRows }, { data: byOtherRows }] = await Promise.all([
+          supabase!
+            .from("user_reports")
+            .select("id")
+            .eq("reporter_id", user.id)
+            .eq("reported_id", otherProfile.id)
+            .eq("reason", "blocked")
+            .limit(1),
+          supabase!
+            .from("user_reports")
+            .select("id")
+            .eq("reporter_id", otherProfile.id)
+            .eq("reported_id", user.id)
+            .eq("reason", "blocked")
+            .limit(1),
+        ]);
+        setBlockedByMe(byMeRows != null && byMeRows.length > 0);
+        setBlockedByOther(byOtherRows != null && byOtherRows.length > 0);
       }
 
       await fetchMessages();
@@ -434,7 +444,7 @@ export function ConversationPage() {
         const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
         const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
-        const blockedMessage = blockedByMe
+        const blockedMessage = (blockedByMe || blockedByOther)
           ? "Je kunt geen berichten sturen naar deze gebruiker."
           : undefined;
         return (
