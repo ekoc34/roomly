@@ -228,8 +228,20 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
       {/* Header row: title left, main switch right */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">Ontdek woningen en huisgenoten</h2>
-          <p className="mt-1 text-sm text-stone-400">Bekijk het aanbod dat nu beschikbaar is.</p>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">
+            {mainTab === "uitgelicht"
+              ? "Uitgelichte woningen en huisgenoten"
+              : mainTab === "nieuw"
+              ? "Nieuwe woningen en huisgenoten"
+              : "Ontdek woningen en huisgenoten"}
+          </h2>
+          <p className="mt-1 text-sm text-stone-400">
+            {mainTab === "uitgelicht"
+              ? "Bekijk advertenties die extra zichtbaar zijn gemaakt."
+              : mainTab === "nieuw"
+              ? "Bekijk het nieuwste aanbod op Welkthuis."
+              : "Bekijk het aanbod dat nu beschikbaar is."}
+          </p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-stone-100 p-1">
           <button type="button" onClick={() => setMainTab("uitgelicht")} className={mainTabClass("uitgelicht")}>
