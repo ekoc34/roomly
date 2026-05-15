@@ -12,11 +12,11 @@ import { isFullyVerified, isPartiallyVerified } from "@/lib/verificationUtils";
 
 const PROFILE_PERSONAS: Record<UserType, { label: string; icon: string; description: string }> = {
   verhuurder:        { label: "Verhuurder",           icon: "🏢", description: "Ik verhuur kamers of woningen" },
-  huisgenoot_zoeker: { label: "Huisgenoot zoeker",    icon: "🤝", description: "Ik zoek iemand om mee samen te wonen" },
+  huisgenoot_zoeker: { label: "Huisgenoot zoeker",    icon: "🤝", description: "Op zoek naar een huisgenoot" },
   student:           { label: "Student",              icon: "🎓", description: "Ik studeer en zoek een kamer of studio" },
   professional:      { label: "Professional / Expat", icon: "💼", description: "Ik werk en zoek een appartement of kamer" },
   alleenstaande:     { label: "Alleenstaande",        icon: "🧍", description: "Ik zoek een woning voor mezelf" },
-  family:            { label: "Familie",              icon: "🏡", description: "Wij zoeken een woning als gezin" },
+  family:            { label: "Familie · Stel",       icon: "🏡", description: "We zoeken naar een huis" },
 };
 
 const LIFESTYLE_TAGS = [
