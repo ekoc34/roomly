@@ -126,25 +126,14 @@ export function ConversationPage() {
       setOther(otherProfile as Profile | null);
 
       if (user && otherProfile) {
-        // Fetch block status — use .limit(1) and check array length (never .maybeSingle())
-        const [{ data: byMeRows }, { data: byOtherRows }] = await Promise.all([
-          supabase!
-            .from("user_reports")
-            .select("id")
-            .eq("reporter_id", user.id)
-            .eq("reported_id", otherProfile.id)
-            .eq("reason", "blocked")
-            .limit(1),
-          supabase!
-            .from("user_reports")
-            .select("id")
-            .eq("reporter_id", otherProfile.id)
-            .eq("reported_id", user.id)
-            .eq("reason", "blocked")
-            .limit(1),
-        ]);
-        setBlockedByMe(Array.isArray(byMeRows) && byMeRows.length > 0);
-        setBlockedByOther(Array.isArray(byOtherRows) && byOtherRows.length > 0);
+        const { data: blockedRows } = await supabase!
+          .from("user_reports")
+          .select("id")
+          .eq("reporter_id", user.id)
+          .eq("reported_id", otherProfile.id)
+          .eq("reason", "blocked")
+          .limit(1);
+        setBlockedByMe(blockedRows != null && blockedRows.length > 0);
       }
 
       await fetchMessages();
@@ -242,21 +231,13 @@ export function ConversationPage() {
 
   const handleUnblock = useCallback(async () => {
     if (!supabase || !user || !other) return;
-    console.log("[UNBLOCK] Attempting to delete block row", { reporter_id: user.id, reported_id: other.id });
-    const { error, data } = await supabase
+    const { error } = await supabase
       .from("user_reports")
       .delete()
       .eq("reporter_id", user.id)
       .eq("reported_id", other.id)
-      .eq("reason", "blocked")
-      .select("id");
-    console.log("[UNBLOCK] Delete result", { error, data });
-    if (error) {
-      console.error("[UNBLOCK] Delete failed", error);
-      toast.error("Actie mislukt. Probeer opnieuw.");
-      return;
-    }
-    console.log("[UNBLOCK] Setting blockedByMe to FALSE");
+      .eq("reason", "blocked");
+    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
     setBlockedByMe(false);
     toast.success("Blokkade opgeheven.");
   }, [user, other]);
@@ -453,8 +434,7 @@ export function ConversationPage() {
         const tenantHasSent = messages.some(m => m.sender_id === conversation.tenant_id);
         const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
-        console.log("[COMPOSER] blockedByMe:", blockedByMe, "blockedByOther:", blockedByOther);
-        const blockedMessage = (blockedByMe || blockedByOther)
+        const blockedMessage = blockedByMe
           ? "Je kunt geen berichten sturen naar deze gebruiker."
           : undefined;
         return (
