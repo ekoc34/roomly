@@ -190,7 +190,7 @@ export function UserPersonaSelector() {
               </button>
               <p className="text-sm font-semibold uppercase tracking-widest text-rose-500">Stap 2 van 2</p>
               <h2 className="mt-2 text-2xl font-black text-stone-900 sm:text-3xl">Kies je situatie</h2>
-              <p className="mt-2 text-base leading-relaxed text-stone-500">Kies wat het beste bij jou past.</p>
+              <p className="mt-2 text-base leading-relaxed text-stone-500">Vind woningen en huisgenoten die bij je passen.</p>
             </div>
 
             <div className="mt-8 grid gap-3">
