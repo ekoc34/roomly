@@ -1,0 +1,106 @@
+Fix the critical notifications security issue in Welkthuis.nl.
+
+This is a backend/privacy/security hardening task — not a UI redesign.
+
+--------------------------------------------------
+CURRENT CRITICAL PROBLEM
+--------------------------------------------------
+
+The notifications table currently allows open inserts:
+
+with check (true)
+
+This means:
+- any authenticated user can insert notifications into any other user's inbox
+- arbitrary notification spam/phishing is possible
+- notification trust is compromised
+
+The current implementation in NewListingPage also inserts notifications directly from the client for other users.
+
+This is NOT acceptable for a trust-first EU marketplace.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Notification creation must become server-controlled.
+
+Normal users must NEVER be able to:
+- insert notifications into another user's inbox directly
+- spoof system notifications
+- create arbitrary notifications for other users
+
+--------------------------------------------------
+TASKS
+--------------------------------------------------
+
+1. Inspect current notification architecture
+- inspect schema.sql
+- inspect notifications RLS policies
+- inspect NewListingPage notification inserts
+- inspect any Edge Functions or RPCs related to notifications
+
+2. Remove open INSERT behavior
+- identify the unsafe policy:
+  with check (true)
+- replace it with a safe alternative
+- users should only be able to create notifications for themselves directly, if needed
+- cross-user notification creation must move server-side
+
+3. Refactor saved-search notifications
+Current issue:
+- the browser loops through saved searches
+- the browser inserts notification rows for other users
+
+This logic must NOT remain client-side.
+
+Move this to:
+- a secure Edge Function
+OR
+- a secure Postgres function/trigger
+
+The client should:
+- create the listing
+- call the trusted backend path
+- backend decides which users receive notifications
+
+4. Verify abuse resistance
+Ensure:
+- users cannot spoof sender/system notifications
+- users cannot inject arbitrary notification content into another user's inbox
+- notification ownership is enforced by RLS
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+Do NOT redesign the notification UI.
+
+Do NOT remove the feature itself.
+
+Preserve:
+- saved search alerts
+- recommendation notifications
+- notification inbox UX
+
+Only harden the architecture and security model.
+
+--------------------------------------------------
+WHAT TO RETURN
+--------------------------------------------------
+
+Before changing code:
+1. explain exactly how the exploit currently works
+2. explain which files/policies are unsafe
+3. explain the safest architecture
+
+Then:
+4. implement the fix
+5. explain what changed
+6. confirm that cross-user notification inserts are no longer possible from the browser
+
+Also clearly state:
+- what still depends on live Supabase migrations
+- what must be applied in the SQL editor manually
+
+Think like a production security reviewer for a GDPR-conscious housing marketplace.

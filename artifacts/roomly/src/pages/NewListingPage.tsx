@@ -9,7 +9,7 @@ import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { isFullyVerified } from "@/lib/verificationUtils";
 import { mapRpcError } from "@/lib/rpcErrors";
-import type { ListingType, SavedSearch, Profile, Listing } from "@/types/database";
+import type { ListingType, Profile, Listing } from "@/types/database";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
 const NEW_LISTING_IMAGES_KEY = "roomly_new_listing_images";
@@ -32,92 +32,6 @@ const inputClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px
 const selectClass = "mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
 const labelClass = "text-xs font-medium text-stone-700";
 
-type NewListing = {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  location: string;
-  type: string;
-  pets_allowed: boolean;
-  smoking_allowed: boolean;
-  gender_preference: string | null;
-  rooms: number | null;
-  surface_area: number | null;
-};
-
-function listingMatchesFilters(listing: NewListing, filters: Record<string, string>): boolean {
-  const q          = filters.q ?? "";
-  const city       = filters.city ?? "";
-  const district   = filters.district ?? "";
-  const filterType = filters.type ?? "";
-  const minPrice   = Number(filters.min ?? 0);
-  const maxPrice   = Number(filters.max ?? 10000);
-  const pets       = filters.pets ?? "";
-  const smoking    = filters.smoking ?? "";
-  const gender     = filters.gender ?? "";
-  const rooms      = filters.rooms ?? "";
-  const minSurface = filters.min_surface ?? "";
-
-  if (q && !`${listing.title} ${listing.description} ${listing.location}`.toLowerCase().includes(q.toLowerCase())) return false;
-  if (city && !listing.location.toLowerCase().includes(city.toLowerCase())) return false;
-  if (district && !listing.location.toLowerCase().includes(district.toLowerCase())) return false;
-  if (filterType && listing.type !== filterType) return false;
-  if (minPrice > 0 && listing.price < minPrice) return false;
-  if (maxPrice < 10000 && listing.price > maxPrice) return false;
-  if (pets === "1" && !listing.pets_allowed) return false;
-  if (smoking === "1" && !listing.smoking_allowed) return false;
-  if (gender && listing.gender_preference !== gender) return false;
-  if (rooms && (listing.rooms == null || listing.rooms < Number(rooms))) return false;
-  if (minSurface && (listing.surface_area == null || listing.surface_area < Number(minSurface))) return false;
-  return true;
-}
-
-async function notifyMatchingSavedSearches(listing: NewListing, ownerId: string) {
-  if (!supabase) return;
-  const { data: savedSearches } = await supabase
-    .from("saved_searches")
-    .select("*")
-    .eq("notify", true)
-    .neq("user_id", ownerId);
-
-  const matches = ((savedSearches as SavedSearch[] | null) ?? []).filter((s) =>
-    listingMatchesFilters(listing, s.filters as Record<string, string>)
-  );
-
-  if (matches.length === 0) return;
-
-  const matchingUserIds = [...new Set(matches.map((s) => s.user_id))];
-  const { data: prefsData } = await supabase!
-    .from("profiles")
-    .select("id, notify_matching_listing")
-    .in("id", matchingUserIds);
-  const prefsMap = new Map(
-    ((prefsData ?? []) as { id: string; notify_matching_listing: boolean | null }[]).map((p) => [p.id, p.notify_matching_listing])
-  );
-
-  const now = new Date().toISOString();
-  await Promise.all(
-    matches.map(async (s) => {
-      const wantsNotif = prefsMap.get(s.user_id) !== false;
-      await Promise.all([
-        wantsNotif
-          ? supabase!.from("notifications").insert({
-              user_id: s.user_id,
-              type: "new_matching_listing",
-              title: "Nieuwe woning gevonden!",
-              body: `"${listing.title}" in ${listing.location} matcht met je opgeslagen zoekopdracht "${s.name}".`,
-              related_id: listing.id,
-            })
-          : Promise.resolve(),
-        supabase!
-          .from("saved_searches")
-          .update({ last_matched_at: now })
-          .eq("id", s.id),
-      ]);
-    })
-  );
-}
 
 export function NewListingPage() {
   const { user, loading: authLoading } = useAuth();
@@ -292,10 +206,9 @@ export function NewListingPage() {
       sessionStorage.removeItem(NEW_LISTING_IMAGES_KEY);
       toast.success("Advertentie geplaatst!");
 
-      notifyMatchingSavedSearches(
-        { id: listingId, title, description, price, location, type, pets_allowed: petsAllowed, smoking_allowed: smokingAllowed, gender_preference, rooms, surface_area },
-        user.id
-      );
+      // Fire-and-forget: server-side function matches saved searches and
+      // inserts notifications; the browser never touches other users' inboxes.
+      void supabase?.rpc("notify_saved_search_matches", { p_listing_id: listingId });
 
       navigate(`/kamers/${listingId}`);
     });

@@ -382,3 +382,124 @@ DROP TRIGGER IF EXISTS profiles_prevent_role_escalation ON public.profiles;
 CREATE TRIGGER profiles_prevent_role_escalation
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE PROCEDURE public.prevent_role_escalation();
+
+-- ============================================================
+-- SECURITY MIGRATION: Fix notification open INSERT (CRITICAL-1)
+-- Run in Supabase SQL Editor
+-- ============================================================
+
+-- 1. Add 'new_matching_listing' to the notifications type constraint.
+ALTER TABLE public.notifications
+  DROP CONSTRAINT IF EXISTS notifications_type_check;
+ALTER TABLE public.notifications
+  ADD CONSTRAINT notifications_type_check
+    CHECK (type IN (
+      'new_application',
+      'application_accepted',
+      'application_rejected',
+      'new_message',
+      'new_matching_listing'
+    ));
+
+-- 2. Replace the open INSERT policy.
+DROP POLICY IF EXISTS "System can insert notifications" ON public.notifications;
+CREATE POLICY "Users can insert own notifications"
+  ON public.notifications FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- 3. Server-side saved-search notification function.
+CREATE OR REPLACE FUNCTION public.notify_saved_search_matches(p_listing_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_listing RECORD;
+  v_search  RECORD;
+  v_wants   BOOLEAN;
+  v_body    TEXT;
+BEGIN
+  SELECT id, title, description, price, location, type,
+         pets_allowed, smoking_allowed, gender_preference, rooms, surface_area
+  INTO v_listing
+  FROM public.listings
+  WHERE id = p_listing_id AND user_id = auth.uid();
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'not_owner: caller does not own listing %', p_listing_id;
+  END IF;
+
+  FOR v_search IN
+    SELECT ss.id, ss.user_id, ss.name, ss.filters
+    FROM public.saved_searches ss
+    WHERE ss.notify = true
+      AND ss.user_id != auth.uid()
+  LOOP
+    CONTINUE WHEN
+      (
+        (v_search.filters->>'q') IS NOT NULL AND (v_search.filters->>'q') <> '' AND
+        NOT (
+          v_listing.title || ' ' || COALESCE(v_listing.description, '') || ' ' || v_listing.location
+          ILIKE '%' || (v_search.filters->>'q') || '%'
+        )
+      ) OR
+      (
+        (v_search.filters->>'city') IS NOT NULL AND (v_search.filters->>'city') <> '' AND
+        NOT v_listing.location ILIKE '%' || (v_search.filters->>'city') || '%'
+      ) OR
+      (
+        (v_search.filters->>'district') IS NOT NULL AND (v_search.filters->>'district') <> '' AND
+        NOT v_listing.location ILIKE '%' || (v_search.filters->>'district') || '%'
+      ) OR
+      (
+        (v_search.filters->>'type') IS NOT NULL AND (v_search.filters->>'type') <> '' AND
+        v_listing.type <> (v_search.filters->>'type')
+      ) OR
+      (
+        (v_search.filters->>'min') IS NOT NULL AND
+        (v_search.filters->>'min')::numeric > 0 AND
+        v_listing.price < (v_search.filters->>'min')::numeric
+      ) OR
+      (
+        (v_search.filters->>'max') IS NOT NULL AND
+        (v_search.filters->>'max')::numeric < 10000 AND
+        v_listing.price > (v_search.filters->>'max')::numeric
+      ) OR
+      (v_search.filters->>'pets' = '1' AND NOT COALESCE(v_listing.pets_allowed, false)) OR
+      (v_search.filters->>'smoking' = '1' AND NOT COALESCE(v_listing.smoking_allowed, false)) OR
+      (
+        (v_search.filters->>'gender') IS NOT NULL AND (v_search.filters->>'gender') <> '' AND
+        v_listing.gender_preference IS DISTINCT FROM (v_search.filters->>'gender')
+      ) OR
+      (
+        (v_search.filters->>'rooms') IS NOT NULL AND (v_search.filters->>'rooms') <> '' AND
+        (v_listing.rooms IS NULL OR v_listing.rooms < (v_search.filters->>'rooms')::integer)
+      ) OR
+      (
+        (v_search.filters->>'min_surface') IS NOT NULL AND (v_search.filters->>'min_surface') <> '' AND
+        (v_listing.surface_area IS NULL OR v_listing.surface_area < (v_search.filters->>'min_surface')::integer)
+      );
+
+    SELECT COALESCE(notify_matching_listing, true) INTO v_wants
+    FROM public.profiles WHERE id = v_search.user_id;
+
+    IF v_wants THEN
+      v_body := '"' || v_listing.title || '" in ' || v_listing.location
+             || ' matcht met je opgeslagen zoekopdracht "' || v_search.name || '".';
+
+      INSERT INTO public.notifications (user_id, type, title, body, related_id)
+      VALUES (
+        v_search.user_id,
+        'new_matching_listing',
+        'Nieuwe woning gevonden!',
+        v_body,
+        p_listing_id
+      )
+      ON CONFLICT DO NOTHING;
+    END IF;
+
+    UPDATE public.saved_searches SET last_matched_at = NOW() WHERE id = v_search.id;
+  END LOOP;
+END;
+$$;
