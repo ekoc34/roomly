@@ -30,7 +30,7 @@ type OtherListing = {
   id: string;
   title: string;
   price: number | null;
-  city: string | null;
+  location: string | null;
   images: string[] | null;
 };
 
@@ -147,9 +147,8 @@ export function ApplicantProfilePanel({
     if (!profileId || !supabase) { setOtherListings([]); return; }
     let query = supabase
       .from("listings")
-      .select("id, title, price, city, images")
+      .select("id, title, price, location, images")
       .eq("user_id", profileId)
-      .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(currentListingId ? 6 : 5);
     if (currentListingId) query = query.neq("id", currentListingId);
@@ -436,7 +435,7 @@ export function ApplicantProfilePanel({
                           <p className="truncate text-xs font-medium text-stone-800">{listing.title}</p>
                           <p className="mt-0.5 text-[10px] text-stone-400">
                             {listing.price != null ? `€ ${listing.price.toLocaleString("nl-NL")}/mnd` : "Prijs op aanvraag"}
-                            {listing.city ? ` · ${listing.city}` : ""}
+                            {listing.location ? ` · ${listing.location}` : ""}
                           </p>
                         </div>
                         <svg className="h-3.5 w-3.5 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

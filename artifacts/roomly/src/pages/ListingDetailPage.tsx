@@ -108,6 +108,7 @@ export function ListingDetailPage() {
             profileId={listing.user_id}
             mode="landlord"
             viewerUserId={user?.id}
+            currentListingId={listing.id}
             onClose={() => setShowLandlordPanel(false)}
           />
         )}
