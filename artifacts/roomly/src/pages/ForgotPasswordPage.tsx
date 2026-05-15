@@ -43,9 +43,6 @@ export function ForgotPasswordPage() {
             <p className="mt-1 text-xs text-emerald-700">
               We hebben een reset link gestuurd. Controleer ook je spam-map.
             </p>
-            <Link href="/inloggen" className="mt-4 inline-block text-sm font-medium text-rose-600 hover:underline">
-              Terug naar inloggen
-            </Link>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
