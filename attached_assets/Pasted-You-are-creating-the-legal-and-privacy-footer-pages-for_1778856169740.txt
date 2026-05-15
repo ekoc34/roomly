@@ -1,0 +1,170 @@
+You are creating the legal and privacy footer pages for Welkthuis.nl.
+
+Important context:
+- Welkthuis is a calm, trust-focused Dutch housing marketplace.
+- The platform connects:
+  - huurders
+  - verhuurders
+  - huisgenoten
+- The product tone is:
+  - minimalist
+  - transparent
+  - human
+  - privacy-conscious
+- The legal pages should feel:
+  - clear
+  - readable
+  - modern
+  - non-intimidating
+- Avoid:
+  - giant walls of legal text
+  - aggressive corporate language
+  - excessive legal jargon
+  - dark-pattern cookie behavior
+
+Create four footer pages:
+
+1. Privacy
+2. Voorwaarden
+3. Cookies
+4. Cookievoorkeuren
+
+--------------------------------------------------
+1. PRIVACY PAGE
+--------------------------------------------------
+
+Create a clean privacy policy page structure.
+
+Include sections for:
+- Welke gegevens we verzamelen
+- Waarom we deze gegevens gebruiken
+- Account- en profielgegevens
+- Advertenties en berichten
+- Verificatiegegevens
+- Cookies en analytics
+- Hoe lang gegevens worden bewaard
+- Wanneer gegevens worden gedeeld
+- Rechten van gebruikers
+- Contactinformatie
+
+Guidelines:
+- Use readable Dutch copy
+- Keep paragraphs short
+- Use section spacing and headings
+- Make the page feel understandable for normal users
+- Avoid fear-inducing legal tone
+
+Add subtle UI improvements:
+- max-width reading container
+- calm typography hierarchy
+- muted section dividers
+- responsive mobile spacing
+
+--------------------------------------------------
+2. VOORWAARDEN PAGE
+--------------------------------------------------
+
+Create a modern “Terms & Conditions” page for a housing marketplace.
+
+Include sections for:
+- Gebruik van het platform
+- Accounts en verantwoordelijkheid
+- Advertenties plaatsen
+- Huisregels en verboden gedrag
+- Spam en misbruik
+- Verificatie en vertrouwen
+- Betalingen en boosts
+- Aansprakelijkheid
+- Moderatie en accountbeperkingen
+- Wijzigingen aan het platform
+- Contact
+
+Tone:
+- calm
+- fair
+- transparent
+- trust-focused
+
+Avoid:
+- harsh legal intimidation
+- overly aggressive warnings
+- corporate wording
+
+Important:
+- Explain rules in human language
+- Keep content scannable
+- Use bullet points where appropriate
+
+--------------------------------------------------
+3. COOKIES PAGE
+--------------------------------------------------
+
+Create a dedicated cookie information page.
+
+Structure the page around cookie categories:
+
+- Noodzakelijke cookies
+- Analytische cookies
+- Functionele cookies
+- Marketingcookies (if applicable)
+
+For each category explain:
+- what the cookies do
+- why they are used
+- whether third parties are involved
+- how long they may remain active
+
+Important:
+- Clearly explain that users can manage preferences anytime
+- Avoid manipulative consent language
+- Keep explanations short and understandable
+
+UI goals:
+- accordion-style sections
+- lightweight design
+- mobile-friendly readability
+
+--------------------------------------------------
+4. COOKIEVOORKEUREN PAGE
+--------------------------------------------------
+
+Create a cookie preferences/settings page.
+
+The page should include:
+- category-based toggles
+- clear explanations
+- save preferences action
+- accept all
+- reject non-essential cookies
+
+Behavior requirements:
+- necessary cookies are always enabled
+- analytics/marketing cookies are optional
+- users can change preferences anytime
+
+UI requirements:
+- calm settings-style layout
+- soft borders
+- no aggressive colors
+- no dark patterns
+- no oversized cookie banners
+
+--------------------------------------------------
+GLOBAL DESIGN REQUIREMENTS
+--------------------------------------------------
+
+All four pages should:
+- match the Welkthuis visual system
+- feel calm and trustworthy
+- use consistent spacing and typography
+- work well on mobile
+- avoid “corporate SaaS” feeling
+- preserve minimalist Dutch marketplace aesthetics
+
+Footer links should appear as:
+- Privacy
+- Voorwaarden
+- Cookies
+- Cookievoorkeuren
+
+Use subtle hover states and muted typography.

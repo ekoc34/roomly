@@ -40,6 +40,10 @@ const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage").then(
 const ContactPage = lazy(() => import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })));
 const PricingPage = lazy(() => import("@/pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const PaymentSuccessPage = lazy(() => import("@/pages/PaymentSuccessPage").then((m) => ({ default: m.PaymentSuccessPage })));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage").then((m) => ({ default: m.PrivacyPage })));
+const VoorwaardenPage = lazy(() => import("@/pages/VoorwaardenPage").then((m) => ({ default: m.VoorwaardenPage })));
+const CookiesPage = lazy(() => import("@/pages/CookiesPage").then((m) => ({ default: m.CookiesPage })));
+const CookieVoorkeurenPage = lazy(() => import("@/pages/CookieVoorkeurenPage").then((m) => ({ default: m.CookieVoorkeurenPage })));
 
 function PageLoader() {
   return (
@@ -109,6 +113,10 @@ function Router() {
       <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
       <Route path="/pricing" component={() => <AnimatedRoute component={PricingPage} />} />
       <Route path="/betaling-succesvol" component={() => <AnimatedRoute component={PaymentSuccessPage} />} />
+      <Route path="/privacy" component={() => <AnimatedRoute component={PrivacyPage} />} />
+      <Route path="/voorwaarden" component={() => <AnimatedRoute component={VoorwaardenPage} />} />
+      <Route path="/cookies" component={() => <AnimatedRoute component={CookiesPage} />} />
+      <Route path="/cookievoorkeuren" component={() => <AnimatedRoute component={CookieVoorkeurenPage} />} />
       <Route component={NotFound} />
     </Switch>
   );
