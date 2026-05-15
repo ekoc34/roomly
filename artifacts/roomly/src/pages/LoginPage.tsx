@@ -144,6 +144,11 @@ export function LoginPage() {
             <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="login-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
               {isPending ? "Inloggen…" : "Inloggen"}
             </button>
+            <p className="text-center text-xs text-stone-400">
+              Ons{" "}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-stone-600">privacybeleid</Link>{" "}
+              is van toepassing.
+            </p>
           </form>
 
           <p className="mt-4 text-center text-sm">

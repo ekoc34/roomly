@@ -150,6 +150,13 @@ export function RegisterPage() {
             <button type="submit" disabled={isPending || !isSupabaseConfigured()} data-testid="register-submit" className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]">
               {isPending ? "Bezig…" : "Account aanmaken"}
             </button>
+            <p className="text-center text-xs leading-relaxed text-stone-400">
+              Door je aan te melden ga je akkoord met onze{" "}
+              <Link href="/voorwaarden" className="underline underline-offset-2 hover:text-stone-600">gebruiksvoorwaarden</Link>.{" "}
+              Ons{" "}
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-stone-600">privacybeleid</Link>{" "}
+              is van toepassing.
+            </p>
           </form>
 
           <p className="mt-5 text-center text-sm text-stone-500">
