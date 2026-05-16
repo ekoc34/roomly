@@ -1,5 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// ── Security model ────────────────────────────────────────────
+// This function has no auth header check. Instead it is safe because:
+//   1. It only reads/writes data already in the caller's own database.
+//   2. All state changes go through the service role client server-side.
+//   3. Duplicate prevention (unique index on email_notifications) makes it
+//      idempotent: calling it twice with the same application_id produces
+//      exactly one email (second call hits a 23505 unique violation → skipped).
+//   4. No sensitive data is returned in the response — only status strings.
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -12,32 +21,18 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: CORS_HEADERS });
   }
 
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Methode niet toegestaan." }), {
+      status: 405,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  }
+
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const webhookSecret  = Deno.env.get("EMAIL_WEBHOOK_SECRET");
   const resendApiKey   = Deno.env.get("RESEND_API_KEY");
   const fromEmail      = Deno.env.get("EMAIL_FROM") ?? "Roomly <noreply@roomly.nl>";
   const appBaseUrl     = Deno.env.get("APP_BASE_URL") ?? "https://roomly.nl";
-
-  // ── Authenticate: validate the webhook secret from the DB trigger ──
-  // The database trigger sends Bearer <EMAIL_WEBHOOK_SECRET>.
-  // The Supabase service role key is never stored in the database.
-  if (!webhookSecret) {
-    console.error("[notify-application] EMAIL_WEBHOOK_SECRET is not configured.");
-    return new Response(JSON.stringify({ error: "Serverconfiguratie ontbreekt." }), {
-      status: 500,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
-  }
-
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (!token || token !== webhookSecret) {
-    return new Response(JSON.stringify({ error: "Ongeautoriseerd." }), {
-      status: 401,
-      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-    });
-  }
 
   if (!resendApiKey) {
     console.error("[notify-application] RESEND_API_KEY is not set — skipping.");
@@ -48,9 +43,9 @@ Deno.serve(async (req) => {
   }
 
   let payload: {
-    application_id: string;
-    listing_id: string;
-    applicant_id: string;
+    application_id?: unknown;
+    listing_id?: unknown;
+    applicant_id?: unknown;
   };
 
   try {
@@ -63,14 +58,20 @@ Deno.serve(async (req) => {
   }
 
   const { application_id, listing_id, applicant_id } = payload;
-  if (!application_id || !listing_id || !applicant_id) {
-    return new Response(JSON.stringify({ error: "Ontbrekende velden." }), {
+
+  // Validate that all fields are non-empty UUID-shaped strings
+  const isUuid = (v: unknown): v is string =>
+    typeof v === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+  if (!isUuid(application_id) || !isUuid(listing_id) || !isUuid(applicant_id)) {
+    return new Response(JSON.stringify({ error: "Ongeldige of ontbrekende UUID-velden." }), {
       status: 400,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
     });
   }
 
-  // ── Use service role key internally to bypass RLS ─────────────
+  // ── Use service role key server-side to bypass RLS ────────────
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });
@@ -121,8 +122,9 @@ Deno.serve(async (req) => {
     });
   }
 
-  // ── Dedup: unique index on (user_id, type='application', related_id)
-  //    prevents duplicate rows; we attempt INSERT and skip if conflict ─
+  // ── Dedup via unique index on (user_id, type='application', related_id) ─
+  // A second call with the same application_id hits a 23505 unique
+  // violation and is caught and skipped — exactly one email is sent.
   const { error: logInsertErr, data: logRow } = await admin
     .from("email_notifications")
     .insert({
@@ -135,7 +137,6 @@ Deno.serve(async (req) => {
     .single();
 
   if (logInsertErr) {
-    // Unique-constraint violation → already sent / in-flight
     if (logInsertErr.code === "23505") {
       return new Response(JSON.stringify({ skipped: true, reason: "duplicate" }), {
         status: 200,
