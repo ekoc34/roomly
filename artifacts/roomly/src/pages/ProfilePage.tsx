@@ -109,6 +109,8 @@ export function ProfilePage() {
   const [notifyNewMessage, setNotifyNewMessage] = useState(true);
   const [notifyApplicationUpdate, setNotifyApplicationUpdate] = useState(true);
   const [notifyMatchingListing, setNotifyMatchingListing] = useState(true);
+  const [notifyEmailMessages, setNotifyEmailMessages] = useState(true);
+  const [notifyEmailApplications, setNotifyEmailApplications] = useState(true);
   const [lifestyleTags, setLifestyleTags] = useState<string[]>([]);
 
   useEffect(() => {
@@ -153,6 +155,8 @@ export function ProfilePage() {
       setNotifyNewMessage(profile.notify_new_message ?? true);
       setNotifyApplicationUpdate(profile.notify_application_update ?? true);
       setNotifyMatchingListing(profile.notify_matching_listing ?? true);
+      setNotifyEmailMessages(profile.notify_email_messages ?? true);
+      setNotifyEmailApplications(profile.notify_email_applications ?? true);
       setLifestyleTags(profile.lifestyle_tags ?? []);
     }
   }, [profile]);
@@ -239,13 +243,20 @@ export function ProfilePage() {
   };
 
   const handleNotifToggle = async (
-    field: "notify_new_message" | "notify_application_update" | "notify_matching_listing",
+    field:
+      | "notify_new_message"
+      | "notify_application_update"
+      | "notify_matching_listing"
+      | "notify_email_messages"
+      | "notify_email_applications",
     value: boolean
   ) => {
     if (!supabase || !user) return;
     if (field === "notify_new_message") setNotifyNewMessage(value);
     if (field === "notify_application_update") setNotifyApplicationUpdate(value);
     if (field === "notify_matching_listing") setNotifyMatchingListing(value);
+    if (field === "notify_email_messages") setNotifyEmailMessages(value);
+    if (field === "notify_email_applications") setNotifyEmailApplications(value);
     await supabase.from("profiles").update({ [field]: value }).eq("id", user.id);
   };
 
@@ -885,7 +896,7 @@ export function ProfilePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
                       <Home className="h-4 w-4 text-stone-400" />
@@ -898,6 +909,43 @@ export function ProfilePage() {
                   <Toggle
                     checked={notifyMatchingListing}
                     onToggle={() => handleNotifToggle("notify_matching_listing", !notifyMatchingListing)}
+                  />
+                </div>
+
+                {/* ── E-mail meldingen subheader ── */}
+                <div className="border-b border-stone-100 px-5 py-3 sm:px-6 bg-stone-50/60">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-400">E-mail meldingen</p>
+                </div>
+
+                <div className="flex items-center justify-between gap-4 border-b border-stone-100 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Mail className="h-4 w-4 text-stone-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">E-mail bij nieuw bericht</p>
+                      <p className="text-xs text-stone-400 mt-0.5">Ontvang een e-mail als je een nieuw chatbericht krijgt</p>
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={notifyEmailMessages}
+                    onToggle={() => handleNotifToggle("notify_email_messages", !notifyEmailMessages)}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                      <Mail className="h-4 w-4 text-stone-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-stone-800">E-mail bij nieuwe aanvraag</p>
+                      <p className="text-xs text-stone-400 mt-0.5">Ontvang een e-mail als iemand reageert op jouw advertentie</p>
+                    </div>
+                  </div>
+                  <Toggle
+                    checked={notifyEmailApplications}
+                    onToggle={() => handleNotifToggle("notify_email_applications", !notifyEmailApplications)}
                   />
                 </div>
               </div>

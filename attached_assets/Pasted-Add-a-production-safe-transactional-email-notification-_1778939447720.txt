@@ -1,0 +1,102 @@
+Add a production-safe transactional email notification system to Roomly.
+
+Goals:
+
+* Notify landlords by email when:
+
+  1. they receive a new message
+  2. they receive a new application / interest
+* Use Supabase Edge Functions.
+* All user-facing copy must be in Dutch.
+
+Architecture requirements:
+
+* DO NOT send emails directly from the frontend.
+* DO NOT send emails inline inside RPCs.
+* Email sending must happen asynchronously through Edge Functions.
+* Use Resend (preferred) or SendGrid.
+* Prevent duplicate email sends.
+* Prevent notification storms during rapid chat activity.
+
+Database changes:
+
+* Add notification preference columns to profiles:
+
+  * notify_email_messages BOOLEAN DEFAULT true
+  * notify_email_applications BOOLEAN DEFAULT true
+
+* Add an email_notifications table to track delivery state:
+
+  * id UUID
+  * user_id UUID
+  * type TEXT
+  * related_id UUID
+  * sent_at TIMESTAMPTZ
+  * status TEXT
+  * error TEXT NULL
+
+* Add unique constraints to prevent duplicate sends for the same event.
+
+Message notification behavior:
+
+* When a new message is created:
+
+  * notify ONLY the recipient, never the sender
+  * do not email if the recipient currently has the conversation open
+  * debounce emails:
+
+    * maximum 1 email per conversation per 10 minutes
+  * include:
+
+    * sender name
+    * listing title
+    * first ~120 chars of message
+    * CTA link to the conversation
+
+Application notification behavior:
+
+* When a new application is created:
+
+  * notify the listing owner once
+  * prevent duplicate sends for the same application
+  * include:
+
+    * applicant name
+    * listing title
+    * CTA link to dashboard/applications
+
+Edge Function requirements:
+
+* Verify request authenticity.
+* Use service-role key only server-side.
+* Gracefully handle provider failures.
+* Log all failures into email_notifications.error.
+* Never block the user action if email sending fails.
+
+Triggering:
+
+* Use database triggers or NOTIFY events to enqueue email jobs.
+* Avoid direct client-triggered email invocation.
+
+Frontend:
+
+* Add toggles in dashboard settings for:
+
+  * email notifications for messages
+  * email notifications for applications
+
+Operational safety:
+
+* Add retry protection.
+* Add timeout handling.
+* Add rate limiting protections.
+* Avoid sending duplicate emails during realtime reconnects.
+
+Deliverables:
+
+* Exact SQL migration(s)
+* Edge Function files
+* Frontend files changed
+* Required environment variables
+* Explanation of duplicate-prevention strategy
+* Explanation of debounce strategy

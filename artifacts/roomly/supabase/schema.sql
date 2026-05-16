@@ -1009,3 +1009,11 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- ============================================================
+-- MIGRATION: Transactional e-mail notifications
+-- See: supabase/migration_email_notifications.sql
+-- ============================================================
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS notify_email_messages      BOOLEAN NOT NULL DEFAULT TRUE,
+  ADD COLUMN IF NOT EXISTS notify_email_applications  BOOLEAN NOT NULL DEFAULT TRUE;
