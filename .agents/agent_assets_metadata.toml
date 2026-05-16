@@ -24,3 +24,9 @@ id = "YRZCE0jPZF1NYmaBs0Kew"
 uri = "file://artifacts/roomly/public/concept-f.svg"
 type = "image"
 title = "BONUS — The Nesting (4 nested houses, fading out to solid: finding the one)"
+
+[[outputs]]
+id = "Wg4HpBUX_6N1O8hpHnyLe"
+uri = "file://artifacts/roomly/docs/abuse-audit.md"
+type = "text"
+title = "Roomly — Storage, Bandwidth & Operational Abuse Audit"
