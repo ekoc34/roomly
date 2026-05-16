@@ -14,14 +14,25 @@ Deno.serve(async (req) => {
 
   const supabaseUrl    = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const webhookSecret  = Deno.env.get("EMAIL_WEBHOOK_SECRET");
   const resendApiKey   = Deno.env.get("RESEND_API_KEY");
   const fromEmail      = Deno.env.get("EMAIL_FROM") ?? "Roomly <noreply@roomly.nl>";
   const appBaseUrl     = Deno.env.get("APP_BASE_URL") ?? "https://roomly.nl";
 
-  // ── Authenticate: only internal service-role calls accepted ──
+  // ── Authenticate: validate the webhook secret from the DB trigger ──
+  // The database trigger sends Bearer <EMAIL_WEBHOOK_SECRET>.
+  // The Supabase service role key is never stored in the database.
+  if (!webhookSecret) {
+    console.error("[notify-application] EMAIL_WEBHOOK_SECRET is not configured.");
+    return new Response(JSON.stringify({ error: "Serverconfiguratie ontbreekt." }), {
+      status: 500,
+      headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    });
+  }
+
   const authHeader = req.headers.get("Authorization") ?? "";
   const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (token !== serviceRoleKey) {
+  if (!token || token !== webhookSecret) {
     return new Response(JSON.stringify({ error: "Ongeautoriseerd." }), {
       status: 401,
       headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
@@ -59,6 +70,7 @@ Deno.serve(async (req) => {
     });
   }
 
+  // ── Use service role key internally to bypass RLS ─────────────
   const admin = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false },
   });

@@ -3,10 +3,33 @@
 -- Run in Supabase SQL Editor AFTER deploying the two Edge
 -- Functions (notify-message, notify-application).
 --
--- Required once per project (run in SQL Editor or via CLI):
---   ALTER DATABASE postgres SET app.supabase_url = 'https://YOUR_PROJECT_REF.supabase.co';
---   ALTER DATABASE postgres SET app.service_role_key = 'YOUR_SERVICE_ROLE_KEY';
---   SELECT pg_reload_conf();
+-- ── MANUAL SETUP REQUIRED (run once in SQL Editor) ───────────
+--
+--   1. Generate a secure random secret, e.g.:
+--        openssl rand -hex 32
+--
+--   2. Store it as a database setting:
+--        ALTER DATABASE postgres
+--          SET app.email_webhook_secret = 'YOUR_GENERATED_SECRET';
+--        SELECT pg_reload_conf();
+--
+--   3. Set the same value as the edge function secret
+--      EMAIL_WEBHOOK_SECRET in Supabase → Edge Functions → Secrets.
+--
+--   The Supabase project URL is read from the auto-provided
+--   setting app.settings.supabase_url (set by Supabase on all
+--   managed instances). If your project does not expose that
+--   setting, run the optional fallback below:
+--
+--   [optional fallback — only needed if the trigger logs "no url"]
+--        ALTER DATABASE postgres
+--          SET app.supabase_url = 'https://YOUR_PROJECT_REF.supabase.co';
+--        SELECT pg_reload_conf();
+--
+-- ── SECRETS NEVER STORED IN DATABASE CONFIG ──────────────────
+--   The Supabase service role key is NOT stored here.
+--   The edge functions use SUPABASE_SERVICE_ROLE_KEY from
+--   their own auto-provided environment variables internally.
 -- ============================================================
 
 -- ── 1. Enable pg_net ─────────────────────────────────────────
@@ -49,25 +72,42 @@ CREATE POLICY "No direct user access"
   FOR ALL
   USING (false);
 
--- ── 4. Trigger: enqueue message email ────────────────────────
+-- ── 4. Helper: resolve Supabase project base URL ─────────────
+--  Reads from app.settings.supabase_url (auto-set by Supabase)
+--  then falls back to the user-settable app.supabase_url.
+CREATE OR REPLACE FUNCTION private.get_supabase_url()
+RETURNS TEXT LANGUAGE sql STABLE AS $$
+  SELECT coalesce(
+    current_setting('app.settings.supabase_url', true),
+    current_setting('app.supabase_url',          true)
+  );
+$$;
+
+-- ── 5. Trigger: enqueue message email ────────────────────────
 CREATE OR REPLACE FUNCTION public.enqueue_message_email()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_url  TEXT;
-  v_key  TEXT;
+  v_base_url TEXT;
+  v_secret   TEXT;
 BEGIN
-  v_url := current_setting('app.supabase_url',     true) || '/functions/v1/notify-message';
-  v_key := current_setting('app.service_role_key', true);
+  v_base_url := private.get_supabase_url();
+  v_secret   := current_setting('app.email_webhook_secret', true);
 
-  IF v_url IS NULL OR v_key IS NULL THEN
+  -- Bail silently if configuration is missing; email is best-effort
+  IF v_base_url IS NULL OR v_base_url = '' THEN
+    RAISE WARNING '[enqueue_message_email] app.supabase_url not configured — skipping';
+    RETURN NEW;
+  END IF;
+  IF v_secret IS NULL OR v_secret = '' THEN
+    RAISE WARNING '[enqueue_message_email] app.email_webhook_secret not configured — skipping';
     RETURN NEW;
   END IF;
 
   PERFORM net.http_post(
-    url     := v_url,
+    url     := v_base_url || '/functions/v1/notify-message',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || v_key
+      'Authorization', 'Bearer ' || v_secret
     ),
     body    := jsonb_build_object(
       'message_id',      NEW.id,
@@ -86,25 +126,30 @@ CREATE TRIGGER trigger_enqueue_message_email
   AFTER INSERT ON public.messages
   FOR EACH ROW EXECUTE PROCEDURE public.enqueue_message_email();
 
--- ── 5. Trigger: enqueue application email ────────────────────
+-- ── 6. Trigger: enqueue application email ────────────────────
 CREATE OR REPLACE FUNCTION public.enqueue_application_email()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_url  TEXT;
-  v_key  TEXT;
+  v_base_url TEXT;
+  v_secret   TEXT;
 BEGIN
-  v_url := current_setting('app.supabase_url',     true) || '/functions/v1/notify-application';
-  v_key := current_setting('app.service_role_key', true);
+  v_base_url := private.get_supabase_url();
+  v_secret   := current_setting('app.email_webhook_secret', true);
 
-  IF v_url IS NULL OR v_key IS NULL THEN
+  IF v_base_url IS NULL OR v_base_url = '' THEN
+    RAISE WARNING '[enqueue_application_email] app.supabase_url not configured — skipping';
+    RETURN NEW;
+  END IF;
+  IF v_secret IS NULL OR v_secret = '' THEN
+    RAISE WARNING '[enqueue_application_email] app.email_webhook_secret not configured — skipping';
     RETURN NEW;
   END IF;
 
   PERFORM net.http_post(
-    url     := v_url,
+    url     := v_base_url || '/functions/v1/notify-application',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
-      'Authorization', 'Bearer ' || v_key
+      'Authorization', 'Bearer ' || v_secret
     ),
     body    := jsonb_build_object(
       'application_id', NEW.id,
