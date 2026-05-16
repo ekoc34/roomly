@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
@@ -11,6 +11,8 @@ import { SkeletonGrid } from "@/components/listings/SkeletonCard";
 import type { Listing, SavedSearch } from "@/types/database";
 import { LISTING_TYPE_LABELS } from "@/lib/constants";
 import type { ListingType } from "@/types/database";
+
+const PAGE_SIZE = 24;
 
 const FILTER_KEYS = ["q", "city", "type", "district", "min", "max", "pets", "smoking", "gender", "rooms", "min_surface", "sort", "verified"] as const;
 
@@ -45,12 +47,14 @@ function generateSearchName(filters: Record<string, string>): string {
 
 export function ListingsPage() {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationMap, setVerificationMap] = useState<Map<string, string | null>>(new Map());
   const [responseTimeMap, setResponseTimeMap] = useState<Map<string, number | null>>(new Map());
   const [ownerAvatarMap, setOwnerAvatarMap] = useState<Map<string, { name: string | null; avatar_url: string | null }>>(new Map());
   const [loading, setLoading] = useState(true);
   const searchString = useSearch();
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
 
   const [savedSearchId, setSavedSearchId] = useState<string | null>(null);
@@ -58,8 +62,27 @@ export function ListingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [boostTick, setBoostTick] = useState(0);
 
+  // Derive current page from URL
+  const currentPage = useMemo(() => {
+    const p = Number(new URLSearchParams(searchString).get("page") ?? "0");
+    return isNaN(p) || p < 0 ? 0 : p;
+  }, [searchString]);
+
   const currentFilters = normalizeFilters(searchString);
   const hasActiveFilters = Object.keys(currentFilters).length > 0;
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+  function navigatePage(page: number) {
+    const params = new URLSearchParams(searchString);
+    if (page === 0) {
+      params.delete("page");
+    } else {
+      params.set("page", String(page));
+    }
+    const qs = params.toString();
+    setLocation(qs ? `/kamers?${qs}` : "/kamers");
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -90,7 +113,7 @@ export function ListingsPage() {
         verifiedLandlordIds = ((verifiedProfiles ?? []) as { id: string }[]).map((p) => p.id);
       }
 
-      let query = supabase.from("listings").select("*");
+      let query = supabase.from("listings").select("*", { count: "exact" });
 
       if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
       if (type) query = query.eq("type", type);
@@ -108,8 +131,6 @@ export function ListingsPage() {
       if (sort === "cheapest") {
         query = query.order("price", { ascending: true });
       } else {
-        // Default "newest" — boosted listings float to top, then by recency.
-        // Fall back to created_at-only if boosted_at column not yet migrated.
         try {
           query = query
             .order("boosted_at", { ascending: false, nullsFirst: false })
@@ -119,13 +140,18 @@ export function ListingsPage() {
         }
       }
 
-      const [{ data: ls }, { data: favs }] = await Promise.all([
+      const from = currentPage * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const [{ data: ls, count }, { data: favs }] = await Promise.all([
         query,
-        user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [] },
+        user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id) : { data: [], count: null },
       ]);
 
       const fetchedListings = (ls as Listing[] | null) ?? [];
       setListings(fetchedListings);
+      setTotalCount(count ?? 0);
       setFavoriteIds(((favs ?? []) as { listing_id: string }[]).map((f) => f.listing_id));
 
       const ownerIds = [...new Set(fetchedListings.map((l) => l.user_id))];
@@ -151,7 +177,7 @@ export function ListingsPage() {
       setLoading(false);
     }
     fetchData();
-  }, [searchString, user]);
+  }, [searchString, user, currentPage]);
 
   // Re-sort client-side when the next active boost expires
   useEffect(() => {
@@ -236,10 +262,13 @@ export function ListingsPage() {
           <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">
             {q ? `Resultaten voor "${q}"` : "Alle woningen"}
           </h1>
-          <p className="text-sm text-stone-500">{loading ? "Laden…" : `${listings.length} woning${listings.length !== 1 ? "en" : ""} gevonden`}</p>
+          <p className="text-sm text-stone-500">
+            {loading
+              ? "Laden…"
+              : `${totalCount} woning${totalCount !== 1 ? "en" : ""} gevonden`}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {/* Save search button — only shown when there are active filters */}
           {user && hasActiveFilters && (
             <div className="flex items-center gap-1">
               <button
@@ -257,7 +286,6 @@ export function ListingsPage() {
                 </svg>
                 {savedSearchId ? "Zoekopdracht verwijderen" : "Sla zoekopdracht op"}
               </button>
-              {/* Bell notify toggle — only shown after saving */}
               {savedSearchId && (
                 <button
                   type="button"
@@ -307,11 +335,7 @@ export function ListingsPage() {
             {hasActiveFilters && (
               <button
                 type="button"
-                onClick={() => {
-                  const next = new URLSearchParams();
-                  window.history.pushState({}, "", `/kamers`);
-                  window.location.href = "/kamers";
-                }}
+                onClick={() => { window.location.href = "/kamers"; }}
                 className="mt-5 rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
                 Alle filters wissen
@@ -319,20 +343,76 @@ export function ListingsPage() {
             )}
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {displayListings.map((l) => (
-              <ListingCard
-                key={l.id}
-                listing={l}
-                isFavorited={favoriteIds.includes(l.id)}
-                verificationBadge={verificationMap.get(l.user_id) ?? null}
-                avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null}
-                currentUserId={user?.id ?? null}
-                ownerAvatarUrl={ownerAvatarMap.get(l.user_id)?.avatar_url ?? null}
-                ownerName={ownerAvatarMap.get(l.user_id)?.name ?? null}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {displayListings.map((l) => (
+                <ListingCard
+                  key={l.id}
+                  listing={l}
+                  isFavorited={favoriteIds.includes(l.id)}
+                  verificationBadge={verificationMap.get(l.user_id) ?? null}
+                  avgResponseTimeHours={responseTimeMap.get(l.user_id) ?? null}
+                  currentUserId={user?.id ?? null}
+                  ownerAvatarUrl={ownerAvatarMap.get(l.user_id)?.avatar_url ?? null}
+                  ownerName={ownerAvatarMap.get(l.user_id)?.name ?? null}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="mt-10 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => { navigatePage(currentPage - 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  disabled={currentPage === 0}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Vorige pagina"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i)
+                  .filter((i) => i === 0 || i === totalPages - 1 || Math.abs(i - currentPage) <= 2)
+                  .reduce<(number | "…")[]>((acc, i, idx, arr) => {
+                    if (idx > 0 && i - (arr[idx - 1] as number) > 1) acc.push("…");
+                    acc.push(i);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === "…" ? (
+                      <span key={`ellipsis-${idx}`} className="px-1 text-sm text-stone-400">…</span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => { navigatePage(item as number); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        className={`flex h-9 min-w-[2.25rem] items-center justify-center rounded-xl border px-2 text-sm font-medium shadow-sm transition ${
+                          item === currentPage
+                            ? "border-rose-400 bg-rose-500 text-white"
+                            : "border-stone-200 bg-white text-stone-700 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                        }`}
+                      >
+                        {(item as number) + 1}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  type="button"
+                  onClick={() => { navigatePage(currentPage + 1); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  disabled={currentPage >= totalPages - 1}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-stone-200 bg-white text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label="Volgende pagina"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

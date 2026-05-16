@@ -31,16 +31,6 @@ export function EmailVerifiedPage() {
         return;
       }
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ email_auto_verified: true })
-        .eq("id", data.user.id);
-
-      if (profileError) {
-        setStatus("error");
-        return;
-      }
-
       setStatus("success");
       toast.success("Je e-mailadres is succesvol geverifieerd!");
       sessionStorage.setItem("emailJustVerified", "1");

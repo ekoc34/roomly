@@ -7,6 +7,7 @@ export function useUnreadMessages() {
   const [unreadCount, setUnreadCount] = useState<number | null>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const initialFetchDoneRef = useRef(false);
+  const convIdsRef = useRef<string[]>([]);
 
   const fetchUnread = useCallback(async () => {
     if (!user || !supabase) return;
@@ -18,6 +19,8 @@ export function useUnreadMessages() {
         .or(`tenant_id.eq.${user.id},landlord_id.eq.${user.id}`);
 
       const convIds = (convs ?? []).map((c: { id: string }) => c.id);
+      convIdsRef.current = convIds;
+
       if (convIds.length === 0) {
         setUnreadCount(0);
         initialFetchDoneRef.current = true;
@@ -42,64 +45,65 @@ export function useUnreadMessages() {
   useEffect(() => {
     if (!user || !supabase) {
       setUnreadCount(null);
+      convIdsRef.current = [];
       return;
     }
 
-    // Reset the fetch guard when user changes
     initialFetchDoneRef.current = false;
-    fetchUnread();
 
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-    }
+    // Fetch initial count and conv IDs, then wire up a filtered subscription.
+    const setup = async () => {
+      await fetchUnread();
 
-    // Stable channel name (no timestamp) — prevents channel accumulation on re-renders.
-    // Subscribes to INSERT and UPDATE on messages then re-fetches the accurate count
-    // rather than applying an optimistic increment from unfiltered realtime events
-    // (the realtime channel has no server-side filter, so all message events would
-    // flow to every client; re-fetching is safer and still fast).
-    const channelName = `unread-messages:${user.id}`;
+      if (channelRef.current) {
+        supabase!.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
 
-    try {
-      const channel = supabase
-        .channel(channelName)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-          },
-          () => {
-            if (initialFetchDoneRef.current) {
-              fetchUnread();
-            }
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "messages",
-          },
-          () => {
-            if (initialFetchDoneRef.current) {
-              fetchUnread();
-            }
-          }
-        )
-        .subscribe((status) => {
+      const convIds = convIdsRef.current;
+      const channelName = `unread-messages:${user.id}`;
+
+      try {
+        // Build a channel that is filtered to only the user's conversations.
+        // This means Supabase will only deliver events for rows in those
+        // conversations, so N online users no longer each receive every
+        // message insert across the entire table.
+        const channelBuilder = supabase!.channel(channelName);
+
+        const onMessage = () => {
+          if (initialFetchDoneRef.current) fetchUnread();
+        };
+
+        if (convIds.length > 0) {
+          const filterExpr = `conversation_id=in.(${convIds.join(",")})`;
+
+          channelBuilder
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: filterExpr }, onMessage)
+            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: filterExpr }, onMessage);
+        } else {
+          // No conversations yet — still subscribe without a filter so the
+          // first incoming message (which creates a conversation) is caught.
+          // Once convIds are populated the effect will re-run and add the filter.
+          channelBuilder
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations",
+              filter: `tenant_id=eq.${user.id}` }, () => fetchUnread())
+            .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations",
+              filter: `landlord_id=eq.${user.id}` }, () => fetchUnread());
+        }
+
+        channelBuilder.subscribe((status) => {
           if (status === "CHANNEL_ERROR") {
             console.warn("Realtime unread channel error — falling back to polling.");
           }
         });
 
-      channelRef.current = channel;
-    } catch (e) {
-      console.warn("Supabase realtime verbindingsfout, applicatie blijft werken.", e);
-    }
+        channelRef.current = channelBuilder;
+      } catch (e) {
+        console.warn("Supabase realtime verbindingsfout, applicatie blijft werken.", e);
+      }
+    };
+
+    setup();
 
     return () => {
       if (channelRef.current && supabase) {

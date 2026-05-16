@@ -34,16 +34,6 @@ export function EmailVerificationHandler() {
         return;
       }
 
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ email_auto_verified: true })
-        .eq("id", data.user.id);
-
-      if (profileError) {
-        toast.error("Verificatie mislukt. Probeer het opnieuw.");
-        return;
-      }
-
       toast.success("Je e-mailadres is succesvol geverifieerd!");
       sessionStorage.setItem("emailJustVerified", "1");
       setTimeout(() => setLocation("/profiel"), 1500);
