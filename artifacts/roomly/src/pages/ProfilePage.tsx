@@ -376,7 +376,6 @@ export function ProfilePage() {
     const fd = new FormData(e.currentTarget);
     const name = String(fd.get("name") ?? "").trim();
     const bio = String(fd.get("bio") ?? "").trim();
-    const phone = String(fd.get("phone") ?? "").trim();
     if (!name) { toast.error("Naam mag niet leeg zijn."); return; }
     startTransition(async () => {
       if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
@@ -384,23 +383,15 @@ export function ProfilePage() {
         id: user.id,
         name,
         bio,
-        phone,
         avatar_url: profile?.avatar_url ?? null,
         email: user.email ?? null,
       });
       if (err) { toast.error("Opslaan mislukt. Probeer het opnieuw."); return; }
-      setProfile((prev) => prev ? { ...prev, name, bio, phone } : prev);
+      setProfile((prev) => prev ? { ...prev, name, bio } : prev);
       toast.success("Profiel opgeslagen.");
     });
   };
 
-  const phoneForVerification = (() => {
-    if (typeof document !== "undefined") {
-      const el = document.getElementById("prof-phone") as HTMLInputElement | null;
-      return el?.value ?? profile?.phone ?? "";
-    }
-    return profile?.phone ?? "";
-  });
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 sm:px-6">
@@ -495,20 +486,6 @@ export function ProfilePage() {
                     value={user?.email ?? ""}
                     className="mt-1.5 w-full rounded-xl border border-stone-100 bg-stone-50 px-4 py-2.5 text-sm text-stone-400 cursor-default focus:outline-none"
                   />
-                </div>
-
-                <div>
-                  <label htmlFor="prof-phone" className="text-xs font-medium text-stone-600">Telefoonnummer</label>
-                  <input
-                    id="prof-phone"
-                    name="phone"
-                    type="tel"
-                    defaultValue={profile?.phone ?? ""}
-                    placeholder="+31 6 12345678"
-                    className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
-                    data-testid="profile-phone"
-                  />
-                  <p className="mt-1 text-xs text-stone-400">Gebruik het internationale formaat, bijv. +31612345678</p>
                 </div>
 
                 <div className="pt-1">
