@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useLocation } from "wouter";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
@@ -52,29 +52,46 @@ export function OnboardingPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // Read and immediately clear the one-time "just_verified" flag set by
+  // AuthCallbackPage. This flag is the ONLY legitimate entry point into
+  // onboarding — direct URL access or normal login must never reach here.
+  const justVerified = useRef<boolean>(
+    sessionStorage.getItem("just_verified") === "1"
+  );
+  useEffect(() => {
+    sessionStorage.removeItem("just_verified");
+  }, []);
+
   // ── Auth guard ───────────────────────────────────────────────
   useEffect(() => {
     if (authLoading) return;
-    if (!user) {
-      navigate("/inloggen");
-      return;
-    }
-    if (!user.email_confirmed_at) {
+    if (!user || !user.email_confirmed_at) {
       navigate("/inloggen");
       return;
     }
   }, [user, authLoading, navigate]);
 
-  // If already onboarded, skip to dashboard
+  // ── Onboarding access guard ──────────────────────────────────
+  // Gate 1: must have arrived via /auth/callback (just_verified flag).
+  // Gate 2: DB check — if already completed, always skip to dashboard.
   useEffect(() => {
     if (authLoading || !user || !supabase) return;
+
     supabase
       .from("profiles")
       .select("onboarding_completed")
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
-        if (data?.onboarding_completed) navigate("/dashboard");
+        if (data?.onboarding_completed) {
+          // Already done — redirect regardless of how they got here.
+          navigate("/dashboard");
+          return;
+        }
+        // Not completed — only allow access if coming from verification.
+        if (!justVerified.current) {
+          navigate("/dashboard");
+        }
       });
   }, [user, authLoading, navigate]);
 
@@ -119,7 +136,6 @@ export function OnboardingPage() {
       </Helmet>
 
       <div className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
-        {/* Header */}
         <div className="mb-10 text-center">
           <p className="text-3xl font-black text-rose-600">Roomly</p>
           <h1 className="mt-3 text-2xl font-bold text-stone-900">
@@ -130,7 +146,6 @@ export function OnboardingPage() {
           </p>
         </div>
 
-        {/* Role grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {ROLES.map((r) => {
             const active = selected === r.value;
