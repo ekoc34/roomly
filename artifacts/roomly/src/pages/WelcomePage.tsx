@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { UserPersonaSelector } from "@/components/onboarding/UserPersonaSelector";
@@ -12,12 +13,16 @@ const PROVIDER_LABEL: Record<string, string> = {
 };
 
 /**
- * Onboarding page — shown to new users who haven't picked a role yet.
+ * Onboarding / welcome page — shown to new users who haven't picked a role yet.
  *
  * Guard behaviour:
- *   - Not logged in           → redirect to /registreren
+ *   - Not logged in            → redirect to /registreren
  *   - Logged in, user_type set → redirect to /dashboard (already onboarded)
  *   - Logged in, user_type null → show UserPersonaSelector (happy path)
+ *
+ * Toast behaviour:
+ *   - If "emailJustVerified" is set in sessionStorage on mount,
+ *     show a success toast and clear the flag immediately.
  */
 export function WelcomePage() {
   const { user, loading: authLoading } = useAuth();
@@ -25,9 +30,18 @@ export function WelcomePage() {
   const [oauthInfo, setOauthInfo] = useState<OAuthInfo | null>(null);
   const [checking, setChecking] = useState(true);
 
-  // Read oauthNewUser from sessionStorage on first render so WelcomePage can
-  // show the personalised "je account is aangemaakt via Google/Facebook" banner.
+  // ── One-time flags set by EmailVerificationHandler / OAuthProfileHandler ──
   useEffect(() => {
+    // Email verification success toast
+    if (sessionStorage.getItem("emailJustVerified") === "1") {
+      sessionStorage.removeItem("emailJustVerified");
+      // Slight delay so the page has painted before the toast appears.
+      setTimeout(() => {
+        toast.success("Je e-mailadres is succesvol geverifieerd!");
+      }, 200);
+    }
+
+    // OAuth new-user banner
     const raw = sessionStorage.getItem("oauthNewUser");
     if (raw) {
       try {
@@ -39,12 +53,11 @@ export function WelcomePage() {
     }
   }, []);
 
-  // Guard: redirect non-users and already-onboarded users.
+  // ── Guard: redirect non-users and already-onboarded users ────────────────
   useEffect(() => {
     if (authLoading) return;
 
     if (!user) {
-      // Not logged in — send to registration.
       navigate("/registreren");
       return;
     }
@@ -61,16 +74,13 @@ export function WelcomePage() {
       .maybeSingle()
       .then(({ data }) => {
         if (data?.user_type) {
-          // Already completed onboarding — go to dashboard.
           navigate("/dashboard");
         } else {
-          // New user with no role set — show onboarding.
           setChecking(false);
         }
       });
   }, [user, authLoading, navigate]);
 
-  // While we're resolving auth state or the profile check, show nothing.
   if (authLoading || checking) {
     return (
       <div className="flex min-h-[calc(100vh-120px)] items-center justify-center">
