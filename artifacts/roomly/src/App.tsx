@@ -15,6 +15,7 @@ import { EmailVerificationHandler } from "@/components/EmailVerificationHandler"
 import { OAuthProfileHandler } from "@/components/OAuthProfileHandler";
 import { EmailVerificationGate } from "@/components/EmailVerificationGate";
 import { PasswordRecoveryHandler } from "@/components/PasswordRecoveryHandler";
+import { CookieConsentBanner } from "@/components/CookieConsentBanner";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -165,6 +166,9 @@ function AppContent() {
       </ErrorBoundary>
       <ErrorBoundary fallback={null}>
         <CompareBar />
+      </ErrorBoundary>
+      <ErrorBoundary fallback={null}>
+        <CookieConsentBanner />
       </ErrorBoundary>
     </>
   );

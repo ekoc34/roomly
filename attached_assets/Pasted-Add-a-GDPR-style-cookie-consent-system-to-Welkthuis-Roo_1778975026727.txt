@@ -1,0 +1,101 @@
+Add a GDPR-style cookie consent system to Welkthuis / Roomly.
+
+Requirements:
+
+GENERAL
+
+* Show a cookie consent modal/banner when a user first visits the site
+* The style should feel modern, minimal, trustworthy, and similar in structure to Funda.nl’s consent popup
+* The popup must appear centered with a blurred/dimmed background overlay
+* Mobile responsive
+* All text must be in Dutch
+* Do NOT use dark patterns
+* “Alles accepteren” should NOT visually overpower the other buttons
+
+COOKIE CATEGORIES
+Implement 3 categories:
+
+1. Noodzakelijke cookies
+
+* Always enabled
+* Cannot be disabled
+* Used for authentication, session handling, security, and core functionality
+
+2. Analytische cookies
+
+* Optional
+* Used for anonymous analytics/statistics
+
+3. Marketing cookies
+
+* Optional
+* Reserved for future advertising/tracking integrations
+
+UI
+Popup title:
+“Cookies op Welkthuis”
+
+Popup body text:
+“We gebruiken cookies om de website goed te laten werken, het gebruik te analyseren en jouw ervaring te verbeteren. Noodzakelijke cookies zijn altijd actief.”
+
+Buttons:
+
+* “Voorkeuren wijzigen”
+* “Alleen noodzakelijke”
+* “Alles accepteren”
+
+When clicking “Voorkeuren wijzigen”:
+
+* Expand a preferences panel inside the modal
+* Each optional category should have a toggle switch
+* Noodzakelijke cookies should appear locked/enabled
+
+PERSISTENCE
+
+* Save consent choices in localStorage
+* Do not show the popup again once a choice has been made
+* Add a helper utility for reading consent values throughout the app
+
+COOKIE PREFERENCES PAGE
+Integrate with the already existing:
+
+* Privacy
+* Cookies
+* Cookievoorkeuren
+
+The Cookievoorkeuren page should:
+
+* Read current consent settings
+* Allow users to change them later
+* Update localStorage immediately
+
+ARCHITECTURE
+Create:
+
+* reusable CookieConsent component
+* reusable cookie utility/helper
+* optional CookiePreferencesPanel component
+* clean TypeScript types
+
+TECHNICAL
+
+* Use React + TypeScript
+* No external cookie banner library
+* Use existing UI components/styles where possible
+* Keep accessibility in mind:
+
+  * ESC closes preferences panel
+  * keyboard navigable
+  * proper aria labels
+
+ANALYTICS INTEGRATION PREPARATION
+Prepare the app so analytics scripts only load if analytical consent is true.
+Do NOT add Google Analytics yet — just prepare the consent gate/helper.
+
+FINAL STEP
+After implementation:
+
+* verify no TypeScript errors were introduced
+* commit changes
+* push to GitHub
+* summarize all changed files
