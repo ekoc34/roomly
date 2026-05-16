@@ -18,11 +18,30 @@ export function AuthCallbackPage() {
 
     const run = async () => {
       try {
-        // ── PKCE flow: ?code=... ────────────────────────────────
         const searchParams = new URLSearchParams(window.location.search);
         const code = searchParams.get("code");
+        const urlType = searchParams.get("type"); // "recovery" | "signup" | null
 
+        // ── PKCE flow: ?code=... ────────────────────────────────
         if (code) {
+          // ── Password recovery: redirect straight to reset page ──
+          // Supabase appends ?type=recovery to the redirect URL for
+          // forgot-password links. Do NOT run the onboarding flow here.
+          if (urlType === "recovery") {
+            const { error } = await supabase.auth.exchangeCodeForSession(code);
+            window.history.replaceState(null, "", window.location.pathname);
+            if (error) {
+              setErrorMsg("De herstellink is ongeldig of verlopen.");
+              setStatus("error");
+              return;
+            }
+            // Signal ResetPasswordPage that we have a valid recovery session.
+            sessionStorage.setItem("roomly_recovery_pending", "1");
+            navigate("/wachtwoord-instellen");
+            return;
+          }
+
+          // ── All other PKCE flows (signup confirmation, magic link) ──
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) {
             setErrorMsg("Verificatielink ongeldig of verlopen.");
@@ -34,6 +53,15 @@ export function AuthCallbackPage() {
           const hash = window.location.hash;
           if (hash && hash.includes("access_token=")) {
             const params = new URLSearchParams(hash.slice(1));
+            const hashType = params.get("type");
+
+            // Recovery via hash — hand off to PasswordRecoveryHandler
+            // which already handles this case; just clean up and bail.
+            if (hashType === "recovery") {
+              window.history.replaceState(null, "", window.location.pathname);
+              return;
+            }
+
             const accessToken = params.get("access_token");
             const refreshToken = params.get("refresh_token") ?? "";
 
