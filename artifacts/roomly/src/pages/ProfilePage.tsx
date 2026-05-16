@@ -77,6 +77,7 @@ export function ProfilePage() {
 
   const [phoneVerifyStep, setPhoneVerifyStep] = useState<"idle" | "sending" | "code" | "verified">("idle");
   const [pendingPhone, setPendingPhone] = useState("");
+  const [phoneVerifyInput, setPhoneVerifyInput] = useState("");
   const [verifyCode, setVerifyCode] = useState("");
   const [verifyTimer, setVerifyTimer] = useState(60);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -152,6 +153,9 @@ export function ProfilePage() {
       setShowEmail(profile.show_email ?? false);
       setShowPhone(profile.show_phone ?? false);
       setShowAvatarInListings(profile.show_avatar_in_listings ?? true);
+      if (profile.phone && !profile.phone_verified) {
+        setPhoneVerifyInput(profile.phone);
+      }
       setNotifyNewMessage(profile.notify_new_message ?? true);
       setNotifyApplicationUpdate(profile.notify_application_update ?? true);
       setNotifyMatchingListing(profile.notify_matching_listing ?? true);
@@ -735,26 +739,35 @@ export function ProfilePage() {
                     <div>
                       <p className="text-sm font-medium text-stone-800">Telefoonnummer</p>
                       <p className="text-xs text-stone-400 mt-0.5">
-                        {profile?.phone ?? "Nog niet ingevuld"}
+                        {profile?.phone_verified
+                          ? (profile?.phone ?? "Geverifieerd")
+                          : (profile?.phone ?? "Nog niet ingevuld")}
                       </p>
                     </div>
                   </div>
-                  {profile?.phone_verified ? (
-                    <VerifiedBadge />
-                  ) : (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") ? (
+                  {profile?.phone_verified && <VerifiedBadge />}
+                </div>
+
+                {/* Phone input + verify button — shown when not yet verified */}
+                {!profile?.phone_verified && (phoneVerifyStep === "idle" || phoneVerifyStep === "sending") && (
+                  <div className="mt-3 flex gap-2">
+                    <input
+                      type="tel"
+                      value={phoneVerifyInput}
+                      onChange={(e) => setPhoneVerifyInput(e.target.value)}
+                      placeholder="+31612345678"
+                      className="flex-1 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
+                    />
                     <button
                       type="button"
-                      disabled={phoneVerifyStep === "sending"}
-                      onClick={() => {
-                        const phoneInput = document.getElementById("prof-phone") as HTMLInputElement;
-                        startPhoneVerification(phoneInput?.value ?? profile?.phone ?? "");
-                      }}
-                      className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
+                      disabled={phoneVerifyStep === "sending" || !phoneVerifyInput.trim()}
+                      onClick={() => startPhoneVerification(phoneVerifyInput)}
+                      className="shrink-0 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-60"
                     >
-                      {phoneVerifyStep === "sending" ? "Versturen…" : "Telefoon verifiëren"}
+                      {phoneVerifyStep === "sending" ? "Versturen…" : "Verifiëren"}
                     </button>
-                  ) : null}
-                </div>
+                  </div>
+                )}
 
                 {/* OTP code entry */}
                 {phoneVerifyStep === "code" && (
