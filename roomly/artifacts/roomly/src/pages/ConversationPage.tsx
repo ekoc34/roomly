@@ -41,13 +41,16 @@ export function ConversationPage() {
   const fetchMessages = useCallback(async () => {
     if (!supabase) return;
     const { data } = await supabase.from("messages").select("*").eq("conversation_id", params.id).order("created_at", { ascending: true });
-    setMessages((data ?? []) as Message[]);
+    const msgs = (data ?? []) as Message[];
+    setMessages(msgs);
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     if (user) {
-      await supabase.from("messages").update({ read_at: new Date().toISOString() })
-        .eq("conversation_id", params.id)
-        .neq("sender_id", user.id)
-        .is("read_at", null);
+      const unread = msgs.filter((m) => m.sender_id !== user.id && m.read_at === null);
+      if (unread.length > 0) {
+        await Promise.all(
+          unread.map((m) => supabase!.rpc("mark_message_read", { p_message_id: m.id }))
+        );
+      }
     }
   }, [params.id, user]);
 
