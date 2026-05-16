@@ -63,7 +63,7 @@ CREATE POLICY "No direct user access"
 CREATE OR REPLACE FUNCTION public.enqueue_message_email()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_url TEXT := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-message';
+  v_url TEXT := 'https://gjjwctzgkujtlegcvxwy.supabase.co/functions/v1/notify-message';
 BEGIN
   PERFORM net.http_post(
     url     := v_url,
