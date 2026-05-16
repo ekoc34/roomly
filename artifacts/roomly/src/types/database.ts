@@ -60,6 +60,8 @@ export type Listing = {
   smoking_allowed: boolean | null;
   gender_preference: "vrouw" | "man" | "gemengd" | null;
   boosted_at?: string | null;
+  lat?: number | null;
+  lon?: number | null;
   created_at: string;
   updated_at: string;
 };

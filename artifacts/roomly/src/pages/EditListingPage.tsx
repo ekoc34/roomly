@@ -201,6 +201,15 @@ export function EditListingPage() {
       }
       console.log("[EditListing] update_listing succeeded");
 
+      // Fire-and-forget geocoding when the location changed.
+      // force=true bypasses the skip-if-coords-exist guard in the edge function
+      // so stale coordinates from the old location are replaced.
+      if (location !== listing?.location) {
+        void supabase?.functions.invoke("geocode-listing", {
+          body: { listing_id: params.id, force: true },
+        });
+      }
+
       // ── Step 2: Apply boost if user toggled it ON this session ────────────
       // Condition: toggle is currently ON AND it was OFF when the page loaded.
       // We use originalBoostedRef (set once on fetch) to avoid stale-closure issues.

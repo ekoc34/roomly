@@ -206,9 +206,14 @@ export function NewListingPage() {
       sessionStorage.removeItem(NEW_LISTING_IMAGES_KEY);
       toast.success("Advertentie geplaatst!");
 
-      // Fire-and-forget: server-side function matches saved searches and
-      // inserts notifications; the browser never touches other users' inboxes.
+      // Fire-and-forget: match saved searches (server-side, never touches other inboxes directly).
       void supabase?.rpc("notify_saved_search_matches", { p_listing_id: listingId });
+
+      // Fire-and-forget: geocode the listing server-side so MapPage can
+      // place a marker without ever calling Nominatim from the browser.
+      void supabase?.functions.invoke("geocode-listing", {
+        body: { listing_id: listingId },
+      });
 
       navigate(`/kamers/${listingId}`);
     });

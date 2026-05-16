@@ -15,58 +15,6 @@ if (typeof L !== "undefined" && L.Icon && L.Icon.Default) {
   });
 }
 
-const CITY_COORDS: Record<string, [number, number]> = {
-  amsterdam: [52.3676, 4.9041],
-  rotterdam: [51.9225, 4.4792],
-  "den haag": [52.0705, 4.3007],
-  "the hague": [52.0705, 4.3007],
-  utrecht: [52.0907, 5.1214],
-  eindhoven: [51.4416, 5.4697],
-  groningen: [53.2194, 6.5665],
-  tilburg: [51.5555, 5.0913],
-  almere: [52.3508, 5.2647],
-  breda: [51.5719, 4.7683],
-  nijmegen: [51.8426, 5.8546],
-  leiden: [52.1601, 4.497],
-  delft: [51.9999, 4.3631],
-  haarlem: [52.3874, 4.6462],
-  maastricht: [50.8514, 5.691],
-  arnhem: [51.9851, 5.8987],
-  enschede: [52.2215, 6.8937],
-  zwolle: [52.5168, 6.083],
-  amersfoort: [52.1561, 5.3878],
-  "den bosch": [51.6978, 5.3037],
-  "'s-hertogenbosch": [51.6978, 5.3037],
-  apeldoorn: [52.2112, 5.9699],
-};
-
-function guessCoords(location: string): [number, number] | null {
-  const lower = location.toLowerCase();
-  for (const [city, coords] of Object.entries(CITY_COORDS)) {
-    if (lower.includes(city)) return coords;
-  }
-  return null;
-}
-
-const geocodeCache = new Map<string, [number, number] | null>();
-
-async function geocodeNominatim(location: string): Promise<[number, number] | null> {
-  if (geocodeCache.has(location)) return geocodeCache.get(location) ?? null;
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&countrycodes=nl&format=json&limit=1`;
-    const res = await fetch(url, { headers: { "Accept-Language": "nl" } });
-    if (!res.ok) { geocodeCache.set(location, null); return null; }
-    const data = await res.json();
-    if (!data.length) { geocodeCache.set(location, null); return null; }
-    const coords: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-    geocodeCache.set(location, coords);
-    return coords;
-  } catch {
-    geocodeCache.set(location, null);
-    return null;
-  }
-}
-
 function FitBoundsController({ positions }: { positions: [number, number][] | null }) {
   const map = useMap();
   useEffect(() => {
@@ -90,11 +38,9 @@ export function MapPage() {
   const searchString = useSearch();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
-  const [coords, setCoords] = useState<Map<string, [number, number]>>(new Map());
   const [fitTarget, setFitTarget] = useState<[number, number][] | null>(null);
   const [zoom, setZoom] = useState(8);
   const [mapTab, setMapTab] = useState<"woningen" | "huisgenoten">("woningen");
-  const geocodingActive = { current: false };
 
   useEffect(() => {
     if (!supabase) { setLoading(false); return; }
@@ -134,41 +80,17 @@ export function MapPage() {
       });
   }, [searchString]);
 
-  useEffect(() => {
-    if (!listings.length || geocodingActive.current) return;
-    const needsGeocoding = listings.filter((l) => !guessCoords(l.location));
-    if (!needsGeocoding.length) return;
-
-    geocodingActive.current = true;
-    Promise.all(
-      needsGeocoding.map(async (l) => {
-        const c = await geocodeNominatim(l.location);
-        return { id: l.id, coords: c };
-      })
-    ).then((results) => {
-      setCoords((prev) => {
-        const next = new Map(prev);
-        for (const { id, coords: c } of results) {
-          if (c) next.set(id, c);
-        }
-        return next;
-      });
-      geocodingActive.current = false;
-    });
-  }, [listings]);
-
   const filteredListings = listings.filter((l) =>
     mapTab === "woningen"
       ? l.type === "room_for_rent" || l.type === "short_stay"
       : l.type === "roommate_search"
   );
 
+  // Only listings with persisted coordinates are placed on the map.
+  // No external geocoding calls are made from the browser.
   const mappable = filteredListings
-    .map((l) => {
-      const c = guessCoords(l.location) ?? coords.get(l.id) ?? null;
-      return { listing: l, coords: c };
-    })
-    .filter((x): x is { listing: Listing; coords: [number, number] } => x.coords !== null);
+    .filter((l) => l.lat != null && l.lon != null)
+    .map((l) => ({ listing: l, coords: [l.lat!, l.lon!] as [number, number] }));
 
   const clusterRadius = Math.min(0.05, 1.28 / Math.pow(2, zoom));
   const clusters: Array<{ center: [number, number]; listings: Listing[] }> = [];
@@ -260,7 +182,7 @@ export function MapPage() {
             <ZoomTracker onZoom={setZoom} />
             {clusters.map((cluster, idx) => {
               const clusterCoords = cluster.listings
-                .map((l) => guessCoords(l.location) ?? coords.get(l.id))
+                .map((l) => l.lat != null && l.lon != null ? [l.lat, l.lon] as [number, number] : null)
                 .filter((c): c is [number, number] => c !== null);
               const allSameCoords =
                 clusterCoords.length > 1 &&
