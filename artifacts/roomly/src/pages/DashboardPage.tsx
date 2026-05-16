@@ -51,6 +51,7 @@ type RecommendedListing = {
   images: string[];
   boosted_at: string | null;
   created_at: string;
+  type: string | null;
 };
 
 type WeeklyStats = { views: number; reactions: number; boosts: number };
@@ -128,6 +129,7 @@ export function DashboardPage() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
   const [unreadLandlordMsgCount, setUnreadLandlordMsgCount] = useState(0);
   const [recommendedListings, setRecommendedListings] = useState<RecommendedListing[]>([]);
+  const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
   const [boostingId, setBoostingId] = useState<string | null>(null);
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
   const [lastSavedSearch, setLastSavedSearch] = useState<LastSavedSearch | null>(null);
@@ -179,7 +181,7 @@ export function DashboardPage() {
         supabase!.from("applications").select("*, listings:listing_id(id, title)").eq("applicant_id", user!.id).eq("hidden_by_tenant", false).order("created_at", { ascending: false }),
         supabase!.from("conversations").select("id, listing_id, tenant_id").eq("tenant_id", user!.id),
         supabase!.from("saved_searches").select("*", { count: "exact", head: true }).eq("user_id", user!.id),
-        supabase!.from("listing_views").select("listing_id, viewed_at, listing:listings(id, title, price, location, images)").eq("user_id", user!.id).order("viewed_at", { ascending: false }).limit(5),
+        supabase!.from("listing_views").select("listing_id, viewed_at, listing:listings(id, title, price, location, images)").eq("user_id", user!.id).order("viewed_at", { ascending: false }).limit(30),
         supabase!.from("saved_searches").select("name, filters").eq("user_id", user!.id).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
 
@@ -198,32 +200,55 @@ export function DashboardPage() {
       const lsData = lastSearchData as LastSavedSearch | null;
       setLastSavedSearch(lsData);
 
-      // Build personalized recommendations: prefer city from last saved search or most recently viewed listing
-      const cityFromSearch = lsData?.filters?.city;
-      const cityFromViews = views[0]?.listing?.location?.split(",")[0]?.trim() ?? null;
-      const preferredCity = cityFromSearch ?? cityFromViews;
+      // --- Personalised recommendations ---
+      // Signal 1: most-recent saved search (city + budget + type)
+      const searchCity = lsData?.filters?.city as string | undefined;
+      const searchMinPrice = lsData?.filters?.minPrice as number | undefined;
+      const searchMaxPrice = lsData?.filters?.maxPrice as number | undefined;
+      const searchType = lsData?.filters?.type as string | undefined;
 
-      let recQuery = supabase!.from("listings")
-        .select("id, title, price, location, images, boosted_at, created_at")
-        .order("created_at", { ascending: false })
-        .limit(8);
-      if (preferredCity) {
-        recQuery = supabase!.from("listings")
-          .select("id, title, price, location, images, boosted_at, created_at")
-          .ilike("location", `%${preferredCity}%`)
+      // Signal 2: most-frequently-viewed city from listing_views history
+      const cityFreq: Record<string, number> = {};
+      for (const v of views) {
+        const c = v.listing?.location?.split(",")[0]?.trim();
+        if (c) cityFreq[c] = (cityFreq[c] ?? 0) + 1;
+      }
+      const topViewedCity = Object.entries(cityFreq).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+      const preferredCity = searchCity ?? topViewedCity;
+      const hasSearchSignals = !!(searchCity || searchMinPrice != null || searchMaxPrice != null || searchType);
+
+      const buildRecQuery = (withCity: boolean) => {
+        let q = supabase!.from("listings")
+          .select("id, title, price, location, images, boosted_at, created_at, type");
+        if (withCity && preferredCity) q = q.ilike("location", `%${preferredCity}%`);
+        if (searchMinPrice != null) q = q.gte("price", searchMinPrice);
+        if (searchMaxPrice != null) q = q.lte("price", searchMaxPrice);
+        if (searchType) q = q.eq("type", searchType);
+        return q
+          .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(8);
-      }
-      const { data: recListings } = await recQuery;
-      const recs = (recListings as RecommendedListing[] | null) ?? [];
-      // Fallback: if city filter returned nothing, fetch newest globally
+      };
+
+      const { data: recListings } = await buildRecQuery(true);
+      let recs = (recListings as RecommendedListing[] | null) ?? [];
+
+      // If city-filtered results are empty, try without city but keep budget/type
       if (recs.length === 0 && preferredCity) {
-        const { data: fallbackRecs } = await supabase!.from("listings")
-          .select("id, title, price, location, images, boosted_at, created_at")
-          .order("created_at", { ascending: false }).limit(8);
-        setRecommendedListings((fallbackRecs as RecommendedListing[] | null) ?? []);
+        const { data: fallbackRecs } = await buildRecQuery(false);
+        recs = (fallbackRecs as RecommendedListing[] | null) ?? [];
+        setRecommendedListings(recs);
+        setRecommendationReason(null);
       } else {
         setRecommendedListings(recs);
+        if (hasSearchSignals) {
+          setRecommendationReason("Op basis van jouw zoekopdracht");
+        } else if (topViewedCity) {
+          setRecommendationReason(`Omdat je naar ${topViewedCity} keek`);
+        } else {
+          setRecommendationReason(null);
+        }
       }
 
       // Fetch favorited listing IDs for quick-action hearts
@@ -1239,16 +1264,14 @@ export function DashboardPage() {
 
               {/* Aanbevolen voor jou — primaire sectie */}
               <div ref={recommendationsRef}>
-                <div className="mb-4 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="mb-4 flex items-start justify-between gap-2">
+                  <div>
                     <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
-                    {(cityFromSearch ?? cityFromViews) && (
-                      <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-rose-600">
-                        {cityFromSearch ?? cityFromViews}
-                      </span>
+                    {recommendationReason && (
+                      <p className="mt-0.5 text-xs text-stone-400">{recommendationReason}</p>
                     )}
                   </div>
-                  <Link href="/kamers" className="text-xs font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
+                  <Link href="/kamers" className="shrink-0 text-xs font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
                 </div>
                 {loading ? (
                   <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
