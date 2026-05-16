@@ -11,6 +11,7 @@ import type { Conversation, Listing, Message, Profile } from "@/types/database";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 const REPORT_REASONS = ["Spam", "Ongepast gedrag", "Oplichting", "Anders"] as const;
+const MSG_PAGE_SIZE = 50;
 
 function PersonSilhouette() {
   return (
@@ -51,6 +52,8 @@ export function ConversationPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [other, setOther] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
   const [loading, setLoading] = useState(true);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
   const [showOtherPanel, setShowOtherPanel] = useState(false);
@@ -59,11 +62,11 @@ export function ConversationPage() {
   const [showReportMenu, setShowReportMenu] = useState(false);
   const reportMenuRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const topAnchorRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<NonNullable<typeof supabase>["channel"]> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const blockChannelRef = useRef<RealtimeChannel | null>(null);
 
-  // Close report dropdown on outside click
   useEffect(() => {
     if (!showReportMenu) return;
     function handleClickOutside(e: MouseEvent) {
@@ -75,28 +78,70 @@ export function ConversationPage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showReportMenu]);
 
+  // Fetch the latest MSG_PAGE_SIZE messages and merge them into state.
+  // Preserves any older messages already loaded via "load older".
   const fetchMessages = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase || !user) return;
+
+    const { data, count } = await supabase
+      .from("messages")
+      .select("*", { count: "exact" })
+      .eq("conversation_id", params.id)
+      .order("created_at", { ascending: false })
+      .limit(MSG_PAGE_SIZE);
+
+    const latest = ((data ?? []) as Message[]).reverse();
+
+    setMessages((prev) => {
+      if (prev.length === 0) return latest;
+      // Keep messages older than the oldest in the freshly fetched batch, then append the batch.
+      const cutoff = latest[0]?.created_at ?? "";
+      const older = prev.filter((m) => m.created_at < cutoff);
+      return [...older, ...latest];
+    });
+
+    setHasMore((count ?? 0) > MSG_PAGE_SIZE);
+    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+
+    // Mark unread messages as read
+    const unread = latest.filter((m) => m.sender_id !== user.id && m.read_at === null);
+    if (unread.length > 0) {
+      await Promise.all(
+        unread.map((m) => supabase!.rpc("mark_message_read", { p_message_id: m.id }))
+      );
+    }
+  }, [params.id, user]);
+
+  // Load the next page of older messages (prepend to list).
+  const loadOlderMessages = useCallback(async () => {
+    if (!supabase || !user || messages.length === 0 || loadingOlder) return;
+    setLoadingOlder(true);
+    const oldest = messages[0];
+    const scrollAnchor = topAnchorRef.current;
+    const prevScrollHeight = scrollAnchor?.parentElement?.scrollHeight ?? 0;
 
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", params.id)
-      .order("created_at", { ascending: true });
+      .lt("created_at", oldest.created_at)
+      .order("created_at", { ascending: false })
+      .limit(MSG_PAGE_SIZE);
 
-    const msgs = (data ?? []) as Message[];
-    setMessages(msgs);
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    const older = ((data ?? []) as Message[]).reverse();
+    setMessages((prev) => [...older, ...prev]);
+    setHasMore(older.length === MSG_PAGE_SIZE);
+    setLoadingOlder(false);
 
-    if (user) {
-      const unread = msgs.filter((m) => m.sender_id !== user.id && m.read_at === null);
-      if (unread.length > 0) {
-        await Promise.all(
-          unread.map((m) => supabase!.rpc("mark_message_read", { p_message_id: m.id }))
-        );
+    // Restore scroll position so the view doesn't jump to the top.
+    requestAnimationFrame(() => {
+      const parent = scrollAnchor?.parentElement;
+      if (parent) {
+        const added = parent.scrollHeight - prevScrollHeight;
+        parent.scrollTop = (parent.scrollTop ?? 0) + added;
       }
-    }
-  }, [params.id, user]);
+    });
+  }, [params.id, user, messages, loadingOlder]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -104,6 +149,8 @@ export function ConversationPage() {
 
     setLoading(true);
     setConversation(null);
+    setMessages([]);
+    setHasMore(false);
     setBlockedByMe(false);
     setBlockedByOther(false);
     if (user) pingLastActive(user.id);
@@ -168,7 +215,19 @@ export function ConversationPage() {
           schema: "public",
           table: "messages",
           filter: `conversation_id=eq.${params.id}`,
-        }, () => { fetchMessages(); })
+        }, (payload) => {
+          // D-07: append the new message directly — no full re-fetch.
+          const newMsg = payload.new as Message;
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          // Mark as read if it came from the other participant.
+          if (user && newMsg.sender_id !== user.id && !newMsg.read_at && supabase) {
+            supabase.rpc("mark_message_read", { p_message_id: newMsg.id });
+          }
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+        })
         .on("postgres_changes", {
           event: "UPDATE",
           schema: "public",
@@ -229,8 +288,6 @@ export function ConversationPage() {
     };
   }, [params.id, user, authLoading, fetchMessages]);
 
-  // Realtime subscription: update blockedByOther live when the other user
-  // inserts or removes a block row — no page refresh needed.
   useEffect(() => {
     if (!supabase || !user || !other) return;
 
@@ -255,7 +312,6 @@ export function ConversationPage() {
           "postgres_changes",
           { event: "DELETE", schema: "public", table: "user_reports", filter: `reporter_id=eq.${other.id}` },
           async () => {
-            // DELETE payload only carries the PK — re-query to get the true state.
             const { data: rows } = await supabase!
               .from("user_reports")
               .select("id")
@@ -383,7 +439,6 @@ export function ConversationPage() {
               {other?.name ?? "Gebruiker"}
             </button>
 
-            {/* Block / Unblock */}
             {blockedByMe ? (
               <button
                 type="button"
@@ -406,7 +461,6 @@ export function ConversationPage() {
               </button>
             )}
 
-            {/* Report dropdown */}
             <div className="relative" ref={reportMenuRef}>
               <button
                 type="button"
@@ -443,6 +497,33 @@ export function ConversationPage() {
 
       {/* Message list */}
       <div className="min-h-[300px] space-y-3 pb-4">
+        {/* D-02: Load older messages */}
+        <div ref={topAnchorRef} />
+        {hasMore && (
+          <div className="flex justify-center py-2">
+            <button
+              type="button"
+              onClick={loadOlderMessages}
+              disabled={loadingOlder}
+              className="flex items-center gap-1.5 rounded-xl border border-stone-200 bg-white px-4 py-2 text-xs font-medium text-stone-600 shadow-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50"
+            >
+              {loadingOlder ? (
+                <>
+                  <span className="h-3 w-3 animate-spin rounded-full border border-stone-300 border-t-rose-500" />
+                  Laden…
+                </>
+              ) : (
+                <>
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                  </svg>
+                  Laad oudere berichten
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-100">

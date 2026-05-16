@@ -120,11 +120,31 @@ export function EditListingPage() {
     if (!confirm("Weet je zeker dat je deze advertentie wilt verwijderen? Dit kan niet ongedaan worden gemaakt.")) return;
     startTransition(async () => {
       if (!supabase || !user) return;
+
+      // S-01: Collect the image paths that need to be cleaned from storage
+      // before the DB row is removed (the images array lives on the listing).
+      const imagesToDelete = listing?.images ?? [];
+
       const { error: err } = await supabase.rpc("delete_listing", { p_listing_id: params.id });
       if (err) {
         toast.error(mapRpcError(err, "Verwijderen mislukt. Probeer opnieuw."));
         return;
       }
+
+      // Delete orphaned storage objects (fire-and-forget — don't block navigation).
+      if (imagesToDelete.length > 0) {
+        const paths = imagesToDelete
+          .map((url) => {
+            const marker = "/object/public/listings/";
+            const idx = url.indexOf(marker);
+            return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null;
+          })
+          .filter((p): p is string => p !== null);
+        if (paths.length > 0) {
+          supabase.storage.from("listings").remove(paths).catch(() => {});
+        }
+      }
+
       sessionStorage.removeItem(editImagesKey);
       toast.success("Advertentie verwijderd.");
       navigate("/dashboard");

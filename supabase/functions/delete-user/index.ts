@@ -6,6 +6,13 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Extract the storage object path from a Supabase public URL. */
+function extractPath(url: string, bucket: string): string | null {
+  const marker = `/object/public/${bucket}/`;
+  const idx = url.indexOf(marker);
+  return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -50,11 +57,53 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use service role client to permanently remove the auth.users record
     const adminClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // S-01/S-02: Collect all storage objects belonging to this user before
+    // deleting the auth record (which cascades and removes DB rows).
+    const storagePaths: { bucket: string; paths: string[] }[] = [];
+
+    // 1. Listing images
+    const { data: listings } = await adminClient
+      .from("listings")
+      .select("images")
+      .eq("user_id", userId);
+
+    const listingPaths: string[] = [];
+    for (const listing of listings ?? []) {
+      for (const url of (listing.images ?? []) as string[]) {
+        const p = extractPath(url, "listings");
+        if (p) listingPaths.push(p);
+      }
+    }
+    if (listingPaths.length > 0) {
+      storagePaths.push({ bucket: "listings", paths: listingPaths });
+    }
+
+    // 2. Avatar
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profile?.avatar_url) {
+      const avatarPath = extractPath(profile.avatar_url, "avatars");
+      if (avatarPath) {
+        storagePaths.push({ bucket: "avatars", paths: [avatarPath] });
+      }
+    }
+
+    // Delete storage files (best-effort — don't fail the account deletion if this errors).
+    await Promise.allSettled(
+      storagePaths.map(({ bucket, paths }) =>
+        adminClient.storage.from(bucket).remove(paths)
+      )
+    );
+
+    // Use service role client to permanently remove the auth.users record
     const { error: deleteError } =
       await adminClient.auth.admin.deleteUser(userId);
     if (deleteError) {

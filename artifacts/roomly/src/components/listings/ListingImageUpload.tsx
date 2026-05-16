@@ -5,11 +5,59 @@ import { toast } from "sonner";
 
 const MAX_IMAGES = 6;
 const MAX_SIZE_MB = 5;
+const MAX_DIMENSION = 1280;
+const JPEG_QUALITY = 0.85;
 
 type Props = {
   value: string[];
   onChange: (urls: string[]) => void;
 };
+
+/** Extract the storage object path from a Supabase public URL. */
+function extractStoragePath(url: string): string | null {
+  const marker = "/object/public/listings/";
+  const idx = url.indexOf(marker);
+  return idx !== -1 ? decodeURIComponent(url.slice(idx + marker.length)) : null;
+}
+
+/** Resize an image to fit within MAX_DIMENSION × MAX_DIMENSION and re-encode as JPEG. */
+function resizeImage(file: File): Promise<File> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { naturalWidth: w, naturalHeight: h } = img;
+      let tw = w;
+      let th = h;
+      if (w > MAX_DIMENSION || h > MAX_DIMENSION) {
+        if (w >= h) { tw = MAX_DIMENSION; th = Math.round(h * (MAX_DIMENSION / w)); }
+        else { th = MAX_DIMENSION; tw = Math.round(w * (MAX_DIMENSION / h)); }
+      }
+      if (tw === w && th === h && file.type === "image/jpeg") {
+        resolve(file);
+        return;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = tw;
+      canvas.height = th;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { resolve(file); return; }
+      ctx.drawImage(img, 0, 0, tw, th);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { resolve(file); return; }
+          const name = file.name.replace(/\.[^.]+$/, ".jpg");
+          resolve(new File([blob], name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        JPEG_QUALITY,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
+    img.src = objectUrl;
+  });
+}
 
 export function ListingImageUpload({ value, onChange }: Props) {
   const { user } = useAuth();
@@ -31,12 +79,16 @@ export function ListingImageUpload({ value, onChange }: Props) {
     }
     setUploading(true);
     const uploaded: string[] = [];
-    for (const file of selected) {
+    for (const rawFile of selected) {
+      const file = await resizeImage(rawFile);
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = `listings/${user.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("listings").upload(path, file, { upsert: false });
+      const { error } = await supabase.storage.from("listings").upload(path, file, {
+        upsert: false,
+        contentType: file.type,
+      });
       if (error) {
-        toast.error(`Upload mislukt: ${file.name}`);
+        toast.error(`Upload mislukt: ${rawFile.name}`);
         continue;
       }
       const { data } = supabase.storage.from("listings").getPublicUrl(path);
@@ -50,7 +102,17 @@ export function ListingImageUpload({ value, onChange }: Props) {
     if (inputRef.current) inputRef.current.value = "";
   };
 
-  const remove = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+  const remove = (i: number) => {
+    const url = value[i];
+    onChange(value.filter((_, idx) => idx !== i));
+    // S-02: delete the file from storage immediately (fire-and-forget).
+    if (supabase && url) {
+      const path = extractStoragePath(url);
+      if (path) {
+        supabase.storage.from("listings").remove([path]).catch(() => {});
+      }
+    }
+  };
 
   return (
     <div className="space-y-3">
@@ -88,7 +150,7 @@ export function ListingImageUpload({ value, onChange }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
           </svg>
           <span>{uploading ? "Uploaden…" : "Klik om foto's te uploaden"}</span>
-          <span className="text-xs">JPG, PNG, WEBP — max {MAX_SIZE_MB} MB per foto</span>
+          <span className="text-xs">JPG, PNG, WEBP — max {MAX_SIZE_MB} MB per foto, automatisch verkleind tot 1280 px</span>
         </button>
       ) : (
         <div className="grid grid-cols-3 gap-2">
