@@ -923,21 +923,23 @@ export function ProfilePage() {
                   />
                 </div>
 
-                <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
-                      <Mail className="h-4 w-4 text-stone-400" />
+                {(profile?.user_type === "verhuurder" || profile?.user_type === "huisgenoot_zoeker") && (
+                  <div className="flex items-center justify-between gap-4 px-5 py-4 sm:px-6">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-stone-50">
+                        <Mail className="h-4 w-4 text-stone-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-stone-800">E-mail bij nieuwe aanvraag</p>
+                        <p className="text-xs text-stone-400 mt-0.5">Ontvang een e-mail als iemand reageert op jouw advertentie</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-stone-800">E-mail bij nieuwe aanvraag</p>
-                      <p className="text-xs text-stone-400 mt-0.5">Ontvang een e-mail als iemand reageert op jouw advertentie</p>
-                    </div>
+                    <Toggle
+                      checked={notifyEmailApplications}
+                      onToggle={() => handleNotifToggle("notify_email_applications", !notifyEmailApplications)}
+                    />
                   </div>
-                  <Toggle
-                    checked={notifyEmailApplications}
-                    onToggle={() => handleNotifToggle("notify_email_applications", !notifyEmailApplications)}
-                  />
-                </div>
+                )}
               </div>
             </section>
           )}
