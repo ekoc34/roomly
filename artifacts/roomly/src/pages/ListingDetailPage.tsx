@@ -31,7 +31,7 @@ export function ListingDetailPage() {
       if (!l) { setNotFound(true); setLoading(false); return; }
       setListing(l as Listing);
       const [{ data: ownerProfile }, { data: fav }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", (l as Listing).user_id).maybeSingle(),
+        supabase.from("public_profiles").select("*").eq("id", (l as Listing).user_id).maybeSingle(),
         user ? supabase.from("favorites").select("listing_id").eq("user_id", user.id).eq("listing_id", params.id).maybeSingle() : { data: null },
       ]);
       setOwner(ownerProfile as Profile | null);

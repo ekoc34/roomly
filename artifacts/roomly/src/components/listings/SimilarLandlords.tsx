@@ -56,7 +56,7 @@ export function SimilarLandlords({ location, excludeUserId, viewerUserId }: Prop
       // Step 2: Batch-fetch profiles, all listings (for count), and application stats
       const [{ data: profiles }, { data: allListings }, { data: appStats }] =
         await Promise.all([
-          supabase!.from("profiles").select("*").in("id", landlordIds),
+          supabase!.from("public_profiles").select("*").in("id", landlordIds),
           supabase!
             .from("listings")
             .select("user_id")
