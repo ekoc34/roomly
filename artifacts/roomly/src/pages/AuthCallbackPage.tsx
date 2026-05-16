@@ -83,10 +83,9 @@ export function AuthCallbackPage() {
           .maybeSingle();
 
         if (!profile?.onboarding_completed) {
-          // Mark this session as coming directly from email verification.
-          // OnboardingPage reads + clears this flag on mount to gate access.
-          sessionStorage.setItem("just_verified", "1");
-          navigate("/onboarding");
+          // Signal to /welkom that it should show the verification success toast.
+          sessionStorage.setItem("emailJustVerified", "1");
+          navigate("/welkom");
         } else {
           navigate("/dashboard");
         }

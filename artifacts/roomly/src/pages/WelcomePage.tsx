@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -29,6 +29,9 @@ export function WelcomePage() {
   const [, navigate] = useLocation();
   const [oauthInfo, setOauthInfo] = useState<OAuthInfo | null>(null);
   const [checking, setChecking] = useState(true);
+  // Prevent the guard from re-running on auth token refreshes (e.g. tab switches).
+  // Once we've confirmed user_type is null and shown the selector, stay put.
+  const hasChecked = useRef(false);
 
   // ── One-time flags set by EmailVerificationHandler / OAuthProfileHandler ──
   useEffect(() => {
@@ -62,7 +65,13 @@ export function WelcomePage() {
       return;
     }
 
+    // Only run the DB check once. Subsequent auth state changes (token
+    // refreshes, tab-focus events) must not re-trigger this, otherwise
+    // switching tabs can cause a premature redirect to /dashboard.
+    if (hasChecked.current) return;
+
     if (!supabase) {
+      hasChecked.current = true;
       setChecking(false);
       return;
     }
@@ -73,6 +82,7 @@ export function WelcomePage() {
       .eq("id", user.id)
       .maybeSingle()
       .then(({ data }) => {
+        hasChecked.current = true;
         if (data?.user_type) {
           navigate("/dashboard");
         } else {
