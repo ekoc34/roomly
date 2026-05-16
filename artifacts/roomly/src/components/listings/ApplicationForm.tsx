@@ -17,18 +17,33 @@ export function ApplicationForm({ listingId }: Props) {
   const [alreadyApplied, setAlreadyApplied] = useState<boolean | null>(null);
   const [listingOwnerId, setListingOwnerId] = useState<string | null>(null);
   const [listingTitle, setListingTitle] = useState<string>("");
+  const [ownerEmail, setOwnerEmail] = useState<string | null>(null);
+  const [ownerNotifyApplications, setOwnerNotifyApplications] = useState<boolean>(true);
 
   useEffect(() => {
     if (!user || !supabase) { setAlreadyApplied(false); return; }
     Promise.all([
       supabase.from("applications").select("id", { count: "exact", head: true }).eq("listing_id", listingId).eq("applicant_id", user.id),
       supabase.from("listings").select("user_id, title").eq("id", listingId).maybeSingle(),
-    ]).then(([{ count, error: appErr }, { data: listing, error: listingErr }]) => {
+    ]).then(async ([{ count, error: appErr }, { data: listing, error: listingErr }]) => {
       if (appErr) console.error("[ApplicationForm] application count error:", appErr);
       if (listingErr) console.error("[ApplicationForm] listing fetch error:", listingErr);
       setAlreadyApplied((count ?? 0) > 0);
-      setListingOwnerId((listing as { user_id: string } | null)?.user_id ?? null);
-      setListingTitle((listing as { title: string } | null)?.title ?? "");
+      const ownerId = (listing as { user_id: string } | null)?.user_id ?? null;
+      const title   = (listing as { title: string } | null)?.title ?? "";
+      setListingOwnerId(ownerId);
+      setListingTitle(title);
+      if (ownerId && supabase) {
+        const { data: ownerProfile } = await supabase
+          .from("profiles")
+          .select("email, notify_email_applications")
+          .eq("id", ownerId)
+          .maybeSingle();
+        if (ownerProfile) {
+          setOwnerEmail((ownerProfile as { email?: string }).email ?? null);
+          setOwnerNotifyApplications((ownerProfile as { notify_email_applications?: boolean }).notify_email_applications !== false);
+        }
+      }
     });
   }, [listingId, user]);
 
@@ -104,6 +119,16 @@ export function ApplicationForm({ listingId }: Props) {
         if (notifError) {
           console.error("[ApplicationForm] notify_application_event failed:", notifError);
         }
+      }
+
+      if (ownerNotifyApplications && ownerEmail && listingTitle) {
+        supabase.functions.invoke("send-application-email", {
+          body: {
+            landlord_email:      ownerEmail,
+            listing_title:       listingTitle,
+            application_message: message.trim(),
+          },
+        }).catch((err) => console.error("[ApplicationForm] send-application-email failed:", err));
       }
 
       setSubmitted(true);

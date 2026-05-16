@@ -535,9 +535,34 @@ export function DashboardPage() {
       { id: crypto.randomUUID(), listing_id: applyModalListingId!, applicant_id: user.id, message: msg, budget, status: "pending", created_at: new Date().toISOString(), landlord_reply: null, listings: null },
       ...prev,
     ]);
+    // Fire notification email — fire-and-forget, does not block the UI
+    const capturedListingId = applyModalListingId;
+    const capturedMsg = msg;
     setApplyModalListingId(null);
     setApplyModalMessage("");
     setApplyModalBudget("");
+    supabase.from("listings").select("title, user_id").eq("id", capturedListingId).maybeSingle()
+      .then(async ({ data: listingRow }) => {
+        if (!listingRow) return;
+        const { data: ownerProfile } = await supabase
+          .from("profiles")
+          .select("email, notify_email_applications")
+          .eq("id", (listingRow as { user_id: string }).user_id)
+          .maybeSingle();
+        if (!ownerProfile) return;
+        const email   = (ownerProfile as { email?: string }).email;
+        const notifyOn = (ownerProfile as { notify_email_applications?: boolean }).notify_email_applications !== false;
+        if (notifyOn && email) {
+          supabase.functions.invoke("send-application-email", {
+            body: {
+              landlord_email:      email,
+              listing_title:       (listingRow as { title: string }).title,
+              application_message: capturedMsg,
+            },
+          }).catch((err) => console.error("[DashboardPage] send-application-email (modal) failed:", err));
+        }
+      })
+      .catch((err) => console.error("[DashboardPage] owner lookup (modal) failed:", err));
   }
 
   async function submitQuickApplication(listingId: string) {
@@ -561,6 +586,29 @@ export function DashboardPage() {
       { id: crypto.randomUUID(), listing_id: listingId, applicant_id: user.id, message: defaultMsg, budget: null, status: "pending", created_at: new Date().toISOString(), landlord_reply: null, listings: null },
       ...prev,
     ]);
+    // Fire notification email — fire-and-forget, does not block the UI
+    supabase.from("listings").select("title, user_id").eq("id", listingId).maybeSingle()
+      .then(async ({ data: listingRow }) => {
+        if (!listingRow) return;
+        const { data: ownerProfile } = await supabase
+          .from("profiles")
+          .select("email, notify_email_applications")
+          .eq("id", (listingRow as { user_id: string }).user_id)
+          .maybeSingle();
+        if (!ownerProfile) return;
+        const email    = (ownerProfile as { email?: string }).email;
+        const notifyOn = (ownerProfile as { notify_email_applications?: boolean }).notify_email_applications !== false;
+        if (notifyOn && email) {
+          supabase.functions.invoke("send-application-email", {
+            body: {
+              landlord_email:      email,
+              listing_title:       (listingRow as { title: string }).title,
+              application_message: defaultMsg,
+            },
+          }).catch((err) => console.error("[DashboardPage] send-application-email (quick) failed:", err));
+        }
+      })
+      .catch((err) => console.error("[DashboardPage] owner lookup (quick) failed:", err));
   }
 
   async function handleSavePhoneAndApply() {
