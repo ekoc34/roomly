@@ -390,23 +390,19 @@ export function DashboardPage() {
         });
       }
       if (replyText?.trim() && convId) {
-        await supabase.from("messages").insert({ conversation_id: convId, sender_id: user.id, body: replyText.trim() });
+        await supabase.rpc("send_message", {
+          p_conversation_id: convId,
+          p_body: replyText.trim(),
+        });
       }
     }
 
     if (app) {
-      const listingTitle = app.listings?.title ?? "een woning";
-      const replySnippet = replyText?.trim() ? `\n\nBericht van verhuurder:\n"${replyText.trim()}"` : "";
       const { data: applicantPrefs } = await supabase.from("profiles").select("notify_application_update").eq("id", app.applicant_id).maybeSingle();
       if (applicantPrefs?.notify_application_update !== false) {
-        await supabase.from("notifications").insert({
-          user_id: app.applicant_id,
-          type: status === "accepted" ? "application_accepted" : "application_rejected",
-          title: status === "accepted" ? "Aanvraag geaccepteerd!" : "Aanvraag afgewezen",
-          body: status === "accepted"
-            ? `Je aanvraag voor "${listingTitle}" is geaccepteerd. Je kunt nu het gesprek bekijken.${replySnippet}`
-            : `Je aanvraag voor "${listingTitle}" is helaas niet doorgegaan.${replySnippet}`,
-          related_id: convId ?? null, read: false,
+        await supabase.rpc("notify_application_event", {
+          p_application_id: appId,
+          p_event: status === "accepted" ? "application_accepted" : "application_rejected",
         });
       }
     }

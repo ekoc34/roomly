@@ -54,7 +54,12 @@ export function useUnreadMessages() {
       channelRef.current = null;
     }
 
-    const channelName = `unread-messages:${user.id}:${Date.now()}`;
+    // Stable channel name (no timestamp) — prevents channel accumulation on re-renders.
+    // Subscribes to INSERT and UPDATE on messages then re-fetches the accurate count
+    // rather than applying an optimistic increment from unfiltered realtime events
+    // (the realtime channel has no server-side filter, so all message events would
+    // flow to every client; re-fetching is safer and still fast).
+    const channelName = `unread-messages:${user.id}`;
 
     try {
       const channel = supabase
@@ -66,10 +71,9 @@ export function useUnreadMessages() {
             schema: "public",
             table: "messages",
           },
-          (payload) => {
-            // Werk de teller pas bij nadat de eerste fetch is voltooid
-            if (payload.new.sender_id !== user.id && initialFetchDoneRef.current) {
-              setUnreadCount((prev) => (prev === null ? 1 : prev + 1));
+          () => {
+            if (initialFetchDoneRef.current) {
+              fetchUnread();
             }
           }
         )

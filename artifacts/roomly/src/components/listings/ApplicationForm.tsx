@@ -87,29 +87,23 @@ export function ApplicationForm({ listingId }: Props) {
     }
     setSubmitting(true);
     try {
-      const { error: appError } = await supabase.from("applications").insert({
+      const { data: insertedApp, error: appError } = await supabase.from("applications").insert({
         listing_id: listingId,
         applicant_id: user.id,
         message: message.trim(),
         budget: budget ? parseFloat(budget) : null,
         status: "pending",
-      });
+      }).select("id").single();
       if (appError) throw appError;
 
-      if (listingOwnerId) {
-        const { error: notifError } = await supabase.from("notifications").insert({
-          user_id: listingOwnerId,
-          type: "new_application",
-          title: "Nieuwe aanvraag ontvangen",
-          body: `Je hebt een nieuwe reactie op "${listingTitle || "een woning"}". Bekijk de aanvraag in je dashboard.`,
-          related_id: listingId,
-          read: false,
+      if (insertedApp?.id) {
+        const { error: notifError } = await supabase.rpc("notify_application_event", {
+          p_application_id: insertedApp.id,
+          p_event: "new_application",
         });
         if (notifError) {
-          console.error("[ApplicationForm] notification insert failed — is the notifications table created in Supabase?", notifError);
+          console.error("[ApplicationForm] notify_application_event failed:", notifError);
         }
-      } else {
-        console.warn("[ApplicationForm] listingOwnerId is null — cannot send notification to landlord.");
       }
 
       setSubmitted(true);

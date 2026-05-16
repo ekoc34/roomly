@@ -20,15 +20,20 @@ export function ContactButton({ listingId }: Props) {
     }
     startTransition(async () => {
       if (!supabase) return;
-      const { data: listing } = await supabase.from("listings").select("id, user_id").eq("id", listingId).maybeSingle();
-      if (!listing || listing.user_id === user.id) return;
-
-      const { data: existing } = await supabase.from("conversations").select("id").eq("listing_id", listingId).eq("tenant_id", user.id).maybeSingle();
-      if (existing) { navigate(`/berichten/${existing.id}`); return; }
-
-      const { data: created, error: err } = await supabase.from("conversations").insert({ listing_id: listingId, tenant_id: user.id, landlord_id: listing.user_id }).select("id").single();
-      if (err || !created) { setError("Gesprek kan niet worden gestart."); return; }
-      navigate(`/berichten/${created.id}`);
+      const { data: convId, error: err } = await supabase.rpc("start_conversation", {
+        p_listing_id: listingId,
+      });
+      if (err) {
+        if (err.message?.includes("RATE_LIMITED")) {
+          setError("Je hebt vandaag al veel gesprekken gestart. Probeer morgen opnieuw.");
+        } else if (err.message?.includes("NOT_AUTHORIZED")) {
+          return;
+        } else {
+          setError("Gesprek kan niet worden gestart.");
+        }
+        return;
+      }
+      navigate(`/berichten/${convId}`);
     });
   };
 

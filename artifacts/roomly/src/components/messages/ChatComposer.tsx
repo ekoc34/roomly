@@ -127,10 +127,18 @@ export function ChatComposer({
     stopTyping();
     startTransition(async () => {
       if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
-      const { error: err } = await supabase
-        .from("messages")
-        .insert({ conversation_id: conversationId, sender_id: user.id, body });
-      if (err) { toast.error("Versturen mislukt. Probeer opnieuw."); return; }
+      const { error: err } = await supabase.rpc("send_message", {
+        p_conversation_id: conversationId,
+        p_body: body,
+      });
+      if (err) {
+        if (err.message?.includes("RATE_LIMITED")) {
+          toast.error("Te veel berichten. Wacht even en probeer opnieuw.");
+        } else {
+          toast.error("Versturen mislukt. Probeer opnieuw.");
+        }
+        return;
+      }
       pingLastActive(user.id);
       formRef.current?.reset();
       setRows(1);
