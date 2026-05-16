@@ -30,6 +30,8 @@ import { RegisterPage } from "@/pages/RegisterPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/ResetPasswordPage";
 import { EmailVerifiedPage } from "@/pages/EmailVerifiedPage";
+import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
 
 const ListingDetailPage = lazy(() => import("@/pages/ListingDetailPage").then((m) => ({ default: m.ListingDetailPage })));
 const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
@@ -112,6 +114,8 @@ function Router() {
       <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
       <Route path="/contact" component={() => <AnimatedRoute component={ContactPage} />} />
       <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
+      <Route path="/auth/callback" component={() => <AnimatedRoute component={AuthCallbackPage} />} />
+      <Route path="/onboarding" component={() => <AnimatedRoute component={OnboardingPage} />} />
       <Route path="/pricing" component={() => <AnimatedRoute component={PricingPage} />} />
       <Route path="/betaling-succesvol" component={() => <AnimatedRoute component={PaymentSuccessPage} />} />
       <Route path="/privacy" component={() => <AnimatedRoute component={PrivacyPage} />} />

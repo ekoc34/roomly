@@ -1017,3 +1017,15 @@ $$;
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS notify_email_messages      BOOLEAN NOT NULL DEFAULT TRUE,
   ADD COLUMN IF NOT EXISTS notify_email_applications  BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- ============================================================
+-- MIGRATION: onboarding_completed on profiles
+-- See: supabase/migration_onboarding.sql
+-- ============================================================
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT FALSE;
+
+UPDATE public.profiles
+  SET onboarding_completed = TRUE
+  WHERE user_type IS NOT NULL
+    AND deleted_at IS NULL;

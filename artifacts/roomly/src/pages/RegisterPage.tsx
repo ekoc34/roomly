@@ -35,7 +35,14 @@ export function RegisterPage() {
     if (!EMAIL_RE.test(email)) { setError("Voer een geldig e-mailadres in (bijv. naam@voorbeeld.nl)."); return; }
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
-      const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+      const { data, error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
       if (err) { setError(err.message); return; }
       if (data.user) {
         await supabase.from("profiles").upsert({ id: data.user.id, email, name });
@@ -54,7 +61,7 @@ export function RegisterPage() {
         // Always redirect new registrations to /welkom.
         // OAuthProfileHandler handles the new-vs-returning logic;
         // WelcomePage redirects already-onboarded users to /dashboard.
-        redirectTo: `${window.location.origin}/welkom`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (err) {

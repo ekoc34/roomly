@@ -1,0 +1,91 @@
+I am using Supabase Authentication with Email Confirmation enabled.
+
+I want to implement a proper, production-grade authentication flow similar to modern SaaS products.
+
+---
+
+## CORE FLOW
+
+### 1. Sign Up
+- User signs up using Supabase `signUp`
+- Supabase sends email confirmation link
+- User is NOT logged in yet
+
+---
+
+### 2. Email Verification Link
+When user clicks the email confirmation link:
+- User is redirected back to my app via Supabase redirect URL
+- This should go to: `/auth/callback`
+
+---
+
+### 3. Auth Callback Route (/auth/callback)
+
+This route must:
+- Handle Supabase session exchange (if needed)
+- Call `supabase.auth.getSession()` or equivalent
+- Verify authentication state
+- Check if user email is confirmed (`email_confirmed_at` exists)
+
+---
+
+### 4. Post Verification Routing Logic
+
+After successful verification:
+
+#### Case A: First time user (no onboarding completed)
+- Redirect user to: `/onboard`
+- Show onboarding flow (mandatory step)
+
+#### Case B: Returning verified user
+- Redirect user to: `/dashboard` (or home)
+
+---
+
+### 5. Onboarding Flow (/onboard)
+
+- This page is ONLY accessible after email verification
+- Store onboarding completion status in database (e.g. `users.profile.onboarded = true`)
+- After completion:
+  - redirect to `/dashboard`
+
+---
+
+## UX REQUIREMENTS
+
+- `/auth/callback` must act as a temporary processing page:
+  - Show loading state: "Verifying your email..."
+- On success:
+  - redirect automatically to `/onboard` or `/dashboard`
+- On failure:
+  - show error: "Invalid or expired verification link"
+
+---
+
+## SECURITY REQUIREMENTS
+
+- Do NOT allow access to `/onboard` unless:
+  - user is authenticated AND email is verified
+- Protect routes using Supabase session check
+- Ensure onboarding status is stored server-side (not only frontend state)
+
+---
+
+## DATABASE (if needed)
+
+Add to user profile table:
+- id (uuid)
+- email
+- email_verified_at (from Supabase auth)
+- onboarding_completed (boolean default false)
+
+---
+
+## IMPORTANT BEHAVIOR
+
+- Email verification must NOT directly redirect to home page
+- It must ALWAYS go through `/auth/callback`
+- Then route user logically:
+  1. verified → onboarding
+  2. onboarding done → dashboard

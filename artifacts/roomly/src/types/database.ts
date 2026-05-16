@@ -37,6 +37,7 @@ export type Profile = {
   notify_matching_listing?: boolean | null;
   notify_email_messages?: boolean | null;
   notify_email_applications?: boolean | null;
+  onboarding_completed?: boolean | null;
   scam_flagged?: boolean;
   last_active_at: string | null;
   deleted_at: string | null;

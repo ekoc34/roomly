@@ -37,13 +37,18 @@ export function LoginPage() {
       if (authUser) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("deleted_at")
+          .select("deleted_at, onboarding_completed")
           .eq("id", authUser.id)
           .maybeSingle();
 
         if (profile?.deleted_at) {
           await supabase.auth.signOut();
           setError("Dit account is verwijderd en kan niet meer worden gebruikt.");
+          return;
+        }
+
+        if (!profile?.onboarding_completed) {
+          navigate("/onboarding");
           return;
         }
       }
