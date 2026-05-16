@@ -93,7 +93,7 @@ CREATE TRIGGER trigger_enqueue_message_email
 CREATE OR REPLACE FUNCTION public.enqueue_application_email()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER AS $$
 DECLARE
-  v_url TEXT := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/notify-application';
+  v_url TEXT := 'https://gjjwctzgkujtlegcvxwy.supabase.co.supabase.co/functions/v1/notify-application';
 BEGIN
   PERFORM net.http_post(
     url     := v_url,
