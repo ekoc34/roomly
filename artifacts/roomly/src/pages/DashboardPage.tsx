@@ -14,6 +14,7 @@ import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePa
 import { BoostCountdown } from "@/components/listings/BoostBadge";
 import { ListingAnalyticsStrip } from "@/components/dashboard/ListingAnalyticsStrip";
 import type { Listing, Profile, ApplicationWithDetails } from "@/types/database";
+import { isFullyVerified } from "@/lib/verificationUtils";
 
 const BANNER_KEY = "roomly_profile_banner_dismissed";
 
@@ -1065,7 +1066,7 @@ export function DashboardPage() {
                     const name = app.profiles?.name ?? app.profiles?.email ?? "Onbekend";
                     const avatarInitial = name.slice(0, 1).toUpperCase();
                     const badge = statusMap[app.status as keyof typeof statusMap] ?? statusMap.pending;
-                    const isApplicantVerified = !!(app.profiles?.phone_verified || app.profiles?.email_auto_verified || app.profiles?.student_verified || app.profiles?.verification_badge);
+                    const isApplicantVerified = isFullyVerified(null, app.profiles as { phone_verified?: boolean | null; email_auto_verified?: boolean | null } | null);
                     const conv = landlordConversations.find((c) => c.listing_id === app.listing_id && c.tenant_id === app.applicant_id);
                     return (
                       <div key={app.id} className="relative flex flex-col gap-4 rounded-lg border border-stone-200 bg-white p-4 pr-10 sm:flex-row sm:items-start">

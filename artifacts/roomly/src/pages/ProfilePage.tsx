@@ -661,12 +661,12 @@ export function ProfilePage() {
 
               {/* Status summary */}
               <div className="border-b border-stone-100 px-5 py-4 sm:px-6">
-                {isFullyVerified(profile) ? (
+                {isFullyVerified(user, profile) ? (
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-500" />
                     <p className="text-sm text-emerald-800">Je account is volledig geverifieerd.</p>
                   </div>
-                ) : isPartiallyVerified(profile) ? (
+                ) : isPartiallyVerified(user, profile) ? (
                   <div className="flex items-center gap-2">
                     <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />
                     <p className="text-sm text-stone-700">Gedeeltelijk geverifieerd. Voeg e-mail of telefoon toe voor meer vertrouwen.</p>

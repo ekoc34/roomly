@@ -32,8 +32,8 @@ export function OwnerBadges({ profile, memberSince, onNameClick }: Props) {
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
   const roleLabel = (profile?.user_type && USER_TYPE_LABELS[profile.user_type]) ?? "Gebruiker";
 
-  const fullyVerified = isFullyVerified(profile);
-  const partiallyVerified = isPartiallyVerified(profile);
+  const fullyVerified = isFullyVerified(null, profile);
+  const partiallyVerified = isPartiallyVerified(null, profile);
   const isScamFlagged = profile?.scam_flagged === true;
 
   return (

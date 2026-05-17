@@ -172,8 +172,8 @@ export function ApplicantProfilePanel({
   const initial = (profile?.name ?? profile?.email ?? "?").slice(0, 1).toUpperCase();
   const isLandlord = mode === "landlord";
 
-  const fullyVerified = isFullyVerified(profile);
-  const partiallyVerified = isPartiallyVerified(profile);
+  const fullyVerified = isFullyVerified(null, profile);
+  const partiallyVerified = isPartiallyVerified(null, profile);
   const activeStatus = isLandlord ? getActiveStatus(profile?.last_active_at) : null;
   const responseRateBadge = isLandlord && appStats ? getResponseRateBadge(appStats.rate) : null;
 
