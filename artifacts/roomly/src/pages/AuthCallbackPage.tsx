@@ -23,15 +23,16 @@ export function AuthCallbackPage() {
       return;
     }
 
-    // ── RECOVERY DETECTION — must happen SYNCHRONOUSLY before any await ───────
+    // ── RECOVERY DETECTION — subscribe before any await ───────────────────────
     //
-    // Supabase JS fires onAuthStateChange with the CURRENT auth state immediately
-    // when you subscribe. If the SDK auto-processed a recovery hash at page load
-    // (implicit flow), the state is already PASSWORD_RECOVERY by the time this
-    // effect runs — so subscribing here catches it instantly, before any await.
+    // For PKCE recovery codes the SDK fires PASSWORD_RECOVERY synchronously
+    // during exchangeCodeForSession (before the promise resolves). Subscribing
+    // first ensures we never miss it.
     //
-    // For PKCE recovery codes, the event fires synchronously DURING the
-    // exchangeCodeForSession call, so the flag is set before that promise resolves.
+    // For implicit-flow recovery the event may have fired before this component
+    // mounted (PasswordRecoveryHandler picks those up). The subscription here
+    // acts as a safety net for PKCE codes that arrive at /auth/callback without
+    // an explicit ?type=recovery param (e.g. older email templates).
     let recoveryDetected = false;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
@@ -41,27 +42,18 @@ export function AuthCallbackPage() {
 
     const run = async () => {
       try {
-        // ── Parse URL signals ─────────────────────────────────────────────────
         const searchParams = new URLSearchParams(window.location.search);
         const code    = searchParams.get("code");
-        const urlType = searchParams.get("type"); // "recovery" | "signup" | null
+        const urlType = searchParams.get("type");
 
         const hash       = window.location.hash;
         const hashParams = hash ? new URLSearchParams(hash.slice(1)) : null;
         const hashType   = hashParams?.get("type");
 
-        // ── RECOVERY — handled as absolute first priority ─────────────────────
+        // ── RECOVERY — absolute first priority ───────────────────────────────
         //
-        // We arrive here via one of three paths:
-        //   A) urlType === "recovery"  — PKCE, type in query string
-        //   B) hashType === "recovery" — implicit flow, type in hash
-        //   C) recoveryDetected        — PKCE with no type in URL, but SDK fired
-        //                               PASSWORD_RECOVERY during exchangeCodeForSession
-        //
-        // None of these paths call getUser(), check profiles, or set emailJustVerified.
-
+        // Path A: ?type=recovery is explicit in the URL (PKCE with type param).
         if (urlType === "recovery" && code) {
-          // Path A — PKCE with explicit type
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           subscription.unsubscribe();
           window.history.replaceState(null, "", window.location.pathname);
@@ -75,8 +67,8 @@ export function AuthCallbackPage() {
           return;
         }
 
+        // Path B: hash-based implicit flow with type=recovery.
         if (hashType === "recovery") {
-          // Path B — implicit / hash flow
           const accessToken  = hashParams?.get("access_token") ?? "";
           const refreshToken = hashParams?.get("refresh_token") ?? "";
           if (!accessToken) {
@@ -102,14 +94,19 @@ export function AuthCallbackPage() {
         }
 
         // ── Non-recovery PKCE code exchange ───────────────────────────────────
-        // For PKCE recovery codes where Supabase omits ?type=recovery, the SDK
-        // fires PASSWORD_RECOVERY synchronously during exchangeCodeForSession,
-        // setting recoveryDetected = true before the await resolves.
+        // Path C: code present, no type=recovery in URL. This handles PKCE codes
+        // from email verification, magic links, and OAuth. It also covers legacy
+        // recovery links where Supabase omits ?type=recovery from the redirect.
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
 
+          // PASSWORD_RECOVERY event fires synchronously during exchangeCodeForSession
+          // (before the promise resolves). If it fired, recoveryDetected is true.
+          // Also yield one microtask tick as a belt-and-suspenders safety net in
+          // case any JS engine defers the event callback.
+          await Promise.resolve();
+
           if (recoveryDetected) {
-            // Path C — recovery detected via event during code exchange
             subscription.unsubscribe();
             window.history.replaceState(null, "", window.location.pathname);
             if (error) {
@@ -152,12 +149,20 @@ export function AuthCallbackPage() {
         // No code, no hash → fall through; getUser picks up an existing session.
 
         subscription.unsubscribe();
-
-        // ── Clean up URL ──────────────────────────────────────────────────────
         window.history.replaceState(null, "", window.location.pathname);
 
+        // ── Final safety net ─────────────────────────────────────────────────
+        // If recovery was detected asynchronously after the code exchange (rare
+        // but possible), always send the user to the reset page — never the
+        // dashboard. This prevents the core bug where an authenticated recovery
+        // session is incorrectly treated as a normal sign-in.
+        if (recoveryDetected) {
+          sessionStorage.setItem("roomly_recovery_pending", "1");
+          navigate("/wachtwoord-instellen");
+          return;
+        }
+
         // ── Email-verification flow (signup / magic link only) ────────────────
-        // Only reachable when NO recovery signal was detected above.
         const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
         if (userErr || !user) {
@@ -179,10 +184,6 @@ export function AuthCallbackPage() {
           .maybeSingle();
 
         if (!profile?.onboarding_completed) {
-          // Only flag the email-verified toast for genuine email-signup links.
-          // OAuth sign-ins (Google/Facebook) also land here when Supabase uses a
-          // PKCE ?code= callback, but they have no urlType and their provider is
-          // not "email". OAuthProfileHandler sets oauthNewUser for those users.
           const isEmailSignupLink =
             (urlType === "signup" || hashType === "signup") &&
             user.app_metadata?.provider === "email";
@@ -202,7 +203,6 @@ export function AuthCallbackPage() {
 
     run();
 
-    // Cleanup in case the component unmounts before run() completes.
     return () => { subscription.unsubscribe(); };
   }, [navigate]);
 

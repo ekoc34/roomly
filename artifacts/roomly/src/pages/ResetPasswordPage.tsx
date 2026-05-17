@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 
@@ -9,34 +9,108 @@ export function ResetPasswordPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
-  // null = checking, true = valid recovery session, false = no valid session
+  // null = checking, true = valid recovery session, false = invalid/expired
   const [sessionReady, setSessionReady] = useState<boolean | null>(null);
 
+  // Prevents multiple state updates when several auth events fire at once.
+  const resolvedRef = useRef(false);
+
   useEffect(() => {
-    // ── Immediate check via sessionStorage flag ────────────────────────────
-    // PasswordRecoveryHandler sets this flag when it detects a recovery hash
-    // or PASSWORD_RECOVERY event. Reading it here avoids waiting 3 s for the
-    // event-based path, which may have already fired before this page mounted.
+    // ── Path 1: Flag set by PasswordRecoveryHandler (hash implicit flow) ─────
+    // PasswordRecoveryHandler detects a legacy #access_token=...&type=recovery
+    // hash before this component mounts, sets the flag, and navigates here.
     if (sessionStorage.getItem(RECOVERY_FLAG) === "1") {
       sessionStorage.removeItem(RECOVERY_FLAG);
+      resolvedRef.current = true;
       setSessionReady(true);
       return;
     }
 
-    if (!supabase) { setSessionReady(false); return; }
+    if (!supabase) {
+      setSessionReady(false);
+      return;
+    }
 
-    // ── Event-based fallback ───────────────────────────────────────────────
-    // Catches the case where the user arrived via a PKCE code URL directly at
-    // /wachtwoord-instellen and Supabase fires PASSWORD_RECOVERY asynchronously
-    // after this component has already mounted.
+    // ── Path 2: PKCE code arrived directly at this page (?code=...) ──────────
+    // Supabase PKCE flow: resetPasswordForEmail with
+    //   redirectTo: "https://www.welkthuis.nl/wachtwoord-instellen"
+    // causes the email link to land here as
+    //   /wachtwoord-instellen?code=XXXX
+    // We exchange the code ourselves and wait for the PASSWORD_RECOVERY event.
+    const code = new URLSearchParams(window.location.search).get("code");
+    if (code) {
+      // Strip the code from the URL immediately — prevents reuse on refresh.
+      window.history.replaceState(null, "", window.location.pathname);
+
+      // Subscribe BEFORE calling exchangeCodeForSession so we never miss the
+      // PASSWORD_RECOVERY event even if it fires synchronously.
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY" && !resolvedRef.current) {
+          resolvedRef.current = true;
+          sessionStorage.removeItem(RECOVERY_FLAG);
+          subscription.unsubscribe();
+          setSessionReady(true);
+        }
+      });
+
+      supabase.auth.exchangeCodeForSession(code).then(({ error: exchErr }) => {
+        if (exchErr && !resolvedRef.current) {
+          subscription.unsubscribe();
+          setSessionReady(false);
+          return;
+        }
+        // If PASSWORD_RECOVERY hasn't fired within 3 s after the exchange
+        // completes, the code was not for a recovery session — treat as invalid.
+        setTimeout(() => {
+          if (!resolvedRef.current) {
+            subscription.unsubscribe();
+            setSessionReady(false);
+          }
+        }, 3000);
+      });
+
+      return () => subscription.unsubscribe();
+    }
+
+    // ── Path 3: Hash-based implicit recovery token landed directly here ───────
+    // Belt-and-suspenders: PasswordRecoveryHandler normally catches this first
+    // (when coming from /auth/callback or legacy links), but if the hash is
+    // present here we handle it directly.
+    const hash = window.location.hash;
+    if (hash.includes("access_token=") && hash.includes("type=recovery")) {
+      const hp = new URLSearchParams(hash.slice(1));
+      const accessToken  = hp.get("access_token")  ?? "";
+      const refreshToken = hp.get("refresh_token") ?? "";
+      window.history.replaceState(null, "", window.location.pathname);
+      if (!accessToken) {
+        setSessionReady(false);
+        return;
+      }
+      supabase.auth
+        .setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(({ error: sessErr }) => {
+          if (!resolvedRef.current) {
+            resolvedRef.current = true;
+            setSessionReady(sessErr ? false : true);
+          }
+        });
+      return;
+    }
+
+    // ── Path 4: Event-based fallback ──────────────────────────────────────────
+    // Catches edge cases: e.g. user refreshed mid-recovery, or a legacy
+    // /auth/callback flow that already exchanged the code and navigated here.
+    // The PASSWORD_RECOVERY event fires from Supabase's internal session restore.
     const timeout = setTimeout(() => {
-      setSessionReady((prev) => (prev === null ? false : prev));
+      if (!resolvedRef.current) setSessionReady(false);
     }, 4000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
+      if (event === "PASSWORD_RECOVERY" && !resolvedRef.current) {
         clearTimeout(timeout);
+        resolvedRef.current = true;
         sessionStorage.removeItem(RECOVERY_FLAG);
+        subscription.unsubscribe();
         setSessionReady(true);
       }
     });
@@ -52,7 +126,7 @@ export function ResetPasswordPage() {
     setError(null);
     const fd = new FormData(e.currentTarget);
     const password = String(fd.get("password") ?? "");
-    const confirm = String(fd.get("confirm") ?? "");
+    const confirm  = String(fd.get("confirm")  ?? "");
     if (password.length < 8) { setError("Wachtwoord moet minimaal 8 tekens zijn."); return; }
     if (password !== confirm) { setError("Wachtwoorden komen niet overeen."); return; }
     startTransition(async () => {
@@ -60,6 +134,9 @@ export function ResetPasswordPage() {
       const { error: err } = await supabase.auth.updateUser({ password });
       if (err) { setError(err.message); return; }
       setDone(true);
+      // Sign out after a successful reset so the user logs in fresh with their
+      // new password, confirming it works.
+      await supabase.auth.signOut();
       setTimeout(() => navigate("/inloggen"), 2500);
     });
   };

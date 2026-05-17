@@ -21,7 +21,10 @@ export function ForgotPasswordPage() {
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        // Direct to the password-reset page so no intermediate /auth/callback
+        // is needed. This URL is whitelisted in Supabase → Authentication →
+        // URL Configuration → Redirect URLs.
+        redirectTo: "https://www.welkthuis.nl/wachtwoord-instellen",
       });
       if (err) {
         if (isRateLimitError(err.message)) {
