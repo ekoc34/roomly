@@ -9,6 +9,7 @@
 //   STRIPE_SECRET_KEY       →  sk_live_...
 //   STRIPE_WEBHOOK_SECRET   →  whsec_...  (Stripe Dashboard › Webhooks › Signing secret)
 //   SUPABASE_SERVICE_ROLE_KEY is auto-injected by Supabase.
+//   PLAUSIBLE_DOMAIN        →  roomly.nl  (or your production domain)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno&no-check";
@@ -18,6 +19,38 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "stripe-signature, content-type",
 };
+
+/**
+ * Fire a server-side Plausible custom event.
+ *
+ * window.plausible is unavailable in a Deno Edge Function, so we call the
+ * Plausible Events API directly. The call is fire-and-forget: analytics
+ * failures must never affect webhook delivery or credit granting.
+ *
+ * Idempotency: this function is only reachable after the
+ * stripe_processed_events INSERT succeeds (primary-key unique on event_id).
+ * Duplicate Stripe retries exit before this call, so the event fires
+ * at most once per Stripe event ID.
+ */
+async function trackServerEvent(eventName: string): Promise<void> {
+  try {
+    const domain = Deno.env.get("PLAUSIBLE_DOMAIN") ?? "roomly.nl";
+    await fetch("https://plausible.io/api/event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Roomly-Webhook/1.0",
+      },
+      body: JSON.stringify({
+        name: eventName,
+        url: `https://${domain}/betaling-succesvol`,
+        domain,
+      }),
+    });
+  } catch {
+    // Never let analytics errors affect webhook processing or response.
+  }
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -120,6 +153,10 @@ Deno.serve(async (req) => {
       }
 
       console.log(`checkout.session.completed: added ${credits} credit(s) to user ${userId}`);
+
+      // Credits confirmed granted — fire analytics event.
+      // Fire-and-forget: never awaited in the response path.
+      void trackServerEvent("premium_completed");
     }
 
     return new Response(JSON.stringify({ received: true }), {
