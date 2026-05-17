@@ -43,6 +43,10 @@ function removeScript(): void {
   delete window.plausible;
 }
 
+const isPlausibleBot = (): boolean =>
+  typeof navigator !== "undefined" &&
+  navigator.userAgent.includes("Plausible");
+
 export function PlausibleProvider(): null {
   const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN as string | undefined;
   const [path] = useLocation();
@@ -50,6 +54,13 @@ export function PlausibleProvider(): null {
 
   useEffect(() => {
     if (!domain) return;
+
+    // Plausible verification bot: inject immediately so the script is
+    // detectable, but do NOT fire any pageview events.
+    if (isPlausibleBot()) {
+      injectScript();
+      return;
+    }
 
     function syncScript(): void {
       if (canUseAnalytics()) {
