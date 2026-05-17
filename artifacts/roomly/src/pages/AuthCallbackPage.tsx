@@ -24,9 +24,9 @@ export function AuthCallbackPage() {
 
         // ── PKCE flow: ?code=... ────────────────────────────────
         if (code) {
-          // ── Password recovery: redirect straight to reset page ──
-          // Supabase appends ?type=recovery to the redirect URL for
-          // forgot-password links. Do NOT run the onboarding flow here.
+          // ── Explicit recovery type in URL ──
+          // Supabase appends ?type=recovery when the project is configured to
+          // include it. Do NOT run the onboarding/email-verification flow here.
           if (urlType === "recovery") {
             const { error } = await supabase.auth.exchangeCodeForSession(code);
             window.history.replaceState(null, "", window.location.pathname);
@@ -35,35 +35,72 @@ export function AuthCallbackPage() {
               setStatus("error");
               return;
             }
-            // Signal ResetPasswordPage that we have a valid recovery session.
             sessionStorage.setItem("roomly_recovery_pending", "1");
             navigate("/wachtwoord-instellen");
             return;
           }
 
           // ── All other PKCE flows (signup confirmation, magic link) ──
+          // Guard against recovery flows where Supabase omits ?type=recovery
+          // from the callback URL (occurs in some project configurations). In
+          // those cases, exchangeCodeForSession fires PASSWORD_RECOVERY
+          // synchronously before the promise resolves; we capture it here to
+          // prevent falling through to the email-verification path by mistake.
+          let recoveryDetected = false;
+          const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === "PASSWORD_RECOVERY") {
+              recoveryDetected = true;
+            }
+          });
+
           const { error } = await supabase.auth.exchangeCodeForSession(code);
+          subscription.unsubscribe();
+
           if (error) {
             setErrorMsg("Verificatielink ongeldig of verlopen.");
             setStatus("error");
             return;
           }
+
+          if (recoveryDetected) {
+            window.history.replaceState(null, "", window.location.pathname);
+            sessionStorage.setItem("roomly_recovery_pending", "1");
+            navigate("/wachtwoord-instellen");
+            return;
+          }
+
         } else {
           // ── Implicit / hash flow: #access_token=... ──────────
           const hash = window.location.hash;
           if (hash && hash.includes("access_token=")) {
             const params = new URLSearchParams(hash.slice(1));
             const hashType = params.get("type");
-
-            // Recovery via hash — hand off to PasswordRecoveryHandler
-            // which already handles this case; just clean up and bail.
-            if (hashType === "recovery") {
-              window.history.replaceState(null, "", window.location.pathname);
-              return;
-            }
-
             const accessToken = params.get("access_token");
             const refreshToken = params.get("refresh_token") ?? "";
+
+            // ── Recovery via hash ──
+            // Handle entirely here so we don't race against PasswordRecoveryHandler
+            // reading the hash before we clear it with replaceState.
+            if (hashType === "recovery") {
+              if (!accessToken) {
+                setErrorMsg("De herstellink is ongeldig of verlopen.");
+                setStatus("error");
+                return;
+              }
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              });
+              window.history.replaceState(null, "", window.location.pathname);
+              if (error) {
+                setErrorMsg("De herstellink is ongeldig of verlopen.");
+                setStatus("error");
+                return;
+              }
+              sessionStorage.setItem("roomly_recovery_pending", "1");
+              navigate("/wachtwoord-instellen");
+              return;
+            }
 
             if (!accessToken) {
               setErrorMsg("Verificatielink ongeldig of verlopen.");
@@ -104,6 +141,8 @@ export function AuthCallbackPage() {
         }
 
         // ── Determine routing: onboarding vs dashboard ──────────
+        // Only signup/email-verification flows reach this point.
+        // Recovery flows have already returned above.
         const { data: profile } = await supabase
           .from("profiles")
           .select("onboarding_completed")
