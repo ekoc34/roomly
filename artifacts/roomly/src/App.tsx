@@ -42,6 +42,7 @@ const MapPage = lazy(() => import("@/pages/MapPage").then((m) => ({ default: m.M
 const SavedSearchesPage = lazy(() => import("@/pages/SavedSearchesPage").then((m) => ({ default: m.SavedSearchesPage })));
 const ComparePage = lazy(() => import("@/pages/ComparePage").then((m) => ({ default: m.ComparePage })));
 const AdminDashboardPage = lazy(() => import("@/pages/AdminDashboardPage").then((m) => ({ default: m.AdminDashboardPage })));
+const AdminAnalyticsPage = lazy(() => import("@/pages/AdminAnalyticsPage").then((m) => ({ default: m.AdminAnalyticsPage })));
 const ContactPage = lazy(() => import("@/pages/ContactPage").then((m) => ({ default: m.ContactPage })));
 const PricingPage = lazy(() => import("@/pages/PricingPage").then((m) => ({ default: m.PricingPage })));
 const PaymentSuccessPage = lazy(() => import("@/pages/PaymentSuccessPage").then((m) => ({ default: m.PaymentSuccessPage })));
@@ -114,6 +115,7 @@ function Router() {
       <Route path="/wachtwoord-vergeten" component={() => <AnimatedRoute component={ForgotPasswordPage} />} />
       <Route path="/wachtwoord-instellen" component={() => <AnimatedRoute component={ResetPasswordPage} />} />
       <Route path="/admin/dashboard" component={() => <AnimatedRoute component={AdminDashboardPage} />} />
+      <Route path="/admin/analytics" component={() => <AnimatedRoute component={AdminAnalyticsPage} />} />
       <Route path="/contact" component={() => <AnimatedRoute component={ContactPage} />} />
       <Route path="/email-verificatie" component={() => <AnimatedRoute component={EmailVerifiedPage} />} />
       <Route path="/auth/callback" component={() => <AnimatedRoute component={AuthCallbackPage} />} />

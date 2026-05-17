@@ -662,14 +662,23 @@ export function AdminDashboardPage() {
         <span className="text-stone-700">Admin Dashboard</span>
       </nav>
 
-      <div className="mb-6 flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100">
-          <ShieldCheck className="h-5 w-5 text-rose-600" />
-        </span>
-        <div>
-          <h1 className="text-2xl font-bold text-stone-900">Admin Dashboard</h1>
-          <p className="text-sm text-stone-500">Operations cockpit — Welkthuis.nl</p>
+      <div className="mb-6 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-100">
+            <ShieldCheck className="h-5 w-5 text-rose-600" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-bold text-stone-900">Admin Dashboard</h1>
+            <p className="text-sm text-stone-500">Operations cockpit — Welkthuis.nl</p>
+          </div>
         </div>
+        <Link
+          href="/admin/analytics"
+          className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+        >
+          <Activity className="h-3.5 w-3.5" />
+          Analytics
+        </Link>
       </div>
 
       {/* ── Tab Bar ──────────────────────────────────────────────────────── */}

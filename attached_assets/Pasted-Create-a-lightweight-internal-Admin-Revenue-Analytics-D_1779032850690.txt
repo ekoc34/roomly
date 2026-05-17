@@ -1,0 +1,166 @@
+Create a lightweight internal “Admin Revenue Analytics Dashboard” for Welkthuis.
+
+IMPORTANT:
+
+* This is an INTERNAL admin tool
+* Keep it minimal, fast, and professional
+* Use REAL existing data only
+* Do NOT invent fake analytics
+* Do NOT add heavy chart libraries yet
+* No unnecessary complexity
+
+Goal:
+Help understand marketplace behavior, boost performance, and monetization trends.
+
+Implement the following:
+
+1. Admin Analytics Page
+   Create a dedicated admin-only page:
+
+/admin/analytics
+
+Only accessible to admin users.
+
+Use the existing admin protection/auth pattern already used elsewhere in the app.
+
+2. Overview Metrics Cards
+   At the top of the page, show compact analytics cards:
+
+💰 Totale boost omzet
+
+* total revenue from boost purchases
+
+🚀 Verkochte boosts
+
+* total number of boosts activated
+
+👤 Actieve verhuurders
+
+* landlords with at least one active listing
+
+💬 Nieuwe gesprekken
+
+* total new conversations in the last 7 days
+
+Use:
+
+* compact cards
+* subtle shadows
+* muted professional styling
+* responsive grid
+
+3. Revenue Time Filter
+   Add a lightweight filter:
+
+* Vandaag
+* 7 dagen
+* 30 dagen
+
+Switching filters should update all metrics.
+
+Do NOT use heavy chart libraries.
+
+4. Top Cities Section
+   Show:
+
+* cities with the most boost usage
+
+Example:
+
+Amsterdam — 18 boosts
+Rotterdam — 11 boosts
+Utrecht — 7 boosts
+
+Use real listing/location data only.
+
+5. Repeat Buyers Section
+   Show:
+
+* landlords who purchased boosts more than once
+
+Example:
+
+"5 verhuurders kochten opnieuw boosts"
+
+Also show:
+
+* average boosts per paying landlord
+
+6. Boost Effectiveness Section
+   Compare:
+
+* boosted listings
+  vs
+* non-boosted listings
+
+Use real data only:
+
+* views
+* conversations/messages
+
+Show subtle insights like:
+
+"Boosted advertenties ontvangen gemiddeld meer reacties"
+
+NO fake percentages.
+NO fabricated uplift numbers.
+
+7. Recent Marketplace Activity Feed
+   Show recent internal activity:
+
+Examples:
+
+* Boost gekocht — Amsterdam
+* Nieuwe listing geplaatst
+* Premium checkout gestart
+* Nieuwe conversatie gestart
+
+Display:
+
+* timestamp
+* activity type
+* optional city/listing context
+
+Keep it lightweight and readable.
+
+8. Technical Requirements
+
+* Reuse existing database queries where possible
+* Minimize database load
+* No polling
+* No websocket requirement
+* No chart libraries yet
+* TypeScript clean
+* Fully responsive
+* No console warnings/errors
+
+9. UX Requirements
+   The dashboard should feel:
+
+* operational
+* calm
+* data-focused
+* marketplace-oriented
+
+Avoid:
+
+* flashy admin panels
+* neon colors
+* excessive animations
+* startup-dashboard clichés
+
+10. Security
+
+* Ensure non-admin users cannot access the route
+* Reuse existing admin auth guards
+* Avoid exposing sensitive payment/customer data
+
+11. Final Verification
+    After implementation verify:
+
+* all metrics calculate correctly
+* filters update correctly
+* repeat buyers logic works
+* admin route protection works
+* mobile layout remains usable
+* no performance degradation occurs
