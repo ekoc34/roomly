@@ -3,40 +3,43 @@ import { useLocation } from "wouter";
 import { canUseAnalytics, CONSENT_CHANGED_EVENT } from "@/lib/cookieConsent";
 
 const LOADER_ID = "plausible-loader";
-const QUEUE_ID = "plausible-queue";
+const INIT_ID = "plausible-init";
 const PLAUSIBLE_SRC = "https://plausible.io/js/pa-frb2BXzxfEnW2O9EXaHSj.js";
 
 declare global {
   interface Window {
-    plausible?: (
+    plausible?: ((
       eventName: string,
       options?: { props?: Record<string, string | number | boolean> }
-    ) => void;
+    ) => void) & {
+      q?: unknown[];
+      init?: (i?: unknown) => void;
+      o?: unknown;
+    };
   }
 }
 
-function injectScript(domain: string): void {
+function injectScript(): void {
   if (document.getElementById(LOADER_ID)) return;
 
-  // 1. Queue shim — must exist before the loader script runs
-  const queue = document.createElement("script");
-  queue.id = QUEUE_ID;
-  queue.textContent =
-    "window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)};";
-  document.head.appendChild(queue);
+  // 1. Init snippet — must exist before the loader script runs
+  const init = document.createElement("script");
+  init.id = INIT_ID;
+  init.textContent =
+    "window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()";
+  document.head.appendChild(init);
 
-  // 2. Loader script — official Plausible snippet
+  // 2. Async loader script
   const loader = document.createElement("script");
   loader.id = LOADER_ID;
   loader.src = PLAUSIBLE_SRC;
   loader.async = true;
-  loader.setAttribute("data-domain", domain);
   document.head.appendChild(loader);
 }
 
 function removeScript(): void {
   document.getElementById(LOADER_ID)?.remove();
-  document.getElementById(QUEUE_ID)?.remove();
+  document.getElementById(INIT_ID)?.remove();
   delete window.plausible;
 }
 
@@ -50,7 +53,7 @@ export function PlausibleProvider(): null {
 
     function syncScript(): void {
       if (canUseAnalytics()) {
-        injectScript(domain as string);
+        injectScript();
       } else {
         removeScript();
       }
