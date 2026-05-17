@@ -113,7 +113,7 @@ export function ListingsPage() {
         verifiedLandlordIds = ((verifiedProfiles ?? []) as { id: string }[]).map((p) => p.id);
       }
 
-      let query = supabase.from("listings").select("*", { count: "exact" });
+      let query = supabase.from("listings").select("*", { count: "exact" }).eq("hidden", false);
 
       if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%,location.ilike.%${q}%`);
       if (type) query = query.eq("type", type);

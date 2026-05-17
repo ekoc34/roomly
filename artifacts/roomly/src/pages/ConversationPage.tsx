@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatComposer } from "@/components/messages/ChatComposer";
+import { ReportModal } from "@/components/moderation/ReportModal";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import { pingLastActive } from "@/hooks/useLastActive";
 import type { Conversation, Listing, Message, Profile } from "@/types/database";
@@ -60,6 +61,7 @@ export function ConversationPage() {
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [blockedByOther, setBlockedByOther] = useState(false);
   const [showReportMenu, setShowReportMenu] = useState(false);
+  const [reportConvOpen, setReportConvOpen] = useState(false);
   const reportMenuRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const topAnchorRef = useRef<HTMLDivElement>(null);
@@ -486,6 +488,14 @@ export function ConversationPage() {
                 </div>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setReportConvOpen(true)}
+              className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
+            >
+              <Flag className="h-3 w-3" />
+              Gesprek
+            </button>
           </div>
           {listing && (
             <Link href={`/kamers/${listing.id}`} className="mt-0.5 block truncate text-xs text-stone-500 transition hover:text-rose-600">
@@ -610,6 +620,14 @@ export function ConversationPage() {
           </div>
         );
       })()}
+      {reportConvOpen && conversation && user && (
+        <ReportModal
+          targetType="conversation"
+          targetId={conversation.id}
+          targetLabel="dit gesprek"
+          onClose={() => setReportConvOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -45,6 +45,8 @@ export type Profile = {
   updated_at: string;
   lifestyle_tags?: string[] | null;
   avg_response_time_hours?: number | null;
+  suspended_until?: string | null;
+  ban_reason?: string | null;
 };
 
 export type Listing = {
@@ -65,6 +67,8 @@ export type Listing = {
   boosted_at?: string | null;
   lat?: number | null;
   lon?: number | null;
+  hidden?: boolean;
+  hidden_reason?: string | null;
   created_at: string;
   updated_at: string;
 };

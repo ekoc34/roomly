@@ -16,15 +16,16 @@ import { toast } from "sonner";
 import {
   ShieldCheck, AlertTriangle, Trash2, RotateCcw, Users, FileWarning,
   Home, Mail, CheckCheck, MessageSquareWarning, Search, Zap, Building2,
-  CreditCard, Activity, ChevronDown, Star, UserCog, Plus,
+  CreditCard, Activity, ChevronDown, Star, UserCog, Plus, ShieldOff, EyeOff,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
+import { AdminModerationTab } from "@/components/admin/AdminModerationTab";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "meldingen" | "gebruikers" | "advertenties" | "betalingen" | "activiteit";
+type Tab = "meldingen" | "moderatie" | "gebruikers" | "advertenties" | "betalingen" | "activiteit";
 
 type FlaggedLandlord = {
   id: string; name: string | null; email: string | null;
@@ -50,11 +51,11 @@ type AdminUser = {
   id: string; name: string | null; email: string | null; avatar_url: string | null;
   role: string; user_type: string | null; subscription_tier: string;
   email_auto_verified: boolean; phone_verified: boolean;
-  boost_credits: number; created_at: string;
+  boost_credits: number; suspended_until: string | null; ban_reason: string | null; created_at: string;
 };
 type AdminListing = {
   id: string; title: string; price: number; location: string;
-  type: string; boosted_at: string | null; created_at: string;
+  type: string; boosted_at: string | null; hidden: boolean; created_at: string;
   owner_name: string | null; owner_scam_flagged: boolean;
 };
 type BoostLogRow = {
@@ -192,6 +193,7 @@ export function AdminDashboardPage() {
 
   // Advertenties
   const [adminListings, setAdminListings] = useState<AdminListing[]>([]);
+  const [moderationPendingCount, setModerationPendingCount] = useState(0);
   const [listingSearch, setListingSearch] = useState("");
   const [listingFilter, setListingFilter] = useState("alle");
 
@@ -298,7 +300,7 @@ export function AdminDashboardPage() {
   async function loadUsers() {
     if (!supabase) return;
     const { data } = await supabase.from("profiles")
-      .select("id, name, email, avatar_url, role, user_type, subscription_tier, email_auto_verified, phone_verified, boost_credits, created_at")
+      .select("id, name, email, avatar_url, role, user_type, subscription_tier, email_auto_verified, phone_verified, boost_credits, suspended_until, ban_reason, created_at")
       .order("created_at", { ascending: false });
     if (data) setAdminUsers(data as AdminUser[]);
   }
@@ -306,16 +308,16 @@ export function AdminDashboardPage() {
   async function loadListings() {
     if (!supabase) return;
     const { data } = await supabase.from("listings")
-      .select("id, title, price, location, type, boosted_at, created_at, profiles ( name, scam_flagged )")
+      .select("id, title, price, location, type, boosted_at, hidden, created_at, profiles ( name, scam_flagged )")
       .order("created_at", { ascending: false });
     if (data) {
-      setAdminListings((data as {
+      setAdminListings((data as unknown as {
         id: string; title: string; price: number; location: string; type: string;
-        boosted_at: string | null; created_at: string;
+        boosted_at: string | null; hidden: boolean; created_at: string;
         profiles: { name: string | null; scam_flagged: boolean } | null;
       }[]).map((l) => ({
         id: l.id, title: l.title, price: l.price, location: l.location,
-        type: l.type, boosted_at: l.boosted_at, created_at: l.created_at,
+        type: l.type, boosted_at: l.boosted_at, hidden: l.hidden ?? false, created_at: l.created_at,
         owner_name: l.profiles?.name ?? null,
         owner_scam_flagged: l.profiles?.scam_flagged ?? false,
       })));
@@ -607,6 +609,64 @@ export function AdminDashboardPage() {
     });
   };
 
+  // ── Moderatie actions ────────────────────────────────────────────────────
+  const handleHideListing = (listingId: string) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc("admin_hide_listing", { p_listing_id: listingId, p_reason: "Verborgen door admin" });
+      if (error) { toast.error("Verbergen mislukt."); return; }
+      toast.success("Advertentie verborgen voor publiek.");
+      setAdminListings((p) => p.map((l) => l.id === listingId ? { ...l, hidden: true } : l));
+    });
+  };
+  const handleUnhideListing = (listingId: string) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc("admin_unhide_listing", { p_listing_id: listingId });
+      if (error) { toast.error("Herstellen mislukt."); return; }
+      toast.success("Advertentie weer zichtbaar.");
+      setAdminListings((p) => p.map((l) => l.id === listingId ? { ...l, hidden: false } : l));
+    });
+  };
+  const handleSuspendUser = (userId: string, userName: string | null, days: number) => {
+    if (!confirm(`${userName ?? "Gebruiker"} voor ${days} dagen schorsen?`)) return;
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc("admin_suspend_user", { p_user_id: userId, p_days: days, p_reason: null });
+      if (error) {
+        if (error.message?.includes("CANNOT")) toast.error("Je kunt geen admin schorsen.");
+        else toast.error("Schorsen mislukt.");
+        return;
+      }
+      const until = new Date(Date.now() + days * 86400000).toISOString();
+      toast.success(`${userName ?? "Gebruiker"} geschorst voor ${days} dagen.`);
+      setAdminUsers((p) => p.map((u) => u.id === userId ? { ...u, suspended_until: until } : u));
+    });
+  };
+  const handleUnsuspendUser = (userId: string, userName: string | null) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc("admin_unsuspend_user", { p_user_id: userId });
+      if (error) { toast.error("Herstellen mislukt."); return; }
+      toast.success(`Schorsing van ${userName ?? "gebruiker"} opgeheven.`);
+      setAdminUsers((p) => p.map((u) => u.id === userId ? { ...u, suspended_until: null, ban_reason: null } : u));
+    });
+  };
+  const handleBanUser = (userId: string, userName: string | null) => {
+    if (!confirm(`${userName ?? "Gebruiker"} permanent verbannen? Dit verbergt ook al hun advertenties.`)) return;
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.rpc("admin_ban_user", { p_user_id: userId, p_reason: null });
+      if (error) {
+        if (error.message?.includes("CANNOT")) toast.error("Je kunt geen admin verbannen.");
+        else toast.error("Verbannen mislukt.");
+        return;
+      }
+      toast.success(`${userName ?? "Gebruiker"} permanent verbannen.`);
+      setAdminUsers((p) => p.map((u) => u.id === userId ? { ...u, suspended_until: "9999-12-31T23:59:59+00:00" } : u));
+    });
+  };
+
   // ── Render guards ────────────────────────────────────────────────────────
   if (authLoading || roleLoading) {
     return <div className="flex min-h-[50vh] items-center justify-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500" /></div>;
@@ -626,7 +686,7 @@ export function AdminDashboardPage() {
   const filteredListings = adminListings.filter((l) => {
     const q = listingSearch.toLowerCase();
     const matchSearch = !q || l.title.toLowerCase().includes(q) || l.location.toLowerCase().includes(q) || (l.owner_name ?? "").toLowerCase().includes(q);
-    const matchFilter = listingFilter === "alle" || (listingFilter === "uitgelicht" ? isBoostActive(l.boosted_at) : l.owner_scam_flagged);
+    const matchFilter = listingFilter === "alle" || (listingFilter === "uitgelicht" ? isBoostActive(l.boosted_at) : listingFilter === "verborgen" ? l.hidden : l.owner_scam_flagged);
     return matchSearch && matchFilter;
   });
 
@@ -639,6 +699,7 @@ export function AdminDashboardPage() {
   // ── Tab bar ──────────────────────────────────────────────────────────────
   const TABS: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "meldingen", label: "Meldingen", icon: <AlertTriangle className="h-4 w-4" />, badge: stats ? stats.flaggedCount + stats.scamReportCount + stats.unreadContactCount + stats.userReportCount : undefined },
+    { id: "moderatie", label: "Moderatie", icon: <ShieldOff className="h-4 w-4" />, badge: moderationPendingCount > 0 ? moderationPendingCount : undefined },
     { id: "gebruikers", label: "Gebruikers", icon: <Users className="h-4 w-4" /> },
     { id: "advertenties", label: "Advertenties", icon: <Building2 className="h-4 w-4" /> },
     { id: "betalingen", label: "Betalingen", icon: <CreditCard className="h-4 w-4" /> },
@@ -878,6 +939,13 @@ export function AdminDashboardPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* TAB: MODERATIE                                                   */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "moderatie" && (
+        <AdminModerationTab onPendingCount={setModerationPendingCount} />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
       {/* TAB: GEBRUIKERS                                                  */}
       {/* ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "gebruikers" && (
@@ -919,6 +987,8 @@ export function AdminDashboardPage() {
                         <p className="truncate text-xs text-stone-500">{u.email ?? "—"}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-1.5">
                           {u.role === "admin" && <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">Admin</span>}
+                          {u.suspended_until && new Date(u.suspended_until).getFullYear() >= 9999 && <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700">Verbannen</span>}
+                          {u.suspended_until && new Date(u.suspended_until) > new Date() && new Date(u.suspended_until).getFullYear() < 9999 && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">Geschorst</span>}
                           <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] text-stone-600">
                             {u.user_type ? (USER_TYPE_LABELS[u.user_type] ?? u.user_type) : "—"}
                           </span>
@@ -963,6 +1033,20 @@ export function AdminDashboardPage() {
                       <button type="button" disabled={isPending} onClick={() => handleAddCredits(u.id, u.name)} className={successBtnCls}>
                         <Plus className="h-3.5 w-3.5" /> 10 credits
                       </button>
+                      {u.role !== "admin" && (
+                        u.suspended_until && new Date(u.suspended_until) > new Date()
+                          ? <button type="button" disabled={isPending} onClick={() => handleUnsuspendUser(u.id, u.name)} className={successBtnCls}>
+                              <ShieldOff className="h-3.5 w-3.5" /> Ophef
+                            </button>
+                          : <>
+                              <button type="button" disabled={isPending} onClick={() => handleSuspendUser(u.id, u.name, 7)} className="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100 disabled:opacity-50 active:scale-95">
+                                <ShieldOff className="h-3.5 w-3.5" /> Schors
+                              </button>
+                              <button type="button" disabled={isPending} onClick={() => handleBanUser(u.id, u.name)} className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50 active:scale-95">
+                                <ShieldOff className="h-3.5 w-3.5" /> Verban
+                              </button>
+                            </>
+                      )}
                       <button type="button" className="rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-medium text-stone-400 cursor-not-allowed" title="Komt binnenkort">
                         Login als
                       </button>
@@ -993,6 +1077,7 @@ export function AdminDashboardPage() {
               <option value="alle">Alle advertenties</option>
               <option value="uitgelicht">Actief uitgelicht</option>
               <option value="gemeld">Gemelde eigenaar</option>
+              <option value="verborgen">Verborgen</option>
             </select>
             <span className="ml-auto text-xs text-stone-400">{filteredListings.length} van {adminListings.length} advertenties</span>
           </div>
@@ -1020,17 +1105,27 @@ export function AdminDashboardPage() {
                       <td className="px-4 py-3 text-stone-600 max-w-[120px] truncate">{l.location}</td>
                       <td className="px-4 py-3 text-stone-600">{LISTING_TYPE_LABELS[l.type] ?? l.type}</td>
                       <td className="px-4 py-3">
-                        {active
-                          ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"><Star className="h-2.5 w-2.5" /> Uitgelicht</span>
-                          : <span className="text-xs text-stone-400">Normaal</span>
+                        {l.hidden
+                          ? <span className="inline-flex items-center gap-1 rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-bold text-stone-600">Verborgen</span>
+                          : active
+                            ? <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"><Star className="h-2.5 w-2.5" /> Uitgelicht</span>
+                            : <span className="text-xs text-stone-400">Normaal</span>
                         }
                       </td>
                       <td className="px-4 py-3 text-stone-500 whitespace-nowrap">{fmtDate(l.created_at)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <button type="button" disabled={isPending || active} onClick={() => handleAdminBoost(l.id, l.title)} className={successBtnCls}>
                             <Star className="h-3.5 w-3.5" /> Uitlichten
                           </button>
+                          {l.hidden
+                            ? <button type="button" disabled={isPending} onClick={() => handleUnhideListing(l.id)} className={successBtnCls}>
+                                <EyeOff className="h-3.5 w-3.5" /> Herstel
+                              </button>
+                            : <button type="button" disabled={isPending} onClick={() => handleHideListing(l.id)} className={actionBtnCls}>
+                                <EyeOff className="h-3.5 w-3.5" /> Verberg
+                              </button>
+                          }
                           <button type="button" disabled={isPending} onClick={() => handleAdminDeleteListing(l.id, l.title)} className={actionBtnCls}>
                             <Trash2 className="h-3.5 w-3.5" /> Verwijder
                           </button>
