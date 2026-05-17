@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 
+function recoveryErrorMessage(msg: string): string {
+  if (/rate.limit|too many|for security purposes|email.*limit|over_email/i.test(msg)) {
+    return "Te veel aanvragen. Probeer het over een uur opnieuw.";
+  }
+  return "De herstellink is ongeldig of verlopen.";
+}
+
 type Status = "loading" | "error";
 
 export function AuthCallbackPage() {
@@ -59,7 +66,7 @@ export function AuthCallbackPage() {
           subscription.unsubscribe();
           window.history.replaceState(null, "", window.location.pathname);
           if (error) {
-            setErrorMsg("De herstellink is ongeldig of verlopen.");
+            setErrorMsg(recoveryErrorMessage(error.message));
             setStatus("error");
             return;
           }
@@ -85,7 +92,7 @@ export function AuthCallbackPage() {
           subscription.unsubscribe();
           window.history.replaceState(null, "", window.location.pathname);
           if (error) {
-            setErrorMsg("De herstellink is ongeldig of verlopen.");
+            setErrorMsg(recoveryErrorMessage(error.message));
             setStatus("error");
             return;
           }
@@ -106,7 +113,7 @@ export function AuthCallbackPage() {
             subscription.unsubscribe();
             window.history.replaceState(null, "", window.location.pathname);
             if (error) {
-              setErrorMsg("De herstellink is ongeldig of verlopen.");
+              setErrorMsg(recoveryErrorMessage(error.message));
               setStatus("error");
               return;
             }

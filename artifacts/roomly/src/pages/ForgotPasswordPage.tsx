@@ -1,6 +1,11 @@
 import { useState, useTransition } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+
+function isRateLimitError(msg: string): boolean {
+  return /rate.limit|too many|for security purposes|email.*limit|over_email/i.test(msg);
+}
 
 export function ForgotPasswordPage() {
   const [isPending, startTransition] = useTransition();
@@ -16,9 +21,16 @@ export function ForgotPasswordPage() {
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/wachtwoord-instellen`,
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
       });
-      if (err) { setError(err.message); return; }
+      if (err) {
+        if (isRateLimitError(err.message)) {
+          toast.error("Te veel aanvragen. Probeer het over een uur opnieuw.");
+          return;
+        }
+        setError(err.message);
+        return;
+      }
       setSent(true);
     });
   };
