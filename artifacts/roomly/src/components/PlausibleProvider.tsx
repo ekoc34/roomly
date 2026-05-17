@@ -2,8 +2,9 @@ import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { canUseAnalytics, CONSENT_CHANGED_EVENT } from "@/lib/cookieConsent";
 
-const SCRIPT_ID = "plausible-analytics";
-const PLAUSIBLE_SRC = "https://plausible.io/js/script.js";
+const LOADER_ID = "plausible-loader";
+const QUEUE_ID = "plausible-queue";
+const PLAUSIBLE_SRC = "https://plausible.io/js/pa-frb2BXzxfEnW2O9EXaHSj.js";
 
 declare global {
   interface Window {
@@ -15,17 +16,27 @@ declare global {
 }
 
 function injectScript(domain: string): void {
-  if (document.getElementById(SCRIPT_ID)) return;
-  const script = document.createElement("script");
-  script.id = SCRIPT_ID;
-  script.src = PLAUSIBLE_SRC;
-  script.defer = true;
-  script.setAttribute("data-domain", domain);
-  document.head.appendChild(script);
+  if (document.getElementById(LOADER_ID)) return;
+
+  // 1. Queue shim — must exist before the loader script runs
+  const queue = document.createElement("script");
+  queue.id = QUEUE_ID;
+  queue.textContent =
+    "window.plausible=window.plausible||function(){(window.plausible.q=window.plausible.q||[]).push(arguments)};";
+  document.head.appendChild(queue);
+
+  // 2. Loader script — official Plausible snippet
+  const loader = document.createElement("script");
+  loader.id = LOADER_ID;
+  loader.src = PLAUSIBLE_SRC;
+  loader.async = true;
+  loader.setAttribute("data-domain", domain);
+  document.head.appendChild(loader);
 }
 
 function removeScript(): void {
-  document.getElementById(SCRIPT_ID)?.remove();
+  document.getElementById(LOADER_ID)?.remove();
+  document.getElementById(QUEUE_ID)?.remove();
   delete window.plausible;
 }
 
