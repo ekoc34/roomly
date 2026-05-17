@@ -1,0 +1,112 @@
+Create a lightweight “Boost Performance Analytics” feature for landlords inside the dashboard.
+
+Goal:
+Show landlords that Boost Credits create real visibility and engagement.
+
+IMPORTANT:
+
+* Keep this version simple and clean
+* Use REAL data only
+* Do NOT invent fake percentages or fake analytics
+* Do NOT add complex charts yet
+* Focus on perceived value and clarity
+
+Implement the following:
+
+1. Listing Analytics Mini Cards
+   Inside the landlord dashboard listing rows/cards, add a compact analytics section for each listing.
+
+Show:
+
+* 👀 total views
+* 💬 total conversations/messages received
+* 🚀 boost status
+
+Example layout:
+
+👀 248 weergaven
+💬 6 reacties
+🚀 Boost actief · 42m resterend
+
+2. Boost Performance Indicator
+   If a listing currently has an active boost:
+
+* show a subtle positive indicator:
+  "Meer zichtbaarheid actief"
+* If no boost is active:
+  "Normale zichtbaarheid"
+
+No fake percentages.
+
+3. Data Sources
+   Use only existing real platform data:
+
+* listing page views (if already tracked)
+* conversations/messages count
+* active boost expiration state
+
+If page views are not yet available:
+
+* safely add lightweight tracking
+* avoid heavy analytics systems
+* count unique visits reasonably if possible
+
+4. Visual Style
+   The analytics section should feel:
+
+* minimal
+* professional
+* easy to scan
+* slightly premium
+
+Use:
+
+* muted text
+* small icons
+* subtle separators
+* compact spacing
+
+Avoid:
+
+* dashboards full of charts
+* neon colors
+* marketing-style hype UI
+
+5. Empty States
+   If a listing has:
+
+* no views yet
+* no messages yet
+
+Show friendly empty states:
+
+"Nog geen weergaven"
+"Nog geen reacties"
+
+6. Technical Requirements
+
+* Reuse existing listing/dashboard queries where possible
+* Avoid unnecessary database calls
+* No polling
+* No performance degradation
+* TypeScript clean
+* Responsive
+* No console warnings/errors
+
+7. UX Goal
+   The landlord should immediately understand:
+
+“My listing is getting attention”
+and
+“Boost increases visibility”
+
+without needing charts or explanations.
+
+8. Final Verification
+   After implementation verify:
+
+* analytics render correctly for boosted and non-boosted listings
+* boost countdown still updates correctly
+* no layout shift occurs
+* mobile layout remains clean
+* expired boosts correctly revert to normal visibility state

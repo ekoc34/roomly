@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import { BoostCountdown } from "@/components/listings/BoostBadge";
+import { ListingAnalyticsStrip } from "@/components/dashboard/ListingAnalyticsStrip";
 import type { Listing, Profile, ApplicationWithDetails } from "@/types/database";
 
 const BANNER_KEY = "roomly_profile_banner_dismissed";
@@ -926,6 +927,7 @@ export function DashboardPage() {
                     return myListings.map((l) => {
                       const boosted = isBoostActive(l.boosted_at ?? null);
                       const appCount = receivedApplications.filter((a) => a.listing_id === l.id).length;
+                      const convCount = landlordConversations.filter((c) => c.listing_id === l.id).length;
                       const viewCount = listingViewCounts[l.id] ?? 0;
                       const img = Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
                       const isDropdownOpen = openDropdownId === l.id;
@@ -974,22 +976,17 @@ export function DashboardPage() {
                                 </span>
                               )}
                             </div>
-                            {boosted && l.boosted_at && (
-                              <BoostCountdown boostedAt={l.boosted_at} />
-                            )}
                             <p className="text-sm font-semibold text-stone-800">€{Number(l.price).toLocaleString("nl-NL")}<span className="text-xs font-normal text-stone-400">/mnd</span></p>
                             <p className="text-xs text-stone-400 truncate">{l.location}</p>
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
-                              {appCount > 0
-                                ? <span>{appCount} {appCount === 1 ? "reactie" : "reacties"}</span>
-                                : <span className="text-stone-300">Nog geen reacties</span>}
-                              {viewCount > 0
-                                ? <span>{viewCount} weergaven</span>
-                                : <span className="text-stone-300">Nog geen weergaven</span>}
-                              {daysSinceUpdate !== null && daysSinceUpdate > 0 && (
-                                <span>{daysSinceUpdate}d geleden bijgewerkt</span>
-                              )}
-                            </div>
+                            {daysSinceUpdate !== null && daysSinceUpdate > 0 && (
+                              <p className="text-xs text-stone-300">{daysSinceUpdate}d geleden bijgewerkt</p>
+                            )}
+                            <ListingAnalyticsStrip
+                              viewCount={viewCount}
+                              conversationCount={convCount}
+                              boosted={boosted}
+                              boostedAt={l.boosted_at ?? null}
+                            />
                           </div>
                           {/* Quick actions */}
                           <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
