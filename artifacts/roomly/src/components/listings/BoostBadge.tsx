@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
+
 export const BOOST_WINDOW_MS = 60 * 60 * 1000;
 
-const StarIcon = () => (
-  <svg className="h-2.5 w-2.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+const LightningIcon = ({ className = "h-2.5 w-2.5" }: { className?: string }) => (
+  <svg className={`${className} shrink-0`} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+    <path d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" />
   </svg>
 );
 
@@ -13,13 +15,43 @@ type Props = {
 
 export function BoostBadge({ boostedAt, className = "" }: Props) {
   const msLeft = new Date(boostedAt).getTime() + BOOST_WINDOW_MS - Date.now();
-
   if (msLeft <= 0) return null;
 
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium tracking-wide text-amber-600 ${className}`}>
-      <StarIcon />
+    <span
+      className={`inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white shadow-sm ${className}`}
+    >
+      <LightningIcon />
       Uitgelicht
+    </span>
+  );
+}
+
+function formatRemaining(msLeft: number): string {
+  const totalMinutes = Math.ceil(msLeft / 60_000);
+  if (totalMinutes >= 60) return "1u";
+  return `${totalMinutes}m`;
+}
+
+export function BoostCountdown({ boostedAt, className = "" }: Props) {
+  const [msLeft, setMsLeft] = useState(() => new Date(boostedAt).getTime() + BOOST_WINDOW_MS - Date.now());
+
+  useEffect(() => {
+    const update = () => setMsLeft(new Date(boostedAt).getTime() + BOOST_WINDOW_MS - Date.now());
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, [boostedAt]);
+
+  if (msLeft <= 0) return null;
+
+  const isUrgent = msLeft < 10 * 60 * 1000;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-medium ${isUrgent ? "text-amber-600" : "text-stone-400"} ${className}`}
+    >
+      <LightningIcon className="h-3 w-3" />
+      Boost actief · {formatRemaining(msLeft)} resterend
     </span>
   );
 }

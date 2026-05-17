@@ -11,6 +11,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
+import { BoostCountdown } from "@/components/listings/BoostBadge";
 import type { Listing, Profile, ApplicationWithDetails } from "@/types/database";
 
 const BANNER_KEY = "roomly_profile_banner_dismissed";
@@ -465,7 +466,7 @@ export function DashboardPage() {
     const { error } = await supabase.rpc("boost_listing", { p_listing_id: listingId });
     setBoostingId(null);
     if (error) { toast.error("Booster mislukt. Probeer het opnieuw."); return; }
-    toast.success("Advertentie uitgelicht! 🚀");
+    toast.success("🚀 Je advertentie staat nu extra zichtbaar");
     setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, boosted_at: new Date().toISOString() } : l));
     setProfile((p) => p ? { ...p, boost_credits: Math.max(0, (p.boost_credits ?? 0) - 1) } : p);
   }
@@ -934,7 +935,7 @@ export function DashboardPage() {
                         : null;
                       const isPopular = myListings.length > 1 && (viewCount > avgViews * 1.5 || appCount > avgApps * 1.5);
                       return (
-                        <div key={l.id} className="relative flex flex-col gap-3 overflow-hidden rounded-lg border border-stone-200 bg-white p-4 sm:flex-row sm:items-start">
+                        <div key={l.id} className={`relative flex flex-col gap-3 overflow-hidden rounded-lg border p-4 sm:flex-row sm:items-start transition-colors ${boosted ? "border-amber-200 bg-amber-50/20" : "border-stone-200 bg-white"}`}>
                           {/* Delete confirm overlay */}
                           {deletingListingId === l.id && (
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center backdrop-blur-sm">
@@ -963,7 +964,7 @@ export function DashboardPage() {
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-semibold text-stone-900 truncate leading-snug">{l.title}</p>
                               {boosted && (
-                                <span className="flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                                <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
                                   <Zap className="h-3 w-3" /> Uitgelicht
                                 </span>
                               )}
@@ -973,6 +974,9 @@ export function DashboardPage() {
                                 </span>
                               )}
                             </div>
+                            {boosted && l.boosted_at && (
+                              <BoostCountdown boostedAt={l.boosted_at} />
+                            )}
                             <p className="text-sm font-semibold text-stone-800">€{Number(l.price).toLocaleString("nl-NL")}<span className="text-xs font-normal text-stone-400">/mnd</span></p>
                             <p className="text-xs text-stone-400 truncate">{l.location}</p>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">

@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Users } from "lucide-react";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { CompareButton } from "@/components/listings/CompareButton";
-import { BoostBadge } from "@/components/listings/BoostBadge";
+import { BoostBadge, BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
 import { LISTING_TYPE_LABELS, NEW_LABEL_RECENT_HOURS, NEW_LABEL_TODAY_HOURS } from "@/lib/constants";
 
 import type { Listing } from "@/types/database";
@@ -54,14 +54,15 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
   const newLabel = getNewLabel(listing.created_at);
   const responseBadge = getResponseBadge(avgResponseTimeHours);
+  const isActiveBoosted = !!(listing.boosted_at && new Date(listing.boosted_at).getTime() + BOOST_WINDOW_MS > Date.now());
 
   return (
-    <div className="group relative">
+    <div className={`group relative${isActiveBoosted ? " rounded-2xl shadow-[0_0_18px_rgba(251,191,36,0.18)]" : ""}`}>
       <FavoriteButton listingId={listing.id} initialFavorited={isFavorited} ownerUserId={listing.user_id} />
       <Link
         href={`/kamers/${listing.id}`}
         data-testid={`listing-card-${listing.id}`}
-        className="flex flex-col overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        className={`flex flex-col overflow-hidden rounded-2xl border shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${isActiveBoosted ? "border-amber-200/70 bg-amber-50/10" : "border-stone-200/80 bg-white"}`}
       >
         <div className="relative aspect-[4/3] bg-stone-50">
           {img ? (

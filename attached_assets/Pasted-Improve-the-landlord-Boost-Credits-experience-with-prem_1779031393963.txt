@@ -1,0 +1,104 @@
+Improve the landlord Boost Credits experience with premium visual polish and active boost visibility.
+
+Goals:
+
+* Make boosted listings immediately recognizable
+* Increase perceived value of Boost Credits
+* Keep the UI elegant and minimal (no flashy casino-style effects)
+* Do NOT change the existing credit logic or payment flow
+
+Implement the following:
+
+1. Boosted Listing Badge
+   For every active boosted listing:
+
+* Add a small premium badge on the listing card
+* Text: "Boosted"
+* Position: top-left corner of the card
+* Style:
+
+  * subtle gradient background
+  * rounded pill
+  * small lightning/rocket icon
+  * modern premium look
+* Must work in:
+
+  * homepage listings
+  * search results
+  * landlord dashboard listings
+
+2. Active Boost Countdown
+   If a listing currently has an active boost:
+
+* Show remaining time:
+
+  * "🚀 Boost actief · 42m resterend"
+* Update automatically every minute
+* If less than 10 minutes remain:
+
+  * slightly emphasize the text color
+  * do NOT use aggressive animations
+
+3. Listing Card Highlight
+   Boosted listings should visually stand out slightly:
+
+* soft shadow
+* subtle border glow
+* slightly elevated appearance
+* maintain overall Welkthuis design language
+* avoid excessive gradients or neon effects
+
+4. Boost Success Feedback
+   After a landlord successfully activates a boost:
+
+* Show a success toast:
+
+  * "🚀 Je advertentie staat nu extra zichtbaar"
+* Add subtle success feedback animation on the boosted card
+* Animation should last less than 1 second
+
+5. Landlord Dashboard Visibility
+   Inside the landlord dashboard:
+
+* Clearly indicate which listings are currently boosted
+* Show:
+
+  * active boost status
+  * remaining time
+  * boost expiration moment
+* Add a small "Boost actief" indicator
+
+6. Technical Requirements
+
+* Reuse existing boost state/data
+* Do NOT duplicate backend logic
+* Do NOT modify Stripe/payment code
+* Do NOT change credit calculations
+* Use existing design system and Tailwind conventions
+* Fully responsive
+* TypeScript clean
+* No console warnings/errors
+
+7. UX Constraint
+   The UI should feel:
+
+* premium
+* trustworthy
+* calm
+* marketplace-like
+
+Avoid:
+
+* gambling aesthetics
+* flashing animations
+* aggressive colors
+* excessive motion
+
+8. Final Check
+   After implementation:
+
+* verify boosted listings render correctly everywhere
+* verify countdown timers update correctly
+* verify expired boosts automatically lose styling
+* verify no hydration/rendering issues
+* verify dark/light mode compatibility if applicable
