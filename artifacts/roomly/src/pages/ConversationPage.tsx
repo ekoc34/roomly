@@ -496,7 +496,7 @@ export function ConversationPage() {
       </div>
 
       {/* Message list */}
-      <div className="min-h-[300px] space-y-3 pb-4">
+      <div className="min-h-[300px] space-y-3 pb-36 md:pb-4">
         {/* D-02: Load older messages */}
         <div ref={topAnchorRef} />
         {hasMore && (

@@ -180,6 +180,10 @@ export function ChatComposer({
         placeholder="Typ een bericht..."
         maxLength={MAX_MESSAGE_LENGTH}
         onChange={handleInput}
+        enterKeyHint="send"
+        autoComplete="off"
+        autoCorrect="on"
+        spellCheck
         className="flex-1 resize-none rounded-2xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 shadow-sm placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {

@@ -18,6 +18,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+label[for],
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select {
+  touch-action: manipulation;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 @keyframes page-fade-in {

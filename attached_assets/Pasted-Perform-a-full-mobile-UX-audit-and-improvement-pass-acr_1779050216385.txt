@@ -1,0 +1,90 @@
+Perform a full mobile UX audit and improvement pass across the entire Welkthuis application.
+
+Priority:
+The platform is now receiving real mobile traffic, so mobile usability and polish are critical.
+
+Goals:
+
+* Improve usability
+* Eliminate mobile layout bugs
+* Make the app feel premium and trustworthy on phones
+* Optimize especially for iPhone Safari and Android Chrome
+
+Requirements:
+
+1. Audit all major flows on mobile:
+
+* signup
+* login
+* password recovery
+* listing creation
+* image upload
+* filters
+* listing detail
+* conversations/chat
+* boost flow
+* checkout/payment flow
+* dashboard/admin pages
+
+2. Fix mobile-specific UX issues:
+
+* keyboard overlapping inputs/buttons
+* sticky footer overlap
+* textarea resize issues
+* modal scroll locking
+* viewport height bugs on iOS Safari
+* safe-area inset issues (notch/home indicator)
+* horizontal overflow
+* tiny tap targets
+* double scroll containers
+* broken fixed positioning
+* image overflow/cropping issues
+
+3. Improve spacing and responsiveness:
+
+* better padding on small screens
+* improve card readability
+* improve button sizing
+* ensure forms are comfortable to use one-handed
+* improve mobile typography hierarchy
+
+4. Chat/conversation UX:
+
+* input must remain visible when keyboard opens
+* messages should not jump on mobile
+* scrolling should feel stable
+* improve touch friendliness
+
+5. Listing creation UX:
+
+* optimize image upload flow
+* improve step readability
+* prevent layout shifting
+* ensure mobile form performance is smooth
+
+6. Dashboard UX:
+
+* landlord listing cards should stack cleanly
+* analytics blocks should remain readable
+* boost controls should be touch-friendly
+
+7. Improve perceived quality:
+
+* smoother transitions
+* less visual clutter
+* improve loading states/skeletons
+* reduce cramped layouts
+
+8. Add diagnostics:
+   Log mobile viewport/device info in development mode only.
+
+9. Do NOT redesign desktop layouts unnecessarily.
+   Focus specifically on mobile polish and stability.
+
+10. After implementation:
+    Provide a full list of:
+
+* issues found
+* fixes applied
+* flows improved
+* remaining mobile concerns

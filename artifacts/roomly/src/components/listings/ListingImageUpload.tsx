@@ -160,7 +160,7 @@ export function ListingImageUpload({ value, onChange }: Props) {
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100 hover:bg-red-600"
+                className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-red-600 md:opacity-0 md:group-hover:opacity-100"
                 aria-label="Verwijder foto"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>

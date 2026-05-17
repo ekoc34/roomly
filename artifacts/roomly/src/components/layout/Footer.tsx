@@ -70,7 +70,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-stone-100 bg-stone-50/80 px-4 py-4 text-center text-xs text-stone-400">
+      <div className="border-t border-stone-100 bg-stone-50/80 px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+3.5rem)] pt-4 text-center text-xs text-stone-400 md:pb-4">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
           <Link href="/privacy" className="hover:text-stone-600">Privacy</Link>
           <span className="text-stone-500">·</span>
