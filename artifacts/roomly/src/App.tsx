@@ -167,9 +167,6 @@ function AppContent() {
       <ErrorBoundary fallback={null}>
         <CompareBar />
       </ErrorBoundary>
-      <ErrorBoundary fallback={null}>
-        <CookieConsentBanner />
-      </ErrorBoundary>
     </>
   );
 }
@@ -186,6 +183,7 @@ export default function App() {
           </WouterRouter>
           <Toaster position="bottom-right" richColors closeButton toastOptions={{ classNames: { closeButton: "!left-auto !right-0 !translate-x-1/2 !-translate-y-1/2" } }} />
         </div>
+        <CookieConsentBanner />
       </CompareProvider>
     </SelectedCityProvider>
   );

@@ -50,7 +50,6 @@ export function CookieConsentBanner() {
 
   useEffect(() => {
     if (!visible) return;
-    // Trap focus loosely — move focus into modal on open
     const timeout = setTimeout(() => firstBtnRef.current?.focus(), 80);
     return () => clearTimeout(timeout);
   }, [visible]);
@@ -58,15 +57,12 @@ export function CookieConsentBanner() {
   useEffect(() => {
     if (!showPrefs) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        setShowPrefs(false);
-      }
+      if (e.key === "Escape") setShowPrefs(false);
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [showPrefs]);
 
-  // Re-read from storage when preferences panel is opened, in case page was already visited
   useEffect(() => {
     if (showPrefs) {
       const existing = getConsent();
