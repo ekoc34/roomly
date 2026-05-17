@@ -1,5 +1,6 @@
 export const CONSENT_STORAGE_KEY = "welkthuis_cookie_consent";
 export const CONSENT_VERSION = 1;
+export const CONSENT_CHANGED_EVENT = "welkthuis:consent-changed";
 
 export type CookieConsentPrefs = {
   version: number;
@@ -33,6 +34,12 @@ export function setConsent(prefs: { analytisch: boolean; marketing: boolean }): 
     localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(consent));
   } catch {
     // localStorage unavailable (private browsing edge-case) — fail silently
+  }
+  // Notify same-tab listeners (storage event only fires in other tabs)
+  try {
+    window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: consent }));
+  } catch {
+    // non-browser environment — fail silently
   }
   return consent;
 }

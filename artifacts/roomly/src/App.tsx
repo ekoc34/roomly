@@ -16,6 +16,7 @@ import { OAuthProfileHandler } from "@/components/OAuthProfileHandler";
 import { EmailVerificationGate } from "@/components/EmailVerificationGate";
 import { PasswordRecoveryHandler } from "@/components/PasswordRecoveryHandler";
 import { CookieConsentBanner } from "@/components/CookieConsentBanner";
+import { PlausibleProvider } from "@/components/PlausibleProvider";
 
 import { HomePage } from "@/pages/HomePage";
 import { ListingsPage } from "@/pages/ListingsPage";
@@ -180,6 +181,7 @@ export default function App() {
             <ErrorBoundary>
               <AppContent />
             </ErrorBoundary>
+            <PlausibleProvider />
           </WouterRouter>
           <Toaster position="bottom-right" richColors closeButton toastOptions={{ classNames: { closeButton: "!left-auto !right-0 !translate-x-1/2 !-translate-y-1/2" } }} />
         </div>

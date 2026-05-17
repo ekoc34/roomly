@@ -1,0 +1,101 @@
+Add Plausible Analytics to Welkthuis with GDPR-aware cookie consent integration.
+
+Requirements:
+
+GOAL
+
+* Integrate Plausible Analytics into the app
+* Analytics must ONLY load when the user has accepted analytical cookies
+* Respect the existing cookie consent system completely
+* Do NOT break the existing cookie banner logic
+
+ANALYTICS PROVIDER
+
+* Use Plausible Analytics
+* Use a lightweight script injection approach
+* Domain should be configurable through an environment variable:
+  VITE_PLAUSIBLE_DOMAIN
+
+COOKIE CONSENT INTEGRATION
+Use the existing utilities from:
+src/lib/cookieConsent.ts
+
+Specifically:
+
+* canUseAnalytics()
+* getConsent()
+* setConsent()
+
+Behavior:
+
+* If canUseAnalytics() === false:
+
+  * Plausible script must NOT load
+  * No analytics events should fire
+* If the user accepts analytics cookies:
+
+  * Load Plausible immediately without requiring page refresh
+* If the user later disables analytics cookies:
+
+  * Remove the Plausible script from the DOM
+  * Stop future tracking
+
+IMPLEMENTATION
+Create:
+
+* src/components/PlausibleProvider.tsx
+
+The component should:
+
+* Watch consent state
+* Dynamically inject/remove:
+  https://plausible.io/js/script.js
+* Add:
+  data-domain="<domain>"
+* Prevent duplicate script injection
+* Clean up properly on unmount
+
+ROUTER TRACKING
+
+* Automatically track page views on route changes
+* Works with React Router
+* No manual tracking per page
+
+APP INTEGRATION
+
+* Mount <PlausibleProvider /> globally in App.tsx
+* It must be independent from auth/loading states
+* It must not block rendering
+
+ENVIRONMENT VARIABLES
+Add support for:
+VITE_PLAUSIBLE_DOMAIN=welkthuis.nl
+
+Do NOT hardcode the domain.
+
+TYPE SAFETY
+
+* Fully TypeScript-safe
+* No any types
+* No TypeScript errors
+
+PRIVACY / GDPR
+
+* Do not load analytics before consent
+* Do not use cookies beyond the existing consent system
+* Do not add marketing trackers
+* Keep the implementation GDPR-friendly
+
+UI
+
+* No visual UI changes
+* No changes to the cookie banner design
+* No changes to existing cookie preference pages
+
+AFTER IMPLEMENTATION
+
+* Explain exactly how the analytics lifecycle works
+* Explain when scripts load/unload
+* Explain how route tracking works
+* Confirm that analytics are disabled until consent is granted
+* Commit and push changes
