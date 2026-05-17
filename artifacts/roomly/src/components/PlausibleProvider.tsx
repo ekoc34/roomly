@@ -26,8 +26,6 @@ function injectScript(domain: string): void {
 
 function removeScript(): void {
   document.getElementById(SCRIPT_ID)?.remove();
-  // Clear the queued function Plausible may have attached to window
-  // so stale events don't fire after the user revokes consent
   delete window.plausible;
 }
 
@@ -36,7 +34,6 @@ export function PlausibleProvider(): null {
   const [path] = useLocation();
   const prevPathRef = useRef<string | null>(null);
 
-  // Inject or remove the script whenever consent changes
   useEffect(() => {
     if (!domain) return;
 
@@ -48,12 +45,9 @@ export function PlausibleProvider(): null {
       }
     }
 
-    // Run immediately on mount (handles page load and hot-reload)
     syncScript();
 
-    // Same-tab consent changes (banner / preferences page)
     window.addEventListener(CONSENT_CHANGED_EVENT, syncScript);
-    // Cross-tab consent changes via localStorage
     window.addEventListener("storage", syncScript);
 
     return () => {
@@ -62,14 +56,11 @@ export function PlausibleProvider(): null {
     };
   }, [domain]);
 
-  // Track page views on every route change
   useEffect(() => {
-    // Skip the very first render — Plausible auto-fires on initial script load
     if (prevPathRef.current === null) {
       prevPathRef.current = path;
       return;
     }
-    // Only fire when the path actually changed
     if (prevPathRef.current === path) return;
     prevPathRef.current = path;
 
