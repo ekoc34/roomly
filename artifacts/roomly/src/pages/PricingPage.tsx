@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { stripePromise } from "@/lib/stripe";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/plausible";
 
 const PACKAGES = [
   {
@@ -92,6 +93,9 @@ function PricingContent() {
         toast.error(json.error ?? "Kon betaling niet starten. Probeer opnieuw.");
         return;
       }
+
+      trackEvent("premium_started");
+
       window.location.href = json.url;
     } catch {
       toast.error("Er is een fout opgetreden. Probeer opnieuw.");

@@ -21,6 +21,7 @@ type PlausibleEventProps = {
   signup_completed:  Record<string, never>;
   application_sent:  Record<string, never>;
   listing_created:   Record<string, never>;
+  premium_started:   Record<string, never>;
   // ── add future events here, e.g.: ──────────────────────────────────
   // favorite_added:  Record<string, never>;
 };
