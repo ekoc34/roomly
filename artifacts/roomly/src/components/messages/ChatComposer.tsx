@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { pingLastActive } from "@/hooks/useLastActive";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
+import { trackEvent } from "@/lib/plausible";
 
 type Props = {
   conversationId: string;
@@ -139,6 +140,7 @@ export function ChatComposer({
         }
         return;
       }
+      trackEvent("message_sent");
       pingLastActive(user.id);
       formRef.current?.reset();
       setRows(1);
