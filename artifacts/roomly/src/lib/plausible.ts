@@ -20,8 +20,8 @@ type PlausibleEventProps = {
   message_sent:      Record<string, never>;
   signup_completed:  Record<string, never>;
   application_sent:  Record<string, never>;
+  listing_created:   Record<string, never>;
   // ── add future events here, e.g.: ──────────────────────────────────
-  // listing_created: { type: string };
   // favorite_added:  Record<string, never>;
 };
 

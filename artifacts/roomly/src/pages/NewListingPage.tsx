@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/plausible";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
 import { ListingCard } from "@/components/listings/ListingCard";
@@ -203,6 +204,9 @@ export function NewListingPage() {
         setError(mapRpcError(err, "Advertentie kon niet worden geplaatst. Probeer opnieuw."));
         return;
       }
+
+      trackEvent("listing_created");
+
       sessionStorage.removeItem(NEW_LISTING_IMAGES_KEY);
       toast.success("Advertentie geplaatst!");
 
