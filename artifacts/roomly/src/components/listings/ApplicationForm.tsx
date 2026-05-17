@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { trackEvent } from "@/lib/plausible";
 
 type Props = {
   listingId: string;
@@ -110,6 +111,8 @@ export function ApplicationForm({ listingId }: Props) {
         status: "pending",
       }).select("id").single();
       if (appError) throw appError;
+
+      trackEvent("application_sent");
 
       if (insertedApp?.id) {
         const { error: notifError } = await supabase.rpc("notify_application_event", {
