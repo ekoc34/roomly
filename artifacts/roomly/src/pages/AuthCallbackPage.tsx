@@ -179,7 +179,16 @@ export function AuthCallbackPage() {
           .maybeSingle();
 
         if (!profile?.onboarding_completed) {
-          sessionStorage.setItem("emailJustVerified", "1");
+          // Only flag the email-verified toast for genuine email-signup links.
+          // OAuth sign-ins (Google/Facebook) also land here when Supabase uses a
+          // PKCE ?code= callback, but they have no urlType and their provider is
+          // not "email". OAuthProfileHandler sets oauthNewUser for those users.
+          const isEmailSignupLink =
+            (urlType === "signup" || hashType === "signup") &&
+            user.app_metadata?.provider === "email";
+          if (isEmailSignupLink) {
+            sessionStorage.setItem("emailJustVerified", "1");
+          }
           navigate("/welkom");
         } else {
           navigate("/dashboard");

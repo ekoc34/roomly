@@ -33,30 +33,44 @@ export function WelcomePage() {
   // Prevent the guard from re-running on auth token refreshes (e.g. tab switches).
   // Once we've confirmed user_type is null and shown the selector, stay put.
   const hasChecked = useRef(false);
+  // Ensure the email-verified toast fires at most once per mount, even when
+  // the `user` object updates (token refreshes, etc.).
+  const verifiedToastFired = useRef(false);
 
-  // ── One-time flags set by EmailVerificationHandler / OAuthProfileHandler ──
+  // ── Email verification toast ──────────────────────────────────────────────
+  // Wait for auth to load so we can confirm provider === "email" before toasting.
+  // Defense-in-depth: AuthCallbackPage only sets this flag for signup links from
+  // email users, but we double-check here to ensure OAuth sign-ins never trigger
+  // the "e-mailadres geverifieerd" message (their accounts are pre-verified).
   useEffect(() => {
-    // Email verification success toast + signup tracking
-    if (sessionStorage.getItem("emailJustVerified") === "1") {
-      sessionStorage.removeItem("emailJustVerified");
-      trackEvent("signup_completed");
-      // Slight delay so the page has painted before the toast appears.
-      setTimeout(() => {
-        toast.success("Je e-mailadres is succesvol geverifieerd!");
-      }, 200);
-    }
+    if (authLoading || !user || verifiedToastFired.current) return;
+    if (sessionStorage.getItem("emailJustVerified") !== "1") return;
 
-    // OAuth new-user banner + signup tracking
+    // Always consume the flag so it cannot fire on a later re-mount.
+    sessionStorage.removeItem("emailJustVerified");
+
+    const provider = user.app_metadata?.provider;
+    if (provider !== "email") return; // OAuth user — no toast
+
+    verifiedToastFired.current = true;
+    trackEvent("signup_completed");
+    setTimeout(() => {
+      toast.success("Je e-mailadres is succesvol geverifieerd!");
+    }, 200);
+  }, [user, authLoading]);
+
+  // ── OAuth new-user banner ─────────────────────────────────────────────────
+  // OAuthProfileHandler sets this flag; it never sets emailJustVerified.
+  useEffect(() => {
     const raw = sessionStorage.getItem("oauthNewUser");
-    if (raw) {
-      try {
-        setOauthInfo(JSON.parse(raw) as OAuthInfo);
-        trackEvent("signup_completed");
-      } catch {
-        // ignore malformed entry
-      }
-      sessionStorage.removeItem("oauthNewUser");
+    if (!raw) return;
+    try {
+      setOauthInfo(JSON.parse(raw) as OAuthInfo);
+      trackEvent("signup_completed");
+    } catch {
+      // ignore malformed entry
     }
+    sessionStorage.removeItem("oauthNewUser");
   }, []);
 
   // ── Guard: redirect non-users and already-onboarded users ────────────────
