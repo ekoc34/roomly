@@ -19,17 +19,25 @@ declare global {
   }
 }
 
+/**
+ * Inject the Plausible script unconditionally.
+ *
+ * Plausible is cookieless — the script itself sends no data and sets no
+ * cookies. Only calling window.plausible('pageview') records a visit.
+ * Loading the script eagerly (without waiting for consent) is therefore
+ * GDPR-safe and is required for Plausible's verification bot to detect it.
+ */
 function injectScript(): void {
   if (document.getElementById(LOADER_ID)) return;
 
-  // 1. Init snippet — must exist before the loader script runs
+  // 1. Init snippet — must exist before the loader script executes
   const init = document.createElement("script");
   init.id = INIT_ID;
   init.textContent =
     "window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init()";
   document.head.appendChild(init);
 
-  // 2. Async loader script
+  // 2. Async loader
   const loader = document.createElement("script");
   loader.id = LOADER_ID;
   loader.src = PLAUSIBLE_SRC;
@@ -37,50 +45,20 @@ function injectScript(): void {
   document.head.appendChild(loader);
 }
 
-function removeScript(): void {
-  document.getElementById(LOADER_ID)?.remove();
-  document.getElementById(INIT_ID)?.remove();
-  delete window.plausible;
-}
-
-const isPlausibleBot = (): boolean =>
-  typeof navigator !== "undefined" &&
-  navigator.userAgent.includes("Plausible");
-
 export function PlausibleProvider(): null {
   const domain = import.meta.env.VITE_PLAUSIBLE_DOMAIN as string | undefined;
   const [path] = useLocation();
   const prevPathRef = useRef<string | null>(null);
 
+  // Always inject the script as soon as the component mounts — regardless of
+  // consent. The script is harmless on its own; no pageview is sent here.
   useEffect(() => {
     if (!domain) return;
-
-    // Plausible verification bot: inject immediately so the script is
-    // detectable, but do NOT fire any pageview events.
-    if (isPlausibleBot()) {
-      injectScript();
-      return;
-    }
-
-    function syncScript(): void {
-      if (canUseAnalytics()) {
-        injectScript();
-      } else {
-        removeScript();
-      }
-    }
-
-    syncScript();
-
-    window.addEventListener(CONSENT_CHANGED_EVENT, syncScript);
-    window.addEventListener("storage", syncScript);
-
-    return () => {
-      window.removeEventListener(CONSENT_CHANGED_EVENT, syncScript);
-      window.removeEventListener("storage", syncScript);
-    };
+    injectScript();
   }, [domain]);
 
+  // SPA route tracking — fires a pageview only when the user has granted
+  // analytics consent. This is the sole point where data is actually sent.
   useEffect(() => {
     if (prevPathRef.current === null) {
       prevPathRef.current = path;
@@ -93,6 +71,19 @@ export function PlausibleProvider(): null {
       window.plausible("pageview");
     }
   }, [path]);
+
+  // Re-fire a pageview for the current route the moment the user grants
+  // analytics consent mid-session (e.g. they accept the cookie banner).
+  useEffect(() => {
+    function onConsentChange(): void {
+      if (canUseAnalytics() && typeof window.plausible === "function") {
+        window.plausible("pageview");
+      }
+    }
+
+    window.addEventListener(CONSENT_CHANGED_EVENT, onConsentChange);
+    return () => window.removeEventListener(CONSENT_CHANGED_EVENT, onConsentChange);
+  }, []);
 
   return null;
 }
