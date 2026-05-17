@@ -18,6 +18,7 @@
 
 type PlausibleEventProps = {
   message_sent:      Record<string, never>;
+  signup_completed:  Record<string, never>;
   // ── add future events here, e.g.: ──────────────────────────────────
   // listing_created: { type: string };
   // application_sent: Record<string, never>;
@@ -26,14 +27,6 @@ type PlausibleEventProps = {
 
 type PlausibleEvent = keyof PlausibleEventProps;
 
-declare global {
-  interface Window {
-    plausible?: (
-      eventName: string,
-      options?: { props?: Record<string, string | number | boolean> }
-    ) => void;
-  }
-}
 
 export function trackEvent<E extends PlausibleEvent>(
   event: E,

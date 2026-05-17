@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
 import { UserPersonaSelector } from "@/components/onboarding/UserPersonaSelector";
+import { trackEvent } from "@/lib/plausible";
 
 type OAuthInfo = { provider: "google" | "facebook"; name: string; avatar_url: string | null };
 
@@ -35,20 +36,22 @@ export function WelcomePage() {
 
   // ── One-time flags set by EmailVerificationHandler / OAuthProfileHandler ──
   useEffect(() => {
-    // Email verification success toast
+    // Email verification success toast + signup tracking
     if (sessionStorage.getItem("emailJustVerified") === "1") {
       sessionStorage.removeItem("emailJustVerified");
+      trackEvent("signup_completed");
       // Slight delay so the page has painted before the toast appears.
       setTimeout(() => {
         toast.success("Je e-mailadres is succesvol geverifieerd!");
       }, 200);
     }
 
-    // OAuth new-user banner
+    // OAuth new-user banner + signup tracking
     const raw = sessionStorage.getItem("oauthNewUser");
     if (raw) {
       try {
         setOauthInfo(JSON.parse(raw) as OAuthInfo);
+        trackEvent("signup_completed");
       } catch {
         // ignore malformed entry
       }
