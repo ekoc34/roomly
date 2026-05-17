@@ -1,55 +1,44 @@
+/**
+ * PasswordRecoveryHandler — global safety net for hash-based recovery redirects.
+ *
+ * This component does ONE thing only: if the browser lands anywhere with a
+ * recovery hash in the URL and the user is NOT already on /wachtwoord-instellen,
+ * it performs a client-side navigation to ResetPasswordPage so the reset page
+ * owns the full recovery lifecycle.
+ *
+ * It does NOT:
+ *  - Listen for PASSWORD_RECOVERY events (ResetPasswordPage does this)
+ *  - Exchange any tokens (ResetPasswordPage does this)
+ *  - Set sessionStorage flags
+ *  - Redirect if already on /wachtwoord-instellen
+ */
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { supabase } from "@/lib/supabase";
-
-const RECOVERY_FLAG = "roomly_recovery_pending";
 
 export function PasswordRecoveryHandler() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    // ── Hash-based detection ──────────────────────────────────────────────────
-    // Supabase implicit flow: the email link lands as
-    //   /auth/callback#access_token=...&type=recovery
-    // or (legacy) directly at the site root with a hash.
-    // Supabase clears window.location.hash asynchronously via replaceState, so
-    // on the first synchronous tick the hash is still present.
-    //
-    // If the user is already on /wachtwoord-instellen (e.g. redirectTo now
-    // points there directly), let ResetPasswordPage handle the hash itself —
-    // navigating away and back would unmount it mid-exchange.
     const hash = window.location.hash;
     const alreadyOnResetPage = window.location.pathname.includes("wachtwoord-instellen");
 
+    // Only act on hash-based recovery tokens that arrived somewhere unexpected.
+    // PKCE (?code=) and token_hash (?token_hash=) flows land directly on
+    // /wachtwoord-instellen because ForgotPasswordPage uses redirectTo pointing
+    // there, so those never need to be caught here.
     if (
       hash.includes("type=recovery") &&
       hash.includes("access_token=") &&
       !alreadyOnResetPage
     ) {
-      sessionStorage.setItem(RECOVERY_FLAG, "1");
-      setLocation("/wachtwoord-instellen");
-      return;
+      // Navigate to reset page; preserve hash so ResetPasswordPage can read it.
+      // Using window.location.replace keeps the hash fragment intact across
+      // the navigation (wouter setLocation strips hashes).
+      window.location.replace("/wachtwoord-instellen" + window.location.search + hash);
     }
-
-    // ── Event-based detection ─────────────────────────────────────────────────
-    // Fires for PKCE flows where the SDK exchanges a code server-side and
-    // emits PASSWORD_RECOVERY once the session is established.
-    //
-    // Guard: if already on /wachtwoord-instellen, ResetPasswordPage is handling
-    // the flow — do NOT navigate again (would cause a re-mount and lose state).
-    if (!supabase) return;
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        sessionStorage.setItem(RECOVERY_FLAG, "1");
-        if (!window.location.pathname.includes("wachtwoord-instellen")) {
-          setLocation("/wachtwoord-instellen");
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [setLocation]);
+  // Run once on mount only
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }

@@ -1,17 +1,10 @@
 /**
  * AuthCallbackPage — OAuth login callbacks ONLY.
  *
- * This page must NEVER process password-recovery tokens.
- * If any recovery signal is present in the URL, we immediately forward the
- * complete URL params/hash to /wachtwoord-instellen so ResetPasswordPage can
- * own the entire recovery lifecycle.
- *
- * Recovery signals we detect and forward:
- *   - ?type=recovery        (PKCE recovery code)
- *   - ?token_hash=...       (OTP / email-link recovery)
- *   - #...type=recovery     (implicit-flow recovery hash)
- *   - #access_token=...     (any hash with a bearer token — only recovery
- *                            emails are configured to land here)
+ * This page handles ONLY OAuth sign-in / email-verification code exchanges.
+ * Password recovery is handled exclusively by ResetPasswordPage (/wachtwoord-instellen).
+ * ForgotPasswordPage sends redirectTo: "https://www.welkthuis.nl/wachtwoord-instellen"
+ * so recovery codes never arrive here.
  */
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
@@ -25,26 +18,6 @@ export function AuthCallbackPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const search = window.location.search;
-    const hash   = window.location.hash;
-    const sp     = new URLSearchParams(search);
-
-    // ── RECOVERY PASS-THROUGH ─────────────────────────────────────────────────
-    // Check synchronously before any async work so no auth state is touched here.
-    const isRecovery =
-      sp.get("type") === "recovery" ||
-      sp.has("token_hash") ||
-      hash.includes("type=recovery") ||
-      hash.includes("access_token=");
-
-    if (isRecovery) {
-      // Use window.location.replace so the hash fragment is preserved and the
-      // browser does not add the callback URL to history.
-      window.location.replace("/wachtwoord-instellen" + search + hash);
-      return;
-    }
-
-    // ── OAUTH-ONLY CODE EXCHANGE ──────────────────────────────────────────────
     if (!supabase) {
       setErrorMsg("Supabase is niet geconfigureerd.");
       setStatus("error");
@@ -53,13 +26,16 @@ export function AuthCallbackPage() {
 
     const run = async () => {
       try {
-        const code    = sp.get("code");
+        const search = window.location.search;
+        const hash   = window.location.hash;
+        const sp     = new URLSearchParams(search);
+        const code   = sp.get("code");
         const urlType = sp.get("type");
 
         const hashParams = hash ? new URLSearchParams(hash.slice(1)) : null;
         const hashType   = hashParams?.get("type");
 
-        // PKCE code (OAuth sign-in / email verification)
+        // PKCE code exchange (OAuth sign-in / email verification)
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           window.history.replaceState(null, "", window.location.pathname);
@@ -68,11 +44,10 @@ export function AuthCallbackPage() {
             setStatus("error");
             return;
           }
-        } else if (hash && hash.includes("access_token=")) {
-          // Implicit flow (non-recovery — safety net, but recovery is already
-          // caught above so this branch only handles sign-in/magic-link tokens).
-          const accessToken  = hashParams?.get("access_token") ?? "";
-          const refreshToken = hashParams?.get("refresh_token") ?? "";
+        } else if (hash && hashParams?.get("access_token")) {
+          // Implicit flow — magic-link / email sign-in tokens in the hash
+          const accessToken  = hashParams.get("access_token") ?? "";
+          const refreshToken = hashParams.get("refresh_token") ?? "";
           if (!accessToken) {
             setErrorMsg("Verificatielink ongeldig of verlopen.");
             setStatus("error");
@@ -90,7 +65,7 @@ export function AuthCallbackPage() {
           }
         }
 
-        // ── Determine where to send the user ─────────────────────────────────
+        // Determine where to send the user
         const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
         if (userErr || !user) {

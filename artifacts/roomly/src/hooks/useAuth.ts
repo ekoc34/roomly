@@ -20,7 +20,12 @@ export function useAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // PASSWORD_RECOVERY must never update user state here.
+      // ResetPasswordPage owns the entire recovery lifecycle. If we set
+      // user state on PASSWORD_RECOVERY, pages like LoginPage would
+      // auto-redirect to /dashboard mid-recovery flow.
+      if (event === "PASSWORD_RECOVERY") return;
       setUser(session?.user ?? null);
     });
 
