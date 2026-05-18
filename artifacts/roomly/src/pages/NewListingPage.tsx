@@ -11,6 +11,7 @@ import { ListingCard } from "@/components/listings/ListingCard";
 import { isFullyVerified } from "@/lib/verificationUtils";
 import { mapRpcError } from "@/lib/rpcErrors";
 import type { ListingType, Profile, Listing } from "@/types/database";
+import { checkListingSpam, getSpamMessageNL } from "@/lib/spamGuard";
 
 const BANNER_DISMISSED_KEY = "roomly_verify_banner_dismissed";
 const NEW_LISTING_IMAGES_KEY = "roomly_new_listing_images";
@@ -98,7 +99,7 @@ export function NewListingPage() {
     setBannerDismissed(true);
   };
 
-  const showVerifyBanner = !bannerDismissed && !!user && !isFullyVerified(profile);
+  const showVerifyBanner = !bannerDismissed && !!user && !isFullyVerified(user, profile);
   const emailVerified = !!(profile as unknown as { email_auto_verified?: boolean } | null)?.email_auto_verified;
   const phoneVerified = !!(profile as unknown as { phone_verified?: boolean } | null)?.phone_verified;
 
@@ -182,8 +183,34 @@ export function NewListingPage() {
       setError("Vul alle verplichte velden in (titel, beschrijving, stad, prijs).");
       return;
     }
+
+    // ── Client-side spam detection (sync, uses static import) ─────────────
+    const spamResult = checkListingSpam(title, description);
+    if (spamResult.isSpam && (spamResult.severity === "high" || spamResult.severity === "medium")) {
+      setError(getSpamMessageNL(spamResult.category, "listing"));
+      return;
+    }
+
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
+
+      // ── Server-side rate limit + duplicate check ────────────────────────
+      const { data: checkResult } = await supabase.rpc("check_listing_allowed", {
+        p_title: title,
+        p_location: location,
+      });
+      if (checkResult && !(checkResult as { allowed: boolean }).allowed) {
+        const reason = (checkResult as { reason: string | null }).reason;
+        if (reason === "LISTING_RATE_LIMIT") {
+          setError("Je kunt maximaal 5 advertenties per dag plaatsen. Probeer het morgen opnieuw.");
+        } else if (reason === "DUPLICATE_LISTING") {
+          setError("Er staat al een vergelijkbare advertentie van jou online. Wacht 7 dagen voor je dezelfde advertentie opnieuw plaatst.");
+        } else {
+          setError("Advertentie kon niet worden geplaatst. Probeer opnieuw.");
+        }
+        return;
+      }
+
       const { data: listingId, error: err } = await supabase.rpc("create_listing", {
         p_data: {
           title,

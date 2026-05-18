@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { pingLastActive } from "@/hooks/useLastActive";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { trackEvent } from "@/lib/plausible";
+import { checkMessageSpam, getSpamMessageNL } from "@/lib/spamGuard";
 
 type Props = {
   conversationId: string;
@@ -77,6 +78,7 @@ export function ChatComposer({
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recentMsgCountRef = useRef<Map<string, number>>(new Map());
   const { user } = useAuth();
 
   const stopTyping = useCallback(() => {
@@ -125,6 +127,29 @@ export function ChatComposer({
     const body = String(fd.get("body") ?? "").trim();
     if (!body) { toast.error("Bericht mag niet leeg zijn."); return; }
     if (body.length > MAX_MESSAGE_LENGTH) { toast.error("Bericht is te lang."); return; }
+
+    // ── Client-side spam detection ────────────────────────────────────────
+    const spamResult = checkMessageSpam(body);
+    if (spamResult.isSpam) {
+      toast.error(getSpamMessageNL(spamResult.category));
+      if (supabase && user && spamResult.severity !== "low") {
+        void supabase.rpc("log_security_event", {
+          p_event_type: "spam_blocked",
+          p_target_type: "message",
+          p_trigger: spamResult.category ?? "pattern",
+          p_details: { preview: body.slice(0, 80), severity: spamResult.severity },
+        });
+      }
+      return;
+    }
+
+    // ── In-session duplicate message guard ────────────────────────────────
+    const msgKey = body.toLowerCase();
+    if ((recentMsgCountRef.current.get(msgKey) ?? 0) >= 3) {
+      toast.error("Je hebt dit bericht al meerdere keren verstuurd. Stuur geen herhaalde berichten.");
+      return;
+    }
+
     stopTyping();
     startTransition(async () => {
       if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
@@ -140,6 +165,10 @@ export function ChatComposer({
         }
         return;
       }
+
+      // Track for dedup
+      recentMsgCountRef.current.set(msgKey, (recentMsgCountRef.current.get(msgKey) ?? 0) + 1);
+
       trackEvent("message_sent");
       pingLastActive(user.id);
       formRef.current?.reset();

@@ -2,6 +2,7 @@ import { useState, useTransition } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { checkRateLimit, recordAttempt, formatRetryTime, RL } from "@/lib/rateLimiter";
 
 function isRateLimitError(msg: string): boolean {
   return /rate.limit|too many|for security purposes|email.*limit|over_email/i.test(msg);
@@ -18,6 +19,14 @@ export function ForgotPasswordPage() {
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("email") ?? "").trim().toLowerCase();
     if (!email) { setError("Vul je e-mailadres in."); return; }
+
+    const rl = checkRateLimit(RL.forgotPassword.key, RL.forgotPassword.max, RL.forgotPassword.windowMs);
+    if (!rl.allowed) {
+      toast.error(`Te veel aanvragen. Probeer het over ${formatRetryTime(rl.retryAfterMs)} opnieuw.`);
+      return;
+    }
+    recordAttempt(RL.forgotPassword.key, RL.forgotPassword.windowMs);
+
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {

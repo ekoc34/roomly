@@ -4,6 +4,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/hooks/useAuth";
+import { checkRateLimit, recordAttempt, formatRetryTime, RL } from "@/lib/rateLimiter";
 
 export function RegisterPage() {
   const [, navigate] = useLocation();
@@ -34,6 +35,14 @@ export function RegisterPage() {
     if (password.length < 8) { setError("Wachtwoord moet minimaal 8 tekens zijn."); return; }
     const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
     if (!EMAIL_RE.test(email)) { setError("Voer een geldig e-mailadres in (bijv. naam@voorbeeld.nl)."); return; }
+
+    const rl = checkRateLimit(RL.signup.key, RL.signup.max, RL.signup.windowMs);
+    if (!rl.allowed) {
+      setError(`Te veel registratiepogingen. Probeer het over ${formatRetryTime(rl.retryAfterMs)} opnieuw.`);
+      return;
+    }
+    recordAttempt(RL.signup.key, RL.signup.windowMs);
+
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { data, error: err } = await supabase.auth.signUp({

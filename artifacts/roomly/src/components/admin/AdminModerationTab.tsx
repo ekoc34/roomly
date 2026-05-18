@@ -27,6 +27,13 @@ type ConvReport = {
   status: string; created_at: string; reporter_name: string | null;
 };
 
+type AutoFlag = {
+  id: string; target_type: string; target_id: string | null;
+  trigger_type: string; severity: "low" | "medium" | "high";
+  reason: string; details: Record<string, unknown> | null;
+  dismissed: boolean; created_at: string;
+};
+
 type InspectMessage = {
   id: string; sender_id: string; sender_name: string;
   body: string; created_at: string;
@@ -100,6 +107,7 @@ export function AdminModerationTab({ onPendingCount }: Props) {
   const [listingReports, setListingReports] = useState<ListingReport[]>([]);
   const [userReportsMod, setUserReportsMod] = useState<UserReportMod[]>([]);
   const [convReports, setConvReports] = useState<ConvReport[]>([]);
+  const [autoFlags, setAutoFlags] = useState<AutoFlag[]>([]);
 
   const [resolveDialog, setResolveDialog] = useState<ResolveDialog | null>(null);
   const [suspendDialog, setSuspendDialog] = useState<SuspendDialog | null>(null);
@@ -113,7 +121,7 @@ export function AdminModerationTab({ onPendingCount }: Props) {
     setLoading(true);
     setMigrationError(false);
     try {
-      const [lrRes, urRes, crRes] = await Promise.all([
+      const [lrRes, urRes, crRes, afRes] = await Promise.all([
         supabase
           .from("listing_reports")
           .select(`id, listing_id, category, reason, status, created_at,
@@ -138,6 +146,13 @@ export function AdminModerationTab({ onPendingCount }: Props) {
           .select(`id, conversation_id, category, reason, status, created_at,
             reporter:reporter_id ( name )`)
           .eq("status", "pending")
+          .order("created_at", { ascending: false })
+          .limit(100),
+
+        supabase
+          .from("auto_flags")
+          .select("id, target_type, target_id, trigger_type, severity, reason, details, dismissed, created_at")
+          .eq("dismissed", false)
           .order("created_at", { ascending: false })
           .limit(100),
       ]);
@@ -189,7 +204,11 @@ export function AdminModerationTab({ onPendingCount }: Props) {
         })));
       }
 
-      const total = lr.length + (urRes.data?.length ?? 0) + (crRes.data?.length ?? 0);
+      if (!afRes.error && afRes.data) {
+        setAutoFlags(afRes.data as unknown as AutoFlag[]);
+      }
+
+      const total = lr.length + (urRes.data?.length ?? 0) + (crRes.data?.length ?? 0) + (afRes.data?.length ?? 0);
       onPendingCount?.(total);
     } catch {
       setMigrationError(true);
@@ -234,6 +253,17 @@ export function AdminModerationTab({ onPendingCount }: Props) {
       setListingReports((prev) =>
         prev.map((r) => r.listing_id === listingId ? { ...r, listing_hidden: true } : r)
       );
+    });
+  };
+
+  const handleDismissFlag = (flagId: string) => {
+    startTransition(async () => {
+      if (!supabase) return;
+      const { error } = await supabase.from("auto_flags").update({ dismissed: true }).eq("id", flagId);
+      if (error) { toast.error("Verwerpen mislukt."); return; }
+      toast.success("Melding verworpen.");
+      setAutoFlags((prev) => prev.filter((f) => f.id !== flagId));
+      onPendingCount?.(listingReports.length + userReportsMod.length + convReports.length + autoFlags.length - 1);
     });
   };
 
@@ -306,18 +336,19 @@ export function AdminModerationTab({ onPendingCount }: Props) {
     );
   }
 
-  const total = listingReports.length + userReportsMod.length + convReports.length;
+  const total = listingReports.length + userReportsMod.length + convReports.length + autoFlags.length;
 
   // ── Full render ───────────────────────────────────────────────────────────
   return (
     <div className="space-y-8">
 
       {/* Summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-4">
         {[
           { label: "Advertentie-meldingen", count: listingReports.length, color: "bg-rose-50 border-rose-200 text-rose-700" },
           { label: "Gebruikersmeldingen",   count: userReportsMod.length, color: "bg-violet-50 border-violet-200 text-violet-700" },
           { label: "Gespreksmeldingen",     count: convReports.length,    color: "bg-blue-50 border-blue-200 text-blue-700" },
+          { label: "Auto-vlaggen",          count: autoFlags.length,      color: "bg-amber-50 border-amber-200 text-amber-700" },
         ].map((s) => (
           <div key={s.label} className={`flex items-center gap-4 rounded-2xl border p-5 ${s.color}`}>
             <AlertTriangle className="h-5 w-5 shrink-0 opacity-70" />
@@ -536,6 +567,71 @@ export function AdminModerationTab({ onPendingCount }: Props) {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Auto-flags (shadow moderation) ──────────────────────────────── */}
+      {autoFlags.length > 0 && (
+        <section>
+          <div className="rounded-2xl border border-amber-200 bg-white shadow-sm">
+            <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-5 py-3.5">
+              <Shield className="h-4 w-4 text-amber-500" />
+              <span className="text-sm font-semibold text-amber-800">Auto-vlaggen</span>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-200 text-[10px] font-bold text-amber-700">{autoFlags.length}</span>
+              <span className="ml-auto text-xs text-amber-600">Automatisch gedetecteerd door het spamsysteem</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-stone-100 text-left text-xs text-stone-400">
+                    <th className="px-4 py-2.5">Doelwit</th>
+                    <th className="px-4 py-2.5">Trigger</th>
+                    <th className="px-4 py-2.5">Ernst</th>
+                    <th className="px-4 py-2.5">Reden</th>
+                    <th className="px-4 py-2.5">Datum</th>
+                    <th className="px-4 py-2.5" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-50">
+                  {autoFlags.map((f) => {
+                    const sevClass = f.severity === "high" ? "bg-red-100 text-red-700" : f.severity === "medium" ? "bg-amber-100 text-amber-700" : "bg-stone-100 text-stone-600";
+                    const sevLabel = f.severity === "high" ? "Hoog" : f.severity === "medium" ? "Gemiddeld" : "Laag";
+                    const targetLabel: Record<string, string> = { listing: "Advertentie", user: "Gebruiker", conversation: "Gesprek" };
+                    return (
+                      <tr key={f.id} className="hover:bg-stone-50/60">
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs font-medium text-stone-700">{targetLabel[f.target_type] ?? f.target_type}</span>
+                            {f.target_id && f.target_type === "listing" && (
+                              <Link href={`/kamers/${f.target_id}`} className="text-[10px] text-rose-500 hover:underline" target="_blank">
+                                {f.target_id.slice(0, 8)}…
+                              </Link>
+                            )}
+                            {f.target_id && f.target_type !== "listing" && (
+                              <span className="font-mono text-[10px] text-stone-400">{f.target_id.slice(0, 8)}…</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600">{f.trigger_type}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${sevClass}`}>{sevLabel}</span>
+                        </td>
+                        <td className="max-w-xs px-4 py-3 text-xs text-stone-500">{f.reason || "—"}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-xs text-stone-400">{fmtDate(f.created_at)}</td>
+                        <td className="px-4 py-3">
+                          <button type="button" disabled={isPending} onClick={() => handleDismissFlag(f.id)} className={actionBtn}>
+                            <XCircle className="h-3.5 w-3.5" /> Verwerp
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

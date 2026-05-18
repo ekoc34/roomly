@@ -4,6 +4,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useAuth } from "@/hooks/useAuth";
+import { checkRateLimit, recordAttempt, formatRetryTime, RL } from "@/lib/rateLimiter";
 
 export function LoginPage() {
   const [, navigate] = useLocation();
@@ -28,6 +29,14 @@ export function LoginPage() {
     const email = String(fd.get("email") ?? "").trim().toLowerCase();
     const password = String(fd.get("password") ?? "");
     if (!email || !password) { setError("Vul je e-mail en wachtwoord in."); return; }
+
+    const rl = checkRateLimit(RL.login.key, RL.login.max, RL.login.windowMs);
+    if (!rl.allowed) {
+      setError(`Te veel inlogpogingen. Probeer het over ${formatRetryTime(rl.retryAfterMs)} opnieuw.`);
+      return;
+    }
+    recordAttempt(RL.login.key, RL.login.windowMs);
+
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.signInWithPassword({ email, password });
