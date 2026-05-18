@@ -62,6 +62,7 @@ const nl = {
   },
   home: {
     heroTitle: "Vind je thuis in Nederland",
+    heroTitleHighlight: "in Nederland",
     heroTitleCity: "Woningen in {city}",
     heroSubtitle: "Kamers, studio's en appartementen in heel Nederland.",
     heroSubtitleCity: "Beschikbare kamers en appartementen in {city}.",
@@ -671,6 +672,7 @@ const en: typeof nl = {
   },
   home: {
     heroTitle: "Find your home in the Netherlands",
+    heroTitleHighlight: "in the Netherlands",
     heroTitleCity: "Properties in {city}",
     heroSubtitle: "Rooms, studios and apartments across the Netherlands.",
     heroSubtitleCity: "Available rooms and apartments in {city}.",

@@ -22,10 +22,8 @@ export function HeroSearch() {
             </>
           ) : (
             <>
-              {t("home.heroTitle").split("in Nederland")[0]}
-              <span className="text-rose-500">
-                {t("home.heroTitle").includes("in Nederland") ? "in Nederland" : t("home.heroTitle")}
-              </span>
+              {t("home.heroTitle").split(t("home.heroTitleHighlight"))[0]}
+              <span className="text-rose-500">{t("home.heroTitleHighlight")}</span>
             </>
           )}
         </h1>
