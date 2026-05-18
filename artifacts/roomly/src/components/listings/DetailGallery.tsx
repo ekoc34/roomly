@@ -296,20 +296,21 @@ function SkeletonTile({ className = "" }: { className?: string }) {
 }
 
 // ── Gallery image tile ────────────────────────────────────────────────────────
+// IMPORTANT: GalleryTile renders as `absolute inset-0` so it NEVER contributes
+// to document-flow height. The parent must be `relative` with an explicit
+// height. This prevents portrait/tall images from breaking the grid layout.
 
 function GalleryTile({
   src,
   alt,
   priority = false,
   onClick,
-  className = "",
   roundingClass = "",
 }: {
   src: string;
   alt: string;
   priority?: boolean;
   onClick: () => void;
-  className?: string;
   roundingClass?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -321,7 +322,7 @@ function GalleryTile({
         type="button"
         onClick={onClick}
         aria-label={`${alt} — klik om te vergroten`}
-        className={`group relative block w-full overflow-hidden ${roundingClass} ${className}`}
+        className={`group absolute inset-0 overflow-hidden ${roundingClass}`}
       >
         <ImgFallback className="h-full w-full" />
       </button>
@@ -333,7 +334,7 @@ function GalleryTile({
       type="button"
       onClick={onClick}
       aria-label={`${alt} — klik om te vergroten`}
-      className={`group relative block w-full overflow-hidden bg-stone-100 ${roundingClass} ${className}`}
+      className={`group absolute inset-0 overflow-hidden bg-stone-100 ${roundingClass}`}
     >
       {!loaded && <SkeletonTile className="absolute inset-0 h-full w-full rounded-none" />}
       <img
@@ -342,7 +343,7 @@ function GalleryTile({
         loading={priority ? "eager" : "lazy"}
         onLoad={() => setLoaded(true)}
         onError={() => setError(true)}
-        className={`h-full w-full object-cover transition-all duration-300 group-hover:brightness-[0.93] ${loaded ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 h-full w-full object-cover object-center transition-all duration-300 group-hover:brightness-[0.93] ${loaded ? "opacity-100" : "opacity-0"}`}
         draggable={false}
       />
     </button>
@@ -489,76 +490,98 @@ export function DetailGallery({ images, title }: Props) {
       </div>
 
       {/* ── Desktop: Airbnb-style grid ── */}
+      {/* Every variant uses a fixed-height outer block. GalleryTile buttons
+          are `absolute inset-0` so image intrinsic size never escapes the
+          container — portrait or unusually tall images cannot push content
+          below the gallery out of position. */}
       <div className="hidden sm:block">
+
+        {/* Single image — fixed height block, image fills via absolute inset */}
         {images.length === 1 && (
-          <GalleryTile
-            src={images[0]}
-            alt={`${title} — hoofdfoto`}
-            priority
-            onClick={() => setLightboxIndex(0)}
-            className="aspect-[16/9]"
-            roundingClass="rounded-2xl"
-          />
-        )}
-
-        {images.length === 2 && (
-          <div className="grid h-72 grid-cols-2 gap-2 lg:h-80">
-            <GalleryTile
-              src={images[0]}
-              alt={`${title} — foto 1`}
-              priority
-              onClick={() => setLightboxIndex(0)}
-              className="h-full"
-              roundingClass="rounded-l-2xl rounded-r-lg"
-            />
-            <GalleryTile
-              src={images[1]}
-              alt={`${title} — foto 2`}
-              onClick={() => setLightboxIndex(1)}
-              className="h-full"
-              roundingClass="rounded-l-lg rounded-r-2xl"
-            />
-          </div>
-        )}
-
-        {images.length >= 3 && (
-          <div className="grid h-72 grid-cols-[1fr_1fr] gap-2 lg:h-80">
-            {/* Main large image */}
+          <div className="relative h-72 w-full overflow-hidden rounded-2xl bg-stone-100 lg:h-80">
             <GalleryTile
               src={images[0]}
               alt={`${title} — hoofdfoto`}
               priority
               onClick={() => setLightboxIndex(0)}
-              className="h-full"
-              roundingClass="rounded-l-2xl rounded-r-lg"
+              roundingClass="rounded-2xl"
             />
+          </div>
+        )}
 
-            {/* Right column: 1 or 2 thumbnails */}
+        {/* Two images — grid with explicit height; each cell is relative */}
+        {images.length === 2 && (
+          <div className="grid h-72 grid-cols-2 gap-2 lg:h-80">
+            <div className="relative overflow-hidden rounded-l-2xl rounded-r-lg bg-stone-100">
+              <GalleryTile
+                src={images[0]}
+                alt={`${title} — foto 1`}
+                priority
+                onClick={() => setLightboxIndex(0)}
+                roundingClass="rounded-l-2xl rounded-r-lg"
+              />
+            </div>
+            <div className="relative overflow-hidden rounded-l-lg rounded-r-2xl bg-stone-100">
+              <GalleryTile
+                src={images[1]}
+                alt={`${title} — foto 2`}
+                onClick={() => setLightboxIndex(1)}
+                roundingClass="rounded-l-lg rounded-r-2xl"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Three or more images — left hero + right column of thumbnails */}
+        {images.length >= 3 && (
+          <div className="grid h-72 grid-cols-[1fr_1fr] gap-2 lg:h-80">
+            {/* Main large image — relative wrapper fills the full grid row */}
+            <div className="relative overflow-hidden rounded-l-2xl rounded-r-lg bg-stone-100">
+              <GalleryTile
+                src={images[0]}
+                alt={`${title} — hoofdfoto`}
+                priority
+                onClick={() => setLightboxIndex(0)}
+                roundingClass="rounded-l-2xl rounded-r-lg"
+              />
+            </div>
+
+            {/* Right column: up to 2 stacked thumbnails, each in own relative cell */}
             <div className="grid gap-2" style={{ gridTemplateRows: rest.length === 1 ? "1fr" : "1fr 1fr" }}>
               {rest.slice(0, 2).map((src, i) => {
                 const globalIndex = i + 1;
                 const isLast = i === Math.min(rest.length, 2) - 1;
                 const hiddenCount = totalExtra > 2 ? totalExtra - 2 : 0;
+                const roundingClass =
+                  rest.length === 1
+                    ? "rounded-l-lg rounded-r-2xl"
+                    : i === 0
+                    ? "rounded-tl-lg rounded-tr-2xl"
+                    : "rounded-bl-lg rounded-br-2xl";
                 return (
-                  <div key={src + i} className="relative h-full overflow-hidden">
+                  <div
+                    key={src + i}
+                    className="relative overflow-hidden bg-stone-100"
+                    style={{
+                      borderRadius:
+                        rest.length === 1
+                          ? "0.375rem 1rem 1rem 0.375rem"
+                          : i === 0
+                          ? "0.375rem 1rem 0 0"
+                          : "0 0 1rem 0.375rem",
+                    }}
+                  >
                     <GalleryTile
                       src={src}
                       alt={`${title} — foto ${globalIndex + 1}`}
                       onClick={() => setLightboxIndex(globalIndex)}
-                      className="h-full"
-                      roundingClass={
-                        rest.length === 1
-                          ? "rounded-l-lg rounded-r-2xl"
-                          : i === 0
-                          ? "rounded-tl-lg rounded-tr-2xl"
-                          : "rounded-bl-lg rounded-br-2xl"
-                      }
+                      roundingClass={roundingClass}
                     />
                     {isLast && hiddenCount > 0 && (
                       <button
                         type="button"
                         onClick={() => setLightboxIndex(0)}
-                        className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40 text-white transition hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                        className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-1 bg-black/40 text-white transition hover:bg-black/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
                         style={{
                           borderRadius: rest.length === 1 ? "0.375rem 1rem 1rem 0.375rem" : "0 0 1rem 0",
                         }}

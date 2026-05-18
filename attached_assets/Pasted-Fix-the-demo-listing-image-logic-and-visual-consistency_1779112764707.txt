@@ -1,0 +1,72 @@
+Fix the demo listing image logic and visual consistency across the public homepage and listing detail pages.
+
+Current issues observed:
+
+* Some seeded demo listings still show broken or empty image placeholders ("Geen foto") on the homepage even though demo listings are supposed to be fully image-rich.
+* Some listing cards and detail galleries use images with inconsistent orientations, causing a few lead images to look stretched, overly tall, or visually out of sync with the rest of the layout.
+* The visual hierarchy should feel calm and premium, but a few listings still look like the image and content spacing is not fully under control.
+
+Requirements:
+
+1. Normalize demo image strategy
+
+* Ensure every seeded demo listing has a valid, non-broken lead image.
+* If an assigned image URL fails, automatically replace it with a curated fallback from the same city/type pool.
+* Do NOT allow public demo listings to render empty image states on the homepage.
+* Keep the “Voorbeeldwoning” badge visible.
+
+2. Enforce consistent image orientation
+
+* Lead images for cards must be selected/cropped to a consistent ratio.
+* Avoid portrait/very tall images as lead images unless they are intentionally cropped in a stable way.
+* Prefer landscape-friendly images for homepage cards and detail hero images.
+* If needed, add orientation filtering in the seed script so unsuitable images are not used as primary visuals.
+
+3. Improve homepage card rendering
+
+* Make all listing cards use the same visual structure even when images vary.
+* No card should appear taller or visually heavier than the others because of image shape.
+* Keep card heights balanced and premium-looking.
+* Replace any broken image with a clean fallback image instead of a blank placeholder.
+
+4. Improve detail page gallery consistency
+
+* Make the hero/gallery area visually coherent across all listings.
+* Prevent odd stretched or fragmented layouts caused by mismatched image sizes.
+* Keep the gallery premium and balanced.
+* Ensure all gallery tiles feel intentional and aligned.
+
+5. Make the image selection smarter
+
+* Continue using city-specific and type-specific image pools.
+* Prefer different photos for adjacent listings.
+* Avoid reusing the same image too often.
+* Keep the demo marketplace visually varied but not chaotic.
+
+6. Preserve current behavior
+
+* Do not break responsive design.
+* Do not remove demo transparency messaging.
+* Do not change the moderation, boost, or auth flows.
+* Keep fallback handling working cleanly on both desktop and mobile.
+
+7. Quality bar
+   The public marketplace should never feel like:
+
+* a broken seed dataset
+* a card with missing media
+* a placeholder-driven demo
+* a layout that changes height unpredictably because of image shape
+
+It should feel:
+
+* trustworthy
+* consistent
+* premium
+* intentionally curated
+
+After implementation:
+
+* explain the exact image selection / fallback changes
+* explain how broken or unsuitable images are now prevented
+* confirm the homepage cards and detail galleries now render consistently
