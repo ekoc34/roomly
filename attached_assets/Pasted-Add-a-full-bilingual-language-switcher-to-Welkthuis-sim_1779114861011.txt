@@ -1,0 +1,130 @@
+Add a full bilingual language switcher to Welkthuis, similar to the dropdown shown in the reference image.
+
+Important:
+
+* The switcher should be placed in a suitable top navigation location, visually similar to the screenshot
+* Available languages:
+
+  * Nederlands (default)
+  * English
+* This is not just a visual dropdown: the entire site content must change when the language changes
+* The selected language must persist across page changes and refreshes
+* The implementation must be stable, clean, and consistent across all pages
+
+Goals:
+
+* Make the site usable for Dutch users and expats/international users
+* Ensure all visible text updates automatically when language changes
+* Keep the current Welkthuis design style intact
+
+Requirements:
+
+1. Language switcher UI
+
+* Add a compact language selector in the top navigation area
+* Use a dropdown with:
+
+  * flag icon
+  * current language label
+  * two options:
+
+    * Nederlands
+    * English
+* The visual style should be calm, modern, and close to the reference image
+* The dropdown should work on desktop and mobile
+* Keep it unobtrusive but easy to find
+
+2. App-wide internationalization
+
+* Implement a proper i18n system so the selected language changes the whole site
+* All static UI text should be translated
+* Use a central translation structure/helper rather than hardcoded text
+* Language changes must update:
+
+  * navbar
+  * homepage
+  * listing cards
+  * listing detail pages
+  * auth pages
+  * forms
+  * dashboards
+  * empty states
+  * buttons
+  * validation messages
+  * modals
+  * footers
+  * trust copy
+  * admin pages
+
+3. Route and page behavior
+
+* Changing language must update all visible content automatically without a full broken reload
+* If needed, use a locale-aware router or locale state/context
+* The currently viewed page should remain functionally the same, just translated
+* Preserve the current route and page state as much as possible
+
+4. Persistence
+
+* Store the selected language so it survives:
+
+  * refresh
+  * navigation
+  * returning later
+* Default to Nederlands for first-time visitors
+* If browser language detection is already available and safe to use, English can be auto-selected for English browser users only if it does not create confusion
+
+5. Content translation scope
+   Translate all user-facing copy, including:
+
+* navigation labels
+* hero copy
+* search placeholders
+* CTA buttons
+* listing labels
+* badges
+* onboarding text
+* report/moderation labels
+* error messages
+* admin labels
+* authentication / password reset copy
+* trust microcopy
+* cookie consent text if feasible
+
+6. Dynamic content handling
+
+* For seeded/demo listings, provide English versions of titles and descriptions where possible
+* For user-generated listing content, keep the original content unless you have a structured translation source
+* Translate UI labels around user-generated content
+* Do not break formatting, chips, prices, dates, or numbers
+
+7. SEO and metadata
+
+* Update page titles, meta descriptions, and any relevant metadata to follow the selected language
+* If feasible, make the locale visible in the URL or page metadata in a clean way
+* Do not create duplicate content issues
+
+8. Quality requirements
+
+* Keep the UI elegant and lightweight
+* Do not add external translation clutter
+* Avoid hardcoded duplicated English text all over the codebase
+* Use a maintainable translation approach that can be expanded later to more languages
+* Keep TypeScript clean
+* Do not break existing features, auth, or analytics
+
+9. Default behavior
+
+* Dutch remains the default language
+* English is the second language
+* All pages should respect the selected language immediately
+
+10. Final verification
+    After implementation:
+
+* confirm the language switcher works visually like the reference
+* confirm changing languages updates the full site text
+* confirm the selection persists across refresh/navigation
+* confirm homepage, listing pages, detail pages, auth pages, and dashboards all translate correctly
+* confirm the site remains responsive and polished on mobile
+
+Please implement this as a real site-wide language system, not just a cosmetic dropdown.

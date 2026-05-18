@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/plausible";
 
 type Props = {
@@ -10,6 +11,7 @@ type Props = {
 
 export function ApplicationForm({ listingId }: Props) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [budget, setBudget] = useState("");
@@ -58,7 +60,7 @@ export function ApplicationForm({ listingId }: Props) {
         <svg className="h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-sm font-medium text-stone-600">Je hebt al gereageerd op deze woning.</p>
+        <p className="text-sm font-medium text-stone-600">{t("apply.alreadyApplied")}</p>
       </div>
     );
   }
@@ -72,8 +74,8 @@ export function ApplicationForm({ listingId }: Props) {
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-emerald-800">Reactie verstuurd!</p>
-          <p className="text-xs text-emerald-600">De verhuurder ontvangt jouw bericht zo snel mogelijk.</p>
+          <p className="text-sm font-semibold text-emerald-800">{t("apply.sent")}</p>
+          <p className="text-xs text-emerald-600">{t("apply.sentDesc")}</p>
         </div>
       </div>
     );
@@ -89,7 +91,7 @@ export function ApplicationForm({ listingId }: Props) {
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        Reageer op deze woning
+        {t("apply.title")}
       </button>
     );
   }
@@ -136,7 +138,7 @@ export function ApplicationForm({ listingId }: Props) {
 
       setSubmitted(true);
       setAlreadyApplied(true);
-      toast.success("Je reactie is verstuurd!");
+      toast.success(t("apply.sent"));
     } catch (err) {
       console.error("[ApplicationForm] submit error:", err);
       toast.error("Er ging iets mis, probeer opnieuw.");
@@ -151,7 +153,7 @@ export function ApplicationForm({ listingId }: Props) {
       className="flex flex-col gap-4 rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm"
     >
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-stone-900">Reageer op deze woning</h3>
+        <h3 className="text-base font-semibold text-stone-900">{t("apply.title")}</h3>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -165,14 +167,14 @@ export function ApplicationForm({ listingId }: Props) {
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-stone-600">
-          Jouw bericht <span className="text-rose-500">*</span>
+          {t("messages.typeMessage").replace("…", "")} <span className="text-rose-500">*</span>
         </label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           maxLength={500}
           rows={4}
-          placeholder="Stel jezelf voor en vertel waarom jij de ideale huurder bent…"
+          placeholder={t("apply.messagePlaceholder")}
           className="resize-none rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-800 placeholder:text-stone-400 focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-100"
           required
         />
@@ -181,7 +183,7 @@ export function ApplicationForm({ listingId }: Props) {
 
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-stone-600">
-          Jouw budget <span className="text-stone-400">(optioneel)</span>
+          {t("apply.budgetLabel")} <span className="text-stone-400">({t("common.optional")})</span>
         </label>
         <div className="relative">
           <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium text-stone-400">€</span>
@@ -191,7 +193,7 @@ export function ApplicationForm({ listingId }: Props) {
             onChange={(e) => setBudget(e.target.value)}
             min={0}
             step={50}
-            placeholder="800"
+            placeholder={t("apply.budgetPlaceholder")}
             className="w-full rounded-xl border border-stone-200 bg-stone-50 py-3 pl-8 pr-4 text-sm text-stone-800 placeholder:text-stone-400 focus:border-rose-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-100"
           />
         </div>
@@ -203,14 +205,14 @@ export function ApplicationForm({ listingId }: Props) {
           onClick={() => setOpen(false)}
           className="flex-1 rounded-2xl border border-stone-200 py-2.5 text-sm font-semibold text-stone-600 transition hover:bg-stone-50"
         >
-          Annuleren
+          {t("common.cancel")}
         </button>
         <button
           type="submit"
           disabled={submitting || !message.trim()}
           className="flex-1 rounded-2xl bg-rose-500 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98] disabled:opacity-60"
         >
-          {submitting ? "Versturen…" : "Verstuur reactie"}
+          {submitting ? t("apply.submitting") : t("apply.submitBtn")}
         </button>
       </div>
     </form>

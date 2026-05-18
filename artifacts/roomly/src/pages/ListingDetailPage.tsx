@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { DetailGallery } from "@/components/listings/DetailGallery";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
@@ -17,6 +18,7 @@ import type { Listing, Profile } from "@/types/database";
 export function ListingDetailPage() {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [listing, setListing] = useState<Listing | null>(null);
   const [owner, setOwner] = useState<Profile | null>(null);
   const [favorited, setFavorited] = useState(false);
@@ -75,9 +77,9 @@ export function ListingDetailPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <p className="text-6xl font-black text-stone-200">404</p>
-        <h1 className="mt-4 text-xl font-semibold text-stone-900">Advertentie niet gevonden</h1>
-        <p className="mt-2 text-sm text-stone-500">De advertentie die je zoekt bestaat niet of is verwijderd.</p>
-        <Link href="/kamers" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Terug naar overzicht</Link>
+        <h1 className="mt-4 text-xl font-semibold text-stone-900">{t("listing.notFound")}</h1>
+        <p className="mt-2 text-sm text-stone-500">{t("listing.notFoundDesc")}</p>
+        <Link href="/kamers" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">{t("listing.backToOverview")}</Link>
       </div>
     );
   }
@@ -86,16 +88,15 @@ export function ListingDetailPage() {
   const isLoggedIn = !!user;
   const typeLabel = LISTING_TYPE_LABELS[listing.type];
 
-  // Compact metadata chips
   const metaChips: { label: string; value: string; highlight?: boolean }[] = [];
-  if (listing.rooms != null) metaChips.push({ label: "kamers", value: String(listing.rooms) });
+  if (listing.rooms != null) metaChips.push({ label: listing.rooms !== 1 ? t("common.rooms") : t("common.room"), value: String(listing.rooms) });
   if (listing.surface_area != null) metaChips.push({ label: "m²", value: String(listing.surface_area) });
   if (listing.gender_preference) {
-    const gLabel = listing.gender_preference === "man" ? "Alleen mannen" : listing.gender_preference === "vrouw" ? "Alleen vrouwen" : "Gemengd";
+    const gLabel = listing.gender_preference === "man" ? t("listing.genderMale") : listing.gender_preference === "vrouw" ? t("listing.genderFemale") : t("listing.genderMixed");
     metaChips.push({ label: gLabel, value: "" });
   }
-  if (listing.pets_allowed != null) metaChips.push({ label: listing.pets_allowed ? "Huisdieren ok" : "Geen huisdieren", value: "", highlight: !!listing.pets_allowed });
-  if (listing.smoking_allowed != null) metaChips.push({ label: listing.smoking_allowed ? "Roken ok" : "Niet roken", value: "", highlight: !!listing.smoking_allowed });
+  if (listing.pets_allowed != null) metaChips.push({ label: listing.pets_allowed ? t("listing.petsYes") : t("listing.petsNo"), value: "", highlight: !!listing.pets_allowed });
+  if (listing.smoking_allowed != null) metaChips.push({ label: listing.smoking_allowed ? t("listing.smokingYes") : t("listing.smokingNo"), value: "", highlight: !!listing.smoking_allowed });
 
   return (
     <>
@@ -114,7 +115,7 @@ export function ListingDetailPage() {
         )}
 
         <nav className="mb-4 flex items-center gap-2 text-sm text-stone-400">
-          <Link href="/kamers" className="hover:text-rose-600">Woningen</Link>
+          <Link href="/kamers" className="hover:text-rose-600">{t("listing.breadcrumb")}</Link>
           <span>›</span>
           <span className="truncate text-stone-600">{listing.title}</span>
         </nav>
@@ -125,24 +126,20 @@ export function ListingDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>
-              <strong className="font-semibold text-stone-600">Voorbeeldwoning</strong> — Dit is een demo-advertentie om het platform te illustreren. Er is geen echte verhuurder aan gekoppeld.
+              <strong className="font-semibold text-stone-600">{t("common.exampleListing")}</strong> — Dit is een demo-advertentie om het platform te illustreren. Er is geen echte verhuurder aan gekoppeld.
             </span>
           </div>
         )}
 
         <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
-          {/* Main column */}
           <div>
-            {/* Gallery — hero section, visually distinct */}
             <div className="relative">
               <DetailGallery images={listing.images} title={listing.title} />
               <FavoriteButton listingId={listing.id} initialFavorited={favorited} variant="detail" ownerUserId={listing.user_id} />
             </div>
 
-            {/* Divider: gallery → content breathing room */}
             <div className="mt-7 mb-1 border-t border-stone-100" />
 
-            {/* Title block */}
             <div className="mt-6">
               <div className="flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">{typeLabel}</span>
@@ -151,7 +148,7 @@ export function ListingDetailPage() {
                     <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    Beschikbaar per {new Date(listing.availability_date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}
+                    {t("listing.available").replace("{date}", new Date(listing.availability_date).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" }))}
                   </span>
                 )}
               </div>
@@ -171,11 +168,10 @@ export function ListingDetailPage() {
               </div>
 
               <div className="mt-4 text-3xl font-black text-stone-900">
-                €{Number(listing.price).toFixed(0)}<span className="ml-1 text-base font-normal text-stone-400">/ maand</span>
+                €{Number(listing.price).toFixed(0)}<span className="ml-1 text-base font-normal text-stone-400">{t("common.perMonth")}</span>
               </div>
             </div>
 
-            {/* Metadata chips */}
             {metaChips.length > 0 && (
               <div className="mt-5 flex flex-wrap gap-2">
                 {metaChips.map((chip, i) => (
@@ -193,29 +189,25 @@ export function ListingDetailPage() {
               </div>
             )}
 
-            {/* Description */}
             <div className="mt-7 prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-stone-900 prose-p:text-stone-600 prose-p:leading-relaxed">
-              <h3>Beschrijving</h3>
+              <h3>{t("listing.description")}</h3>
               {listing.description.split("\n").filter(Boolean).map((par, i) => (
                 <p key={i}>{par}</p>
               ))}
             </div>
 
-            {/* House rules (if any) */}
             {listing.house_rules && (
               <div className="mt-6 rounded-xl border border-stone-100 bg-stone-50 px-4 py-3">
-                <p className="mb-1 text-xs font-semibold text-stone-500">Huisregels</p>
+                <p className="mb-1 text-xs font-semibold text-stone-500">{t("listing.amenities")}</p>
                 <p className="text-sm leading-relaxed text-stone-600">{listing.house_rules}</p>
               </div>
             )}
 
-            {/* Report — quiet, at the bottom */}
             <div className="mt-8 border-t border-stone-100 pt-4">
               <ReportListingButton listingId={listing.id} isLoggedIn={isLoggedIn} />
             </div>
           </div>
 
-          {/* Sidebar — sticky on desktop */}
           <div className="space-y-3 lg:sticky lg:top-24 lg:h-fit">
             <OwnerBadges
               profile={owner}
@@ -223,7 +215,6 @@ export function ListingDetailPage() {
               onNameClick={owner ? () => setShowLandlordPanel(true) : undefined}
             />
 
-            {/* Primary CTA lives in the sidebar on desktop */}
             {!isOwner && isLoggedIn && (
               <div id="reageer">
                 <ApplicationForm listingId={listing.id} />
@@ -237,7 +228,7 @@ export function ListingDetailPage() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
                 </svg>
-                Inloggen om te reageren
+                {t("listing.loginToApply")}
               </a>
             )}
             {isOwner && (
@@ -248,7 +239,7 @@ export function ListingDetailPage() {
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Advertentie bewerken
+                {t("listing.editListing")}
               </Link>
             )}
           </div>

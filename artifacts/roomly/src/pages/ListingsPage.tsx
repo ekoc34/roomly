@@ -4,6 +4,7 @@ import { Link, useSearch, useLocation } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { sortByBoost, BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
 import { ListingFilters } from "@/components/listings/ListingFilters";
@@ -56,13 +57,13 @@ export function ListingsPage() {
   const searchString = useSearch();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const [savedSearchId, setSavedSearchId] = useState<string | null>(null);
   const [savedSearchNotify, setSavedSearchNotify] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [boostTick, setBoostTick] = useState(0);
 
-  // Derive current page from URL
   const currentPage = useMemo(() => {
     const p = Number(new URLSearchParams(searchString).get("page") ?? "0");
     return isNaN(p) || p < 0 ? 0 : p;
@@ -179,7 +180,6 @@ export function ListingsPage() {
     fetchData();
   }, [searchString, user, currentPage]);
 
-  // Re-sort client-side when the next active boost expires
   useEffect(() => {
     const now = Date.now();
     const nextExpiry = listings
@@ -198,7 +198,6 @@ export function ListingsPage() {
     return sortByBoost(listings);
   }, [listings, currentSort, boostTick]);
 
-  // Check if current search is already saved
   useEffect(() => {
     setSavedSearchId(null);
     if (!user || !supabase || !hasActiveFilters) return;
@@ -251,21 +250,23 @@ export function ListingsPage() {
   const q = params.get("q") ?? "";
   const mapHref = searchString ? `/kaart?${searchString}` : "/kaart";
 
+  const foundLabel = totalCount === 1
+    ? t("listings.foundCount").replace("{count}", String(totalCount))
+    : t("listings.foundCountPlural").replace("{count}", String(totalCount));
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
       <Helmet>
-        <title>Woningen te huur — Welkthuis.nl</title>
+        <title>{t("listings.pageTitle")} — Welkthuis.nl</title>
         <meta name="description" content="Doorzoek honderden kamers en woningen in Nederland. Filter op prijs, type, stad en meer." />
       </Helmet>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-stone-900 sm:text-3xl">
-            {q ? `Resultaten voor "${q}"` : "Alle woningen"}
+            {q ? t("listings.pageTitleQuery").replace("{q}", q) : t("listings.pageTitle")}
           </h1>
           <p className="text-sm text-stone-500">
-            {loading
-              ? "Laden…"
-              : `${totalCount} woning${totalCount !== 1 ? "en" : ""} gevonden`}
+            {loading ? t("common.loading") : foundLabel}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -284,7 +285,7 @@ export function ListingsPage() {
                 <svg className="h-4 w-4" fill={savedSearchId ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                {savedSearchId ? "Zoekopdracht verwijderen" : "Sla zoekopdracht op"}
+                {savedSearchId ? t("listings.removeSearch") : t("listings.saveSearch")}
               </button>
               {savedSearchId && (
                 <button
@@ -311,7 +312,7 @@ export function ListingsPage() {
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
             </svg>
-            Bekijk op kaart
+            {t("listings.viewOnMap")}
           </Link>
         </div>
       </div>
@@ -327,10 +328,10 @@ export function ListingsPage() {
               </svg>
             </div>
             <h3 className="mt-4 text-base font-semibold text-stone-800">
-              {q ? `Niets gevonden voor "${q}"` : "Nog geen woningen beschikbaar"}
+              {q ? t("listings.nothingFound").replace("{q}", q) : t("listings.nothingFoundGeneric")}
             </h3>
             <p className="mt-2 max-w-xs text-sm text-stone-500">
-              Probeer een andere stad, een ruimer prijsbereik, of verwijder een filter.
+              {t("listings.tryAnotherCity")}
             </p>
             {hasActiveFilters && (
               <button
@@ -338,7 +339,7 @@ export function ListingsPage() {
                 onClick={() => { window.location.href = "/kamers"; }}
                 className="mt-5 rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
-                Alle filters wissen
+                {t("listings.clearAllFilters")}
               </button>
             )}
           </div>

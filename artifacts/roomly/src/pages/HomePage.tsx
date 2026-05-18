@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { HeroSearch } from "@/components/home/HeroSearch";
 import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { NeighborhoodSection } from "@/components/home/NeighborhoodSection";
@@ -18,6 +19,7 @@ type RoommateProfile = {
 
 function HomePageContent() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [listings, setListings] = useState<Listing[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [verificationBadges, setVerificationBadges] = useState<Record<string, string | null>>({});
@@ -32,9 +34,6 @@ function HomePageContent() {
     async function fetchData() {
       if (!supabase) { setLoading(false); return; }
       try {
-        // Order by boosted_at DESC NULLS LAST so actively-boosted listings
-        // (boosted_at within the last hour) float to the top naturally.
-        // Fall back to created_at-only if the column doesn't exist yet.
         let woningenResult = await supabase
           .from("listings")
           .select("*")
@@ -167,7 +166,7 @@ function HomePageContent() {
         </div>
       )}
 
-      {/* Platform features strip — calm, reassuring, no defensive language */}
+      {/* Platform features strip */}
       <section className="mt-20 border-t border-stone-100 pt-14">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="flex items-start gap-3">
@@ -177,8 +176,8 @@ function HomePageContent() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-stone-800">Geverifieerde gebruikers</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">E-mail- en telefonisch geverifieerde verhuurders en huurders.</p>
+              <p className="text-sm font-semibold text-stone-800">{t("home.featuresVerifiedTitle")}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{t("home.featuresVerifiedDesc")}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -188,8 +187,8 @@ function HomePageContent() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-stone-800">Direct contact</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">Communiceer veilig via het platform — geen externe chat nodig.</p>
+              <p className="text-sm font-semibold text-stone-800">{t("home.featuresDirectTitle")}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{t("home.featuresDirectDesc")}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -199,8 +198,8 @@ function HomePageContent() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-stone-800">Overzichtelijk zoeken</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">Sla favorieten op en vergelijk woningen op één plek.</p>
+              <p className="text-sm font-semibold text-stone-800">{t("home.featuresSearchTitle")}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{t("home.featuresSearchDesc")}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -210,14 +209,13 @@ function HomePageContent() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-stone-800">Voor iedereen</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">Geschikt voor studenten, starters en expats door heel Nederland.</p>
+              <p className="text-sm font-semibold text-stone-800">{t("home.featuresForAllTitle")}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-stone-500">{t("home.featuresForAllDesc")}</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
       <div className="mt-14">
         <WhyRoomly />
       </div>
@@ -227,11 +225,12 @@ function HomePageContent() {
 }
 
 export function HomePage() {
+  const { t } = useLanguage();
   return (
     <>
       <Helmet>
-        <title>Welkthuis.nl — Vind je thuis in Nederland</title>
-        <meta name="description" content="Vind kamers, appartementen en woningen in heel Nederland. Zoek op stad, prijs en type woning op Welkthuis.nl." />
+        <title>Welkthuis.nl — {t("home.heroTitle")}</title>
+        <meta name="description" content={t("home.heroSubtitle")} />
       </Helmet>
       <HomePageContent />
     </>

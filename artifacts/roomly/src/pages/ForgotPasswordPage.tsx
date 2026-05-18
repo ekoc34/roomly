@@ -2,6 +2,7 @@ import { useState, useTransition } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { checkRateLimit, recordAttempt, formatRetryTime, RL } from "@/lib/rateLimiter";
 
 function isRateLimitError(msg: string): boolean {
@@ -12,6 +13,7 @@ export function ForgotPasswordPage() {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const { t } = useLanguage();
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,9 +32,6 @@ export function ForgotPasswordPage() {
     startTransition(async () => {
       if (!supabase) { setError("Supabase is niet geconfigureerd."); return; }
       const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-        // Direct to the password-reset page so no intermediate /auth/callback
-        // is needed. This URL is whitelisted in Supabase → Authentication →
-        // URL Configuration → Redirect URLs.
         redirectTo: "https://www.welkthuis.nl/wachtwoord-instellen",
       });
       if (err) {
@@ -52,10 +51,8 @@ export function ForgotPasswordPage() {
       <div className="rounded-3xl border border-stone-200/80 bg-white p-8 shadow-md">
         <div className="text-center">
           <p className="text-3xl font-black text-rose-600">Welkthuis</p>
-          <h1 className="mt-2 text-xl font-bold text-stone-900">Wachtwoord vergeten?</h1>
-          <p className="mt-1 text-sm text-stone-500">
-            Vul je e-mailadres in en wij sturen je een reset link.
-          </p>
+          <h1 className="mt-2 text-xl font-bold text-stone-900">{t("forgotPassword.title")}</h1>
+          <p className="mt-1 text-sm text-stone-500">{t("forgotPassword.subtitle")}</p>
         </div>
 
         {sent ? (
@@ -63,22 +60,22 @@ export function ForgotPasswordPage() {
             <svg className="mx-auto h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <p className="mt-3 text-sm font-semibold text-emerald-800">Check je e-mail!</p>
+            <p className="mt-3 text-sm font-semibold text-emerald-800">{t("forgotPassword.successTitle")}</p>
             <p className="mt-1 text-xs text-emerald-700">
-              We hebben een reset link gestuurd. Controleer ook je spam-map.
+              {t("forgotPassword.successDesc")} Check ook je spammap.
             </p>
           </div>
         ) : (
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="fp-email" className="text-xs font-medium text-stone-700">E-mailadres</label>
+              <label htmlFor="fp-email" className="text-xs font-medium text-stone-700">{t("auth.emailLabel")}</label>
               <input
                 id="fp-email"
                 name="email"
                 type="email"
                 required
                 autoComplete="email"
-                placeholder="jij@example.nl"
+                placeholder={t("auth.emailPlaceholder")}
                 className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
               />
             </div>
@@ -92,13 +89,13 @@ export function ForgotPasswordPage() {
               disabled={isPending || !isSupabaseConfigured()}
               className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
             >
-              {isPending ? "Versturen…" : "Reset link versturen"}
+              {isPending ? t("forgotPassword.sending") : t("forgotPassword.sendBtn")}
             </button>
           </form>
         )}
 
         <p className="mt-5 text-center text-sm text-stone-500">
-          <Link href="/inloggen" className="font-medium text-rose-600 hover:underline">← Terug naar inloggen</Link>
+          <Link href="/inloggen" className="font-medium text-rose-600 hover:underline">← {t("forgotPassword.backToLogin")}</Link>
         </p>
       </div>
     </div>

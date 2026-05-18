@@ -6,17 +6,22 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useCompare } from "@/contexts/CompareContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { CitySelector } from "@/components/search/CitySelector";
 import { AdminNotificationBell } from "@/components/layout/AdminNotificationBell";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
-const USER_TYPE_LABELS: Record<string, string> = {
-  verhuurder:        "Verhuurder",
-  huisgenoot_zoeker: "Huisgenoot zoeker",
-  student:           "Student",
-  professional:      "Professional",
-  alleenstaande:     "Alleenstaande",
-  family:            "Familie",
-};
+function getUserTypeLabel(userType: string | null, t: (k: string) => string): string {
+  const map: Record<string, string> = {
+    verhuurder:        "Verhuurder",
+    huisgenoot_zoeker: "Huisgenoot zoeker",
+    student:           "Student",
+    professional:      "Professional",
+    alleenstaande:     "Alleenstaande",
+    family:            "Familie",
+  };
+  return userType ? (map[userType] ?? userType) : t("nav.user");
+}
 
 function navCls(active: boolean) {
   return `flex items-center gap-1.5 border-b-2 pb-0.5 transition ${
@@ -40,6 +45,7 @@ export function Header() {
   const { unreadCount } = useUnreadMessages();
   const { unreadCount: unreadNotifCount } = useNotifications();
   const { compareIds } = useCompare();
+  const { t } = useLanguage();
   const [path, navigate] = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -105,11 +111,11 @@ export function Header() {
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex">
           <Link href="/kamers" data-testid="header-kamers-link" className={navCls(isKamers)}>
             <Building2 className={iconCls(isKamers)} />
-            Woningen
+            {t("nav.listings")}
           </Link>
           <Link href="/kaart" data-testid="header-kaart-link" className={navCls(isKaart)}>
             <Map className={iconCls(isKaart)} />
-            Kaart
+            {t("nav.map")}
           </Link>
           <CitySelector />
 
@@ -119,9 +125,12 @@ export function Header() {
               className="hidden items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-100 md:flex"
             >
               <Scale className="h-4 w-4" />
-              Vergelijk ({compareIds.length})
+              {t("nav.compareCount").replace("{count}", String(compareIds.length))}
             </Link>
           )}
+
+          {/* Language switcher */}
+          <LanguageSwitcher />
 
           {user ? (
             <>
@@ -139,7 +148,7 @@ export function Header() {
                 {showImg ? (
                   <img
                     src={avatarUrl!}
-                    alt={displayName ?? "Profiel"}
+                    alt={displayName ?? t("nav.user")}
                     onError={() => setImgError(true)}
                     className="h-8 w-8 rounded-full object-cover ring-2 ring-white transition hover:ring-rose-300"
                   />
@@ -161,16 +170,14 @@ export function Header() {
                   {/* ── User info ───────────────────────────────── */}
                   <div className="px-4 py-3 border-b border-stone-100">
                     <p className="font-semibold text-sm text-stone-900 truncate leading-snug">
-                      {displayName ?? "Gebruiker"}
+                      {displayName ?? t("nav.user")}
                     </p>
                     <span className="mt-1 inline-flex items-center gap-1.5">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                       <span className="text-xs text-stone-500">
                         {userRole === "admin"
-                          ? "Administrator"
-                          : userType
-                            ? (USER_TYPE_LABELS[userType] ?? userType)
-                            : "Gebruiker"}
+                          ? t("nav.administrator")
+                          : getUserTypeLabel(userType, t)}
                       </span>
                     </span>
                   </div>
@@ -185,9 +192,9 @@ export function Header() {
                       <span className="text-base leading-none">🚀</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-amber-800 leading-snug">
-                          {boostCredits} Boosts beschikbaar
+                          {t("nav.boostsAvailable").replace("{count}", String(boostCredits))}
                         </p>
-                        <p className="text-[10px] text-amber-600 mt-0.5 leading-tight">Meer credits kopen →</p>
+                        <p className="text-[10px] text-amber-600 mt-0.5 leading-tight">{t("nav.buyMoreCredits")}</p>
                       </div>
                     </Link>
                   )}
@@ -202,7 +209,7 @@ export function Header() {
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                   >
                     <Heart className="h-4 w-4 text-stone-400" />
-                    Favorieten
+                    {t("nav.favorites")}
                   </Link>
                   <Link
                     href="/berichten"
@@ -211,7 +218,7 @@ export function Header() {
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                   >
                     <MessageSquare className="h-4 w-4 text-stone-400" />
-                    Berichten
+                    {t("nav.messages")}
                     {unreadCount !== null && unreadCount > 0 && (
                       <span
                         data-testid="header-unread-badge"
@@ -227,7 +234,7 @@ export function Header() {
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                   >
                     <Bell className="h-4 w-4 text-stone-400" />
-                    Notificaties
+                    {t("nav.notifications")}
                     {unreadNotifCount > 0 && (
                       <span className="ml-auto flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
                         {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
@@ -244,7 +251,7 @@ export function Header() {
                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50"
                   >
                     <LayoutDashboard className="h-4 w-4 text-stone-400" />
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                   {(userType === "verhuurder" || userType === "huisgenoot_zoeker") && (
                     <div className="px-3 pb-1">
@@ -255,7 +262,7 @@ export function Header() {
                         className="flex items-center justify-center gap-2 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-[0.98]"
                       >
                         <Plus className="h-4 w-4" />
-                        Advertentie plaatsen
+                        {t("nav.postListing")}
                       </Link>
                     </div>
                   )}
@@ -274,7 +281,7 @@ export function Header() {
                         className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50"
                       >
                         <ShieldCheck className="h-4 w-4 text-rose-500" />
-                        Admin Dashboard
+                        {t("nav.adminDashboard")}
                       </Link>
                     </>
                   )}
@@ -289,7 +296,7 @@ export function Header() {
                     className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-stone-500 hover:bg-stone-50 hover:text-stone-700"
                   >
                     <LogOut className="h-4 w-4 text-stone-400" />
-                    Uitloggen
+                    {t("nav.logout")}
                   </button>
                 </div>
               )}
@@ -299,21 +306,22 @@ export function Header() {
             <>
               <Link href="/inloggen" data-testid="header-login-link" className="flex items-center gap-1.5 text-stone-600 transition hover:text-rose-600">
                 <LogIn className="h-4 w-4 text-stone-400" />
-                Inloggen
+                {t("nav.login")}
               </Link>
               <Link
                 href="/registreren"
                 data-testid="header-register-link"
                 className="rounded-full bg-rose-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
               >
-                Gratis aanmelden
+                {t("nav.register")}
               </Link>
             </>
           )}
         </nav>
 
-        {/* Mobile right side — unchanged */}
+        {/* Mobile right side */}
         <div className="flex items-center gap-2 md:hidden">
+          <LanguageSwitcher />
           <CitySelector />
           {user ? (
             <button
@@ -321,14 +329,14 @@ export function Header() {
               onClick={handleSignOut}
               className="rounded-full border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700"
             >
-              Uitloggen
+              {t("nav.logout")}
             </button>
           ) : (
             <Link
               href="/registreren"
               className="rounded-full bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
             >
-              Gratis aanmelden
+              {t("nav.register")}
             </Link>
           )}
         </div>

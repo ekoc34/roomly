@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link } from "wouter";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { BOOST_WINDOW_MS } from "@/components/listings/BoostBadge";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Listing, UserType } from "@/types/database";
 
 type RoommateProfile = {
@@ -32,7 +33,6 @@ function isActiveBoost(boostedAt: string | null | undefined): boolean {
   return Date.now() - new Date(boostedAt).getTime() < BOOST_WINDOW_MS;
 }
 
-
 function EmptyState({
   section,
   mainTab,
@@ -44,6 +44,7 @@ function EmptyState({
   isLoggedIn: boolean;
   userType?: UserType | null;
 }) {
+  const { t } = useLanguage();
   const isVerhuurder = userType === "verhuurder";
   const isHuisgenotenZoeker = userType === "huisgenoot_zoeker";
 
@@ -53,50 +54,50 @@ function EmptyState({
 
   if (section === "woningen") {
     if (mainTab === "uitgelicht") {
-      title = "Nog geen uitgelichte woningen";
+      title = t("home.tabFeatured") + " — " + t("listings.nothingFoundGeneric").toLowerCase();
       if (!isLoggedIn) {
-        sub = "Maak een account aan om sneller te reageren en favorieten op te slaan.";
+        sub = t("auth.registerSubtitle");
       } else if (isVerhuurder) {
         sub = "Boost een van je advertenties om hier zichtbaar te worden.";
-        cta = { label: "Naar mijn dashboard", href: "/dashboard" };
+        cta = { label: t("nav.dashboard"), href: "/dashboard" };
       } else {
         sub = "Schakel over naar de Nieuw-tab voor recente advertenties.";
       }
     } else {
-      title = "Nog geen nieuwe woningen gevonden";
+      title = t("listings.nothingFoundGeneric");
       if (!isLoggedIn) {
         sub = "Maak een account aan om meldingen te ontvangen zodra er nieuwe woningen beschikbaar zijn.";
-        cta = { label: "Account aanmaken", href: "/registreren" };
+        cta = { label: t("auth.registerBtn"), href: "/registreren" };
       } else if (isVerhuurder) {
         sub = "Plaats een advertentie om hier zichtbaar te worden.";
-        cta = { label: "Advertentie plaatsen", href: "/kamers/nieuw" };
+        cta = { label: t("nav.postListing"), href: "/kamers/nieuw" };
       } else {
-        sub = "Probeer een andere stad of bekijk het volledige aanbod op de zoekpagina.";
-        cta = { label: "Alle woningen bekijken", href: "/kamers" };
+        sub = t("listings.tryAnotherCity");
+        cta = { label: t("listings.pageTitle"), href: "/kamers" };
       }
     }
   } else {
     if (mainTab === "uitgelicht") {
-      title = "Nog geen uitgelichte profielen";
+      title = t("home.tabFeatured") + " — " + t("home.tabRoommates").toLowerCase();
       if (!isLoggedIn) {
         sub = "Maak een account aan om huisgenoten te vinden en contact op te nemen.";
       } else if (isHuisgenotenZoeker) {
         sub = "Boost je profiel om hier zichtbaar te worden.";
-        cta = { label: "Naar mijn dashboard", href: "/dashboard" };
+        cta = { label: t("nav.dashboard"), href: "/dashboard" };
       } else {
         sub = "Schakel over naar de Nieuw-tab voor recente huisgenotenprofielen.";
       }
     } else {
-      title = "Nog geen nieuwe profielen gevonden";
+      title = t("listings.nothingFoundGeneric");
       if (!isLoggedIn) {
         sub = "Maak een account aan om huisgenoten te ontdekken en contact op te nemen.";
-        cta = { label: "Account aanmaken", href: "/registreren" };
+        cta = { label: t("auth.registerBtn"), href: "/registreren" };
       } else if (isHuisgenotenZoeker) {
         sub = "Maak een profiel aan om op zoek te gaan naar een geschikte huisgenoot.";
-        cta = { label: "Profiel plaatsen", href: "/kamers/nieuw" };
+        cta = { label: t("newListing.publishBtn"), href: "/kamers/nieuw" };
       } else {
-        sub = "Er zijn momenteel geen recente profielen. Kom later terug of bekijk de beschikbare woningen.";
-        cta = { label: "Woningen bekijken", href: "/kamers" };
+        sub = "Er zijn momenteel geen recente profielen.";
+        cta = { label: t("listings.pageTitle"), href: "/kamers" };
       }
     }
   }
@@ -120,10 +121,7 @@ function EmptyState({
       <p className="mt-4 text-sm font-medium text-stone-600">{title}</p>
       <p className="mt-1.5 max-w-[220px] text-xs leading-relaxed text-stone-400">{sub}</p>
       {cta && (
-        <Link
-          href={cta.href}
-          className="mt-4 text-xs font-medium text-stone-500 transition hover:text-stone-800"
-        >
+        <Link href={cta.href} className="mt-4 text-xs font-medium text-stone-500 transition hover:text-stone-800">
           {cta.label} →
         </Link>
       )}
@@ -156,10 +154,10 @@ const SparkleIcon = () => (
 );
 
 export function FeaturedListings({ listings, favoriteIds, verificationBadges, responseTimeBadges, roommateListings, roommateProfiles, ownerProfiles, currentUserId, userType }: Props) {
+  const { t } = useLanguage();
   const [mainTab, setMainTab] = useState<"uitgelicht" | "nieuw">("uitgelicht");
   const [activeTab, setActiveTab] = useState<"woningen" | "huisgenoten">("woningen");
 
-  // Tick re-evaluates boost expiry at the right moment
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const now = Date.now();
@@ -174,35 +172,20 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
     return () => clearTimeout(timer);
   }, [listings, roommateListings, tick]);
 
-  // ── Uitgelicht: only actively-boosted listings, sorted by boosted_at DESC ──
   const uitgelichtListings = useMemo(
-    () =>
-      listings
-        .filter((l) => isActiveBoost(l.boosted_at))
-        .sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
+    () => listings.filter((l) => isActiveBoost(l.boosted_at)).sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
     [listings, tick]
   );
   const uitgelichtRoommateListings = useMemo(
-    () =>
-      roommateListings
-        .filter((l) => isActiveBoost(l.boosted_at))
-        .sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
+    () => roommateListings.filter((l) => isActiveBoost(l.boosted_at)).sort((a, b) => new Date(b.boosted_at!).getTime() - new Date(a.boosted_at!).getTime()),
     [roommateListings, tick]
   );
-
-  // ── Nieuw: only non-boosted (or expired-boost) listings, newest first ──
   const nieuwListings = useMemo(
-    () =>
-      listings
-        .filter((l) => !isActiveBoost(l.boosted_at))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    () => listings.filter((l) => !isActiveBoost(l.boosted_at)).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [listings, tick]
   );
   const nieuwRoommateListings = useMemo(
-    () =>
-      roommateListings
-        .filter((l) => !isActiveBoost(l.boosted_at))
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    () => roommateListings.filter((l) => !isActiveBoost(l.boosted_at)).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     [roommateListings, tick]
   );
 
@@ -211,46 +194,38 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
 
   const mainTabClass = (tab: "uitgelicht" | "nieuw") =>
     `inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition ${
-      mainTab === tab
-        ? "bg-white text-stone-800 shadow-sm"
-        : "text-stone-400 hover:text-stone-600"
+      mainTab === tab ? "bg-white text-stone-800 shadow-sm" : "text-stone-400 hover:text-stone-600"
     }`;
 
   const subTabClass = (tab: "woningen" | "huisgenoten") =>
     `inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition ${
-      activeTab === tab
-        ? "bg-white text-stone-800 shadow-sm"
-        : "text-stone-500 hover:text-stone-700"
+      activeTab === tab ? "bg-white text-stone-800 shadow-sm" : "text-stone-500 hover:text-stone-700"
     }`;
+
+  const sectionTitle = mainTab === "uitgelicht"
+    ? t("home.featuredTitle")
+    : t("home.newListingsTitle");
+
+  const sectionSubtitle = mainTab === "uitgelicht"
+    ? t("home.featuredSubtitle")
+    : t("home.newListingsSubtitle");
 
   return (
     <section className="mt-16" data-testid="featured-listings">
-      {/* Header row: title left, main switch right */}
+      {/* Header row */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">
-            {mainTab === "uitgelicht"
-              ? "Uitgelichte woningen en huisgenoten"
-              : mainTab === "nieuw"
-              ? "Nieuwe woningen en huisgenoten"
-              : "Ontdek woningen en huisgenoten"}
-          </h2>
-          <p className="mt-1 text-sm text-stone-400">
-            {mainTab === "uitgelicht"
-              ? "Bekijk advertenties die extra zichtbaar zijn gemaakt."
-              : mainTab === "nieuw"
-              ? "Bekijk het nieuwste aanbod op Welkthuis."
-              : "Bekijk het aanbod dat nu beschikbaar is."}
-          </p>
+          <h2 className="text-xl font-semibold text-stone-900 sm:text-2xl">{sectionTitle}</h2>
+          <p className="mt-1 text-sm text-stone-400">{sectionSubtitle}</p>
         </div>
         <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-stone-100 p-1">
           <button type="button" onClick={() => setMainTab("uitgelicht")} className={mainTabClass("uitgelicht")}>
             <StarIconSm />
-            Uitgelicht
+            {t("home.tabFeatured")}
           </button>
           <button type="button" onClick={() => setMainTab("nieuw")} className={mainTabClass("nieuw")}>
             <SparkleIcon />
-            Nieuw
+            {t("home.tabNew")}
           </button>
         </div>
       </div>
@@ -260,14 +235,14 @@ export function FeaturedListings({ listings, favoriteIds, verificationBadges, re
         <div className="flex items-center gap-0.5 rounded-xl bg-stone-100 p-1">
           <button type="button" onClick={() => setActiveTab("woningen")} className={subTabClass("woningen")}>
             <HomeIcon />
-            Woningen
+            {t("home.tabProperties")}
           </button>
           <button type="button" onClick={() => setActiveTab("huisgenoten")} className={subTabClass("huisgenoten")}>
             <UsersIcon />
-            Huisgenoten
+            {t("home.tabRoommates")}
           </button>
         </div>
-        <Link href="/kamers" className="text-xs font-medium text-stone-400 transition hover:text-stone-600">Alles bekijken →</Link>
+        <Link href="/kamers" className="text-xs font-medium text-stone-400 transition hover:text-stone-600">{t("home.viewAll")}</Link>
       </div>
 
       {activeTab === "woningen" && (

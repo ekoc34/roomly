@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Conversation, Listing, Profile } from "@/types/database";
 
 type LastMsg = { body: string; created_at: string; sender_id: string; read_at: string | null };
@@ -34,6 +35,7 @@ function timeAgo(dateStr: string): string {
 
 export function MessagesPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [convs, setConvs] = useState<ConvRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +50,7 @@ export function MessagesPage() {
       try {
         const { data, error: queryError } = await supabase!
           .from("conversations")
-          .select(
-            "*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at, sender_id, read_at)"
-          )
+          .select("*, listing:listings!left(*), tenant:tenant_id!left(*), landlord:landlord_id!left(*), messages!left(body, created_at, sender_id, read_at)")
           .or(`tenant_id.eq.${user!.id},landlord_id.eq.${user!.id}`)
           .or(`hidden_by.is.null,hidden_by.not.cs.{${user!.id}}`)
           .order("last_message_at", { ascending: false, nullsFirst: false });
@@ -97,10 +97,6 @@ export function MessagesPage() {
     fetchConvs();
   }, [user, authLoading]);
 
-  // Real-time: pick up new conversations the moment they are created
-  // (e.g. landlord accepts an application while tenant is already on this page).
-  // Supabase postgres_changes only supports a single-column filter, so we use
-  // two channels — one per role.
   useEffect(() => {
     if (!user || !supabase) return;
 
@@ -134,70 +130,31 @@ export function MessagesPage() {
 
     const tenantCh = supabase
       .channel(`messages-rt-tenant:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "conversations", filter: `tenant_id=eq.${user.id}` },
-        (payload) => fetchAndPrepend((payload.new as { id: string }).id)
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations", filter: `tenant_id=eq.${user.id}` }, (payload) => fetchAndPrepend((payload.new as { id: string }).id))
       .subscribe();
 
     const landlordCh = supabase
       .channel(`messages-rt-landlord:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "conversations", filter: `landlord_id=eq.${user.id}` },
-        (payload) => fetchAndPrepend((payload.new as { id: string }).id)
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "conversations", filter: `landlord_id=eq.${user.id}` }, (payload) => fetchAndPrepend((payload.new as { id: string }).id))
       .subscribe();
 
-    // Real-time preview: when a new message is inserted in any conversation the
-    // user belongs to, update that row's preview text, timestamp, and unread dot
-    // instantly and float it to the top of the list — no extra fetch required.
     const msgPreviewCh = supabase
       .channel(`messages-preview-rt:${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        (payload) => {
-          const { conversation_id, body, created_at, sender_id, read_at } = payload.new as {
-            conversation_id: string;
-            body: string;
-            created_at: string;
-            sender_id: string;
-            read_at: string | null;
-          };
-          setConvs((prev) => {
-            const idx = prev.findIndex((c) => c.id === conversation_id);
-            if (idx === -1) return prev;
-            const updated: ConvRow = {
-              ...prev[idx],
-              last_message_at: created_at,
-              lastMsg: { body, created_at, sender_id, read_at },
-              hasUnread: prev[idx].hasUnread || (sender_id !== user.id && read_at === null),
-            };
-            const rest = prev.filter((_, i) => i !== idx);
-            return [updated, ...rest];
-          });
-        }
-      )
-      // When the other participant opens the conversation, ConversationPage bulk-updates
-      // read_at on all messages. The first UPDATE event clears the unread dot.
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages" },
-        (payload) => {
-          const { conversation_id, read_at } = payload.new as {
-            conversation_id: string;
-            read_at: string | null;
-          };
-          if (!read_at) return;
-          setConvs((prev) =>
-            prev.map((c) =>
-              c.id === conversation_id ? { ...c, hasUnread: false } : c
-            )
-          );
-        }
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const { conversation_id, body, created_at, sender_id, read_at } = payload.new as { conversation_id: string; body: string; created_at: string; sender_id: string; read_at: string | null };
+        setConvs((prev) => {
+          const idx = prev.findIndex((c) => c.id === conversation_id);
+          if (idx === -1) return prev;
+          const updated: ConvRow = { ...prev[idx], last_message_at: created_at, lastMsg: { body, created_at, sender_id, read_at }, hasUnread: prev[idx].hasUnread || (sender_id !== user.id && read_at === null) };
+          const rest = prev.filter((_, i) => i !== idx);
+          return [updated, ...rest];
+        });
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
+        const { conversation_id, read_at } = payload.new as { conversation_id: string; read_at: string | null };
+        if (!read_at) return;
+        setConvs((prev) => prev.map((c) => c.id === conversation_id ? { ...c, hasUnread: false } : c));
+      })
       .subscribe();
 
     return () => {
@@ -209,43 +166,25 @@ export function MessagesPage() {
 
   async function handleUndo(conv: ConvRow) {
     if (!supabase || !user) return;
-
-    // Restore optimistically — prepend so it appears at the top
     setConvs((prev) => [conv, ...prev]);
-
-    // Write the original hidden_by (without current user's ID) back to Supabase
-    const { error: undoError } = await supabase
-      .from("conversations")
-      .update({ hidden_by: conv.hidden_by })
-      .eq("id", conv.id);
-
+    const { error: undoError } = await supabase.from("conversations").update({ hidden_by: conv.hidden_by }).eq("id", conv.id);
     if (undoError) {
       console.error("[MessagesPage] Failed to restore conversation:", undoError);
       setConvs((prev) => prev.filter((c) => c.id !== conv.id));
       toast.error("Herstellen mislukt. Probeer het opnieuw.");
       return;
     }
-
     toast.success("Gesprek hersteld");
   }
 
   async function handleDelete(convId: string) {
     if (!supabase || !user || deleting) return;
     setDeleting(true);
-
-    // Capture the conversation before removal so we can undo
     const conv = convs.find((c) => c.id === convId);
     const originalHidden: string[] = conv?.hidden_by ?? [];
-
-    // Optimistic removal + close inline confirm
     setConvs((prev) => prev.filter((c) => c.id !== convId));
     setConfirmId(null);
-
-    const { error: updateError } = await supabase
-      .from("conversations")
-      .update({ hidden_by: [...originalHidden, user.id] })
-      .eq("id", convId);
-
+    const { error: updateError } = await supabase.from("conversations").update({ hidden_by: [...originalHidden, user.id] }).eq("id", convId);
     if (updateError) {
       console.error("[MessagesPage] Failed to hide conversation:", updateError);
       if (conv) setConvs((prev) => [conv, ...prev]);
@@ -253,33 +192,27 @@ export function MessagesPage() {
       setDeleting(false);
       return;
     }
-
-    // Show undo toast — conv captured above still has the original hidden_by
     if (conv) {
-      toast("Gesprek verwijderd", {
+      toast(t("messages.deleteConversation"), {
         duration: 6000,
-        action: {
-          label: "Ongedaan maken",
-          onClick: () => handleUndo(conv),
-        },
+        action: { label: "Ongedaan maken", onClick: () => handleUndo(conv) },
       });
     }
-
     setDeleting(false);
   }
 
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="text-xl font-semibold text-stone-900">Log in om je berichten te zien</h1>
-        <Link href="/inloggen?next=/berichten" data-testid="messages-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
+        <h1 className="text-xl font-semibold text-stone-900">{t("messages.loginRequired")}</h1>
+        <Link href="/inloggen?next=/berichten" data-testid="messages-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">{t("messages.loginBtn")}</Link>
       </div>
     );
   }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <h1 className="mb-6 text-2xl font-bold text-stone-900">Berichten</h1>
+      <h1 className="mb-6 text-2xl font-bold text-stone-900">{t("messages.title")}</h1>
 
       {error && (
         <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -304,9 +237,9 @@ export function MessagesPage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-stone-100">
             <svg className="h-7 w-7 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
           </div>
-          <h3 className="mt-4 text-base font-semibold text-stone-800">Geen berichten</h3>
-          <p className="mt-2 text-sm text-stone-500">Reageer op een advertentie om een gesprek te starten.</p>
-          <Link href="/kamers" className="mt-6 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Bekijk woningen</Link>
+          <h3 className="mt-4 text-base font-semibold text-stone-800">{t("messages.noMessages")}</h3>
+          <p className="mt-2 text-sm text-stone-500">{t("messages.noMessagesDesc")}</p>
+          <Link href="/kamers" className="mt-6 rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">{t("listings.pageTitle")}</Link>
         </div>
       ) : (
         <div className="space-y-2">
@@ -319,11 +252,7 @@ export function MessagesPage() {
               : null;
             return (
               <div key={conv.id} className="group relative flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <Link
-                  href={`/berichten/${conv.id}`}
-                  data-testid={`conversation-${conv.id}`}
-                  className="flex flex-1 min-w-0 items-center gap-4"
-                >
+                <Link href={`/berichten/${conv.id}`} data-testid={`conversation-${conv.id}`} className="flex flex-1 min-w-0 items-center gap-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100">
                     {conv.other?.show_avatar_in_listings === false ? (
                       <PersonSilhouette />
@@ -335,37 +264,24 @@ export function MessagesPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? "Gebruiker"}</p>
+                      <p className="truncate text-sm font-semibold text-stone-900">{conv.other?.name ?? t("nav.user")}</p>
                       {conv.hasUnread && <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
                     </div>
                     <p className="truncate text-xs text-stone-500">{title}</p>
-                    {preview && (
-                      <p className="truncate text-xs text-stone-400">{preview}</p>
-                    )}
+                    {preview && <p className="truncate text-xs text-stone-400">{preview}</p>}
                   </div>
                   <span className="shrink-0 text-xs text-stone-400 pr-2">{ts}</span>
                 </Link>
 
                 {confirmId === conv.id ? (
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="text-xs text-stone-500 hidden sm:inline">Verwijderen?</span>
-                    <button
-                      onClick={() => handleDelete(conv.id)}
-                      disabled={deleting}
-                      className="rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
-                    >
-                      Ja
-                    </button>
-                    <button
-                      onClick={() => setConfirmId(null)}
-                      className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-50"
-                    >
-                      Nee
-                    </button>
+                    <span className="text-xs text-stone-500 hidden sm:inline">{t("messages.deleteConversation")}?</span>
+                    <button onClick={() => handleDelete(conv.id)} disabled={deleting} className="rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-rose-600 disabled:opacity-50">{t("common.yes")}</button>
+                    <button onClick={() => setConfirmId(null)} className="rounded-lg border border-stone-200 px-2.5 py-1 text-xs font-semibold text-stone-600 hover:bg-stone-50">{t("common.no")}</button>
                   </div>
                 ) : (
                   <button
-                    aria-label="Gesprek verwijderen"
+                    aria-label={t("messages.deleteConversation")}
                     onClick={() => setConfirmId(conv.id)}
                     className="shrink-0 rounded-lg p-1.5 text-stone-300 opacity-0 transition group-hover:opacity-100 hover:bg-rose-50 hover:text-rose-500"
                   >

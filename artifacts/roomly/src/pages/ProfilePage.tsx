@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { MessageSquare, Bell, Home, KeyRound, Mail, Phone, CheckCircle2, Eye, EyeOff, Tag, UserCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { PasswordInput } from "@/components/ui/password-input";
 import { OwnerBadges } from "@/components/listings/OwnerBadges";
@@ -69,6 +70,7 @@ function VerifiedBadge() {
 
 export function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [, navigate] = useLocation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -363,9 +365,9 @@ export function ProfilePage() {
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="text-xl font-semibold text-stone-900">Log in om je profiel te bewerken</h1>
+        <h1 className="text-xl font-semibold text-stone-900">{t("profile.loginRequired")}</h1>
         <Link href="/inloggen?next=/profiel" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">
-          Inloggen
+          {t("dashboard.loginBtn")}
         </Link>
       </div>
     );
@@ -401,7 +403,7 @@ export function ProfilePage() {
         <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
           <div className="flex items-center gap-2.5">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-            <p className="text-sm text-emerald-800">Je e-mailadres is geverifieerd.</p>
+            <p className="text-sm text-emerald-800">{t("profile.emailVerified")}</p>
           </div>
           <button
             type="button"
@@ -417,11 +419,11 @@ export function ProfilePage() {
 
       {/* Page header */}
       <nav className="mb-5 text-sm text-stone-400">
-        <Link href="/dashboard" className="transition hover:text-stone-600">Dashboard</Link>
+        <Link href="/dashboard" className="transition hover:text-stone-600">{t("dashboard.title")}</Link>
         <span className="mx-2">›</span>
-        <span className="text-stone-600">Instellingen</span>
+        <span className="text-stone-600">{t("profile.title")}</span>
       </nav>
-      <h1 className="mb-8 text-2xl font-bold text-stone-900">Instellingen</h1>
+      <h1 className="mb-8 text-2xl font-bold text-stone-900">{t("profile.title")}</h1>
 
       {loading ? (
         <div className="space-y-3">
@@ -435,7 +437,7 @@ export function ProfilePage() {
 
           {/* ── PROFIEL ── */}
           <section>
-            <SectionHeading>Profiel</SectionHeading>
+            <SectionHeading>{t("nav.profile")}</SectionHeading>
             <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
               {user && (
                 <div className="mb-6 flex justify-center border-b border-stone-100 pb-6">
@@ -451,7 +453,7 @@ export function ProfilePage() {
 
               <form onSubmit={onSubmit} className="space-y-4" data-testid="profile-form">
                 <div>
-                  <label htmlFor="prof-name" className="text-xs font-medium text-stone-600">Naam *</label>
+                  <label htmlFor="prof-name" className="text-xs font-medium text-stone-600">{t("profile.nameLabel")} *</label>
                   <input
                     id="prof-name"
                     name="name"
@@ -464,21 +466,21 @@ export function ProfilePage() {
                 </div>
 
                 <div>
-                  <label htmlFor="prof-bio" className="text-xs font-medium text-stone-600">Bio</label>
+                  <label htmlFor="prof-bio" className="text-xs font-medium text-stone-600">{t("profile.bioLabel")}</label>
                   <textarea
                     id="prof-bio"
                     name="bio"
                     rows={3}
                     defaultValue={profile?.bio ?? ""}
                     maxLength={500}
-                    placeholder="Vertel iets over jezelf…"
+                    placeholder={t("profile.bioPlaceholder")}
                     className="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 transition focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
                     data-testid="profile-bio"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="prof-email" className="text-xs font-medium text-stone-600">E-mailadres</label>
+                  <label htmlFor="prof-email" className="text-xs font-medium text-stone-600">{t("profile.emailLabel")}</label>
                   <input
                     id="prof-email"
                     type="email"
@@ -501,9 +503,9 @@ export function ProfilePage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Opslaan…
+                        {t("common.saving")}
                       </span>
-                    ) : "Opslaan"}
+                    ) : t("profile.saveProfile")}
                   </button>
                 </div>
               </form>
@@ -512,7 +514,7 @@ export function ProfilePage() {
 
           {/* ── PROFIELTYPE ── */}
           <section>
-            <SectionHeading>Profieltype</SectionHeading>
+            <SectionHeading>{t("profile.profileTypeTitle")}</SectionHeading>
             <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
               {profile?.role === "admin" && (
                 <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700">
@@ -523,7 +525,7 @@ export function ProfilePage() {
 
               {profile?.role === "admin" ? (
                 <>
-                  <p className="mb-4 text-sm text-stone-500">Als admin kun je je profieltype wisselen voor testdoeleinden.</p>
+                  <p className="mb-4 text-sm text-stone-500">{t("profile.adminDesc")}</p>
                   <div
                     className="grid gap-2.5 transition-opacity duration-200"
                     style={{ opacity: personaAnimating ? 0 : 1 }}
@@ -569,7 +571,7 @@ export function ProfilePage() {
                 </>
               ) : profile?.user_type ? (
                 <>
-                  <p className="mb-3 text-sm text-stone-500">Je profieltype is ingesteld.</p>
+                  <p className="mb-3 text-sm text-stone-500">{t("profile.profileTypeSet")}</p>
                   {(() => {
                     const persona = PROFILE_PERSONAS[profile.user_type as UserType];
                     if (!persona) return null;
@@ -586,7 +588,7 @@ export function ProfilePage() {
                 </>
               ) : (
                 <div className="flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-3">
-                  <p className="text-sm text-stone-600">Profieltype nog niet ingesteld</p>
+                  <p className="text-sm text-stone-600">{t("profile.profileTypeNotSet")}</p>
                   <Link href="/welkom" className="shrink-0 rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600">
                     Instellen
                   </Link>
@@ -643,9 +645,9 @@ export function ProfilePage() {
           {/* ── ZO ZIEN ANDEREN JOU ── */}
           {profile && (
             <section>
-              <SectionHeading>Zo zien anderen jou</SectionHeading>
+              <SectionHeading>{t("profile.publicProfile")}</SectionHeading>
               <div className="rounded-2xl border border-stone-200/80 bg-white p-5 shadow-sm sm:p-6">
-                <p className="mb-4 text-sm text-stone-500">Dit is hoe verhuurders of huisgenoten jouw profiel zien.</p>
+                <p className="mb-4 text-sm text-stone-500">{t("profile.publicProfileDesc")}</p>
                 <OwnerBadges
                   profile={{ ...profile, lifestyle_tags: lifestyleTags }}
                   memberSince={user?.created_at ?? new Date().toISOString()}
@@ -656,7 +658,7 @@ export function ProfilePage() {
 
           {/* ── VERIFICATIE ── */}
           <section>
-            <SectionHeading>Verificatie</SectionHeading>
+            <SectionHeading>{t("profile.verificationTitle")}</SectionHeading>
             <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
 
               {/* Status summary */}
@@ -947,9 +949,9 @@ export function ProfilePage() {
           {/* ── ACCOUNT VERWIJDEREN (inline) ── */}
           {showDeleteModal && (
             <div ref={deleteModalRef} className="w-full rounded-2xl border border-red-200 bg-white shadow-sm p-6 sm:p-7">
-              <h2 className="text-base font-semibold text-stone-900">Account verwijderen</h2>
+              <h2 className="text-base font-semibold text-stone-900">{t("profile.deleteAccount")}</h2>
               <p className="mt-2 mb-5 text-sm text-stone-500">
-                Voer je e-mailadres en wachtwoord in om je account definitief te verwijderen. Dit kan niet ongedaan worden gemaakt.
+                {t("profile.deleteAccountDesc")}
               </p>
               <div className="space-y-3">
                 <div>
@@ -1004,9 +1006,9 @@ export function ProfilePage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Verwijderen…
+                      {t("common.saving")}
                     </>
-                  ) : "Verwijder mijn account"}
+                  ) : t("profile.confirmDeleteAccount")}
                 </button>
               </div>
             </div>
@@ -1015,18 +1017,18 @@ export function ProfilePage() {
           {/* ── BEVEILIGING ── */}
           {user && (
             <section>
-              <SectionHeading>Beveiliging</SectionHeading>
+              <SectionHeading>{t("profile.changePassword")}</SectionHeading>
               <div className="rounded-2xl border border-stone-200/80 bg-white shadow-sm overflow-hidden">
 
                 {/* Wachtwoord wijzigen */}
                 <div className="px-5 py-5 sm:px-6">
                   <div className="mb-4 flex items-center gap-2">
                     <KeyRound className="h-4 w-4 text-stone-400" />
-                    <p className="text-sm font-medium text-stone-800">Wachtwoord wijzigen</p>
+                    <p className="text-sm font-medium text-stone-800">{t("profile.changePassword")}</p>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-medium text-stone-600">Huidig wachtwoord</label>
+                      <label className="text-xs font-medium text-stone-600">{t("profile.currentPassword")}</label>
                       <div className="mt-1.5">
                         <PasswordInput
                           value={pwCurrent}
@@ -1038,7 +1040,7 @@ export function ProfilePage() {
                       {pwErrors.current && <p className="mt-1 text-xs text-rose-500">{pwErrors.current}</p>}
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-stone-600">Nieuw wachtwoord</label>
+                      <label className="text-xs font-medium text-stone-600">{t("profile.newPassword")}</label>
                       <div className="mt-1.5">
                         <PasswordInput
                           value={pwNew}
@@ -1066,7 +1068,7 @@ export function ProfilePage() {
                       {pwErrors.new && <p className="mt-1 text-xs text-rose-500">{pwErrors.new}</p>}
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-stone-600">Bevestig nieuw wachtwoord</label>
+                      <label className="text-xs font-medium text-stone-600">{t("profile.confirmPassword")}</label>
                       <div className="mt-1.5">
                         <PasswordInput
                           value={pwConfirm}
@@ -1091,25 +1093,25 @@ export function ProfilePage() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                           </svg>
-                          Bijwerken…
+                          {t("common.saving")}
                         </>
-                      ) : "Wachtwoord bijwerken"}
+                      ) : t("profile.savePassword")}
                     </button>
                   </div>
                 </div>
 
                 {/* Account verwijderen */}
                 <div className="border-t border-stone-100 px-5 py-5 sm:px-6">
-                  <p className="text-sm font-medium text-stone-800 mb-1">Account beëindigen</p>
+                  <p className="text-sm font-medium text-stone-800 mb-1">{t("profile.deleteAccount")}</p>
                   <p className="text-xs text-stone-400 mb-3">
-                    Al je gegevens worden definitief verwijderd conform de AVG/GDPR richtlijnen.
+                    {t("profile.deleteAccountDesc")}
                   </p>
                   <button
                     type="button"
                     onClick={() => { setDeleteEmail(""); setDeletePassword(""); setShowDeleteModal(true); }}
                     className="text-xs font-medium text-stone-400 underline underline-offset-2 transition hover:text-stone-700"
                   >
-                    Account verwijderen
+                    {t("profile.deleteAccount")}
                   </button>
                 </div>
               </div>

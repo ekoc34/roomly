@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import { BoostCountdown } from "@/components/listings/BoostBadge";
 import { ListingAnalyticsStrip } from "@/components/dashboard/ListingAnalyticsStrip";
@@ -86,7 +87,7 @@ function buildSearchUrl(search: LastSavedSearch | null, fallbackCity: string | n
   return qs ? `/kamers?${qs}` : "/kamers";
 }
 
-function buildSearchSummary(search: LastSavedSearch | null, fallbackCity: string | null): string {
+function buildSearchSummary(search: LastSavedSearch | null, fallbackCity: string | null, fallback: string = "Bekijk alle woningen"): string {
   const parts: string[] = [];
   const city = search?.filters?.city ?? fallbackCity;
   if (city) parts.push(String(city));
@@ -96,11 +97,12 @@ function buildSearchSummary(search: LastSavedSearch | null, fallbackCity: string
     room_for_rent: "Kamer", roommate_search: "Huisgenoot", short_stay: "Short stay",
   };
   if (search?.filters?.type) parts.push(typeMap[String(search.filters.type)] ?? String(search.filters.type));
-  return parts.length > 0 ? parts.join(" · ") : "Bekijk alle woningen";
+  return parts.length > 0 ? parts.join(" · ") : fallback;
 }
 
 export function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [favoritesCount, setFavoritesCount] = useState(0);
@@ -641,8 +643,8 @@ export function DashboardPage() {
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
-        <h1 className="text-xl font-semibold text-stone-900">Log in om je dashboard te bekijken</h1>
-        <Link href="/inloggen?next=/dashboard" data-testid="dashboard-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Inloggen</Link>
+        <h1 className="text-xl font-semibold text-stone-900">{t("dashboard.guestDesc")}</h1>
+        <Link href="/inloggen?next=/dashboard" data-testid="dashboard-login-link" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">{t("dashboard.loginBtn")}</Link>
       </div>
     );
   }
@@ -657,9 +659,9 @@ export function DashboardPage() {
   const showTabBar = !loading && !profile?.user_type;
 
   const statusMap = {
-    pending: { label: "In behandeling", cls: "bg-amber-50 text-amber-700 border-amber-200" },
-    accepted: { label: "Geaccepteerd", cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    rejected: { label: "Afgewezen", cls: "bg-stone-100 text-stone-500 border-stone-200" },
+    pending: { label: t("dashboard.statusPending"), cls: "bg-amber-50 text-amber-700 border-amber-200" },
+    accepted: { label: t("dashboard.statusAccepted"), cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    rejected: { label: t("dashboard.statusRejected"), cls: "bg-stone-100 text-stone-500 border-stone-200" },
   };
 
   // ── Profile completion helper ──────────────────────────────────────────────
@@ -704,7 +706,7 @@ export function DashboardPage() {
             </div>
             <div>
               <h1 className="text-base font-semibold text-stone-900">
-                {loading ? "Laden…" : (profile?.name ?? profile?.email ?? user?.email ?? "Gebruiker")}
+                {loading ? t("common.loading") : (profile?.name ?? profile?.email ?? user?.email ?? t("nav.user"))}
               </h1>
               <p className="text-xs text-stone-500">{user?.email}</p>
             </div>
@@ -714,20 +716,20 @@ export function DashboardPage() {
               <Link href="/profiel" data-testid="dashboard-edit-profile"
                 className="flex flex-1 items-center justify-center rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
               >
-                Profiel bewerken
+                {t("nav.profile")}
               </Link>
               <Link href="/kamers/nieuw" data-testid="dashboard-new-listing"
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-rose-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-[0.99]"
               >
                 <span className="leading-none">+</span>
-                Advertentie plaatsen
+                {t("nav.postListing")}
               </Link>
             </div>
           ) : (
             <Link href="/profiel" data-testid="dashboard-edit-profile"
               className="w-fit rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50"
             >
-              Profiel bewerken
+              {t("nav.profile")}
             </Link>
           )}
         </div>
@@ -736,11 +738,11 @@ export function DashboardPage() {
         {!loading && !profile?.user_type && !bannerDismissed && (
           <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-stone-200 bg-white px-4 py-3">
             <p className="text-sm text-stone-600">
-              Kies je woonsituatie om je dashboard te personaliseren.
+              {t("dashboard.profileIncompleteDesc")}
             </p>
             <div className="flex shrink-0 items-center gap-2">
               <button type="button" onClick={() => navigate("/profiel")} className="rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-700 transition hover:bg-stone-50">
-                Aanvullen
+                {t("dashboard.completeProfile")}
               </button>
               <button type="button" aria-label="Sluiten"
                 onClick={() => { localStorage.setItem(BANNER_KEY, "1"); setBannerDismissed(true); }}
@@ -756,11 +758,11 @@ export function DashboardPage() {
           <div className="mt-6 flex gap-2 border-b border-stone-200">
             <button onClick={() => setActiveTab("zoektocht")} className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "zoektocht" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"}`}>
               <Search className="h-4 w-4" />
-              Mijn zoektocht
+              {t("dashboard.tabSearch")}
             </button>
             <button onClick={() => setActiveTab("verhuur")} className={`flex items-center gap-2 -mb-px border-b-2 px-4 py-3 text-sm font-semibold transition ${activeTab === "verhuur" ? "border-rose-500 text-rose-600" : "border-transparent text-stone-500 hover:text-stone-700"}`}>
               <Home className="h-4 w-4" />
-              Mijn verhuur
+              {t("dashboard.tabRental")}
               {!loading && pendingCount > 0 && (
                 <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white">{pendingCount}</span>
               )}
@@ -902,8 +904,8 @@ export function DashboardPage() {
             {/* 4. Mijn Advertenties */}
             <div id="listings">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-stone-900">Mijn advertenties</h2>
-                <Link href="/kamers/nieuw" className="text-sm font-medium text-rose-600 hover:underline">+ Nieuwe advertentie</Link>
+                <h2 className="text-lg font-bold text-stone-900">{t("dashboard.myListings")}</h2>
+                <Link href="/kamers/nieuw" className="text-sm font-medium text-rose-600 hover:underline">+ {t("dashboard.newListing")}</Link>
               </div>
               {loading ? (
                 <div className="space-y-3">
@@ -1032,17 +1034,17 @@ export function DashboardPage() {
             {/* 5. Aanvragen */}
             <div id="aanvragen">
               <div className="mb-4 flex items-center gap-3">
-                <h2 className="text-lg font-bold text-stone-900">Aanvragen</h2>
+                <h2 className="text-lg font-bold text-stone-900">{t("dashboard.receivedApplications")}</h2>
                 {pendingCount > 0 && (
-                  <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-xs font-semibold text-white">{pendingCount} nieuw</span>
+                  <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-xs font-semibold text-white">{pendingCount} {t("common.new")}</span>
                 )}
               </div>
               {loading ? (
                 <div className="space-y-3">{[1, 2].map((n) => <div key={n} className="h-28 animate-pulse rounded-2xl bg-stone-200" />)}</div>
               ) : receivedApplications.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-stone-200 bg-white px-6 py-8">
-                  <p className="text-sm font-semibold text-stone-700">Nog geen aanvragen ontvangen</p>
-                  <p className="mt-1 text-xs text-stone-500">Verbeter je advertentie om meer reacties te krijgen.</p>
+                  <p className="text-sm font-semibold text-stone-700">{t("dashboard.noReceivedApplications")}</p>
+                  <p className="mt-1 text-xs text-stone-500">{t("dashboard.noReceivedApplications")}</p>
                   <div className="mt-4 space-y-2">
                     {[
                       { text: "Voeg meer foto's toe", href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
@@ -1116,8 +1118,8 @@ export function DashboardPage() {
                           )}
                           {app.status === "pending" && inlineReply?.appId !== app.id && (
                             <div className="flex flex-wrap gap-2">
-                              <button type="button" onClick={() => setInlineReply({ appId: app.id, action: "accepted", text: "" })} className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 active:scale-95">Accepteren</button>
-                              <button type="button" onClick={() => setInlineReply({ appId: app.id, action: "rejected", text: "" })} className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-95">Afwijzen</button>
+                              <button type="button" onClick={() => setInlineReply({ appId: app.id, action: "accepted", text: "" })} className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600 active:scale-95">{t("dashboard.acceptApplication")}</button>
+                              <button type="button" onClick={() => setInlineReply({ appId: app.id, action: "rejected", text: "" })} className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-600 transition hover:bg-stone-50 active:scale-95">{t("dashboard.rejectApplication")}</button>
                             </div>
                           )}
                           {app.status === "pending" && inlineReply?.appId === app.id && (
@@ -1132,7 +1134,7 @@ export function DashboardPage() {
                                 <button type="button" onClick={() => handleApplicationStatus(app.id, inlineReply.action, inlineReply.text)}
                                   className={`flex-1 rounded-xl px-3 py-2 text-xs font-semibold text-white transition active:scale-95 ${inlineReply.action === "accepted" ? "bg-emerald-500 hover:bg-emerald-600" : "bg-stone-500 hover:bg-stone-600"}`}
                                 >
-                                  {inlineReply.action === "accepted" ? (inlineReply.text.trim() ? "Accepteren en versturen" : "Accepteren") : (inlineReply.text.trim() ? "Afwijzen en versturen" : "Afwijzen")}
+                                  {inlineReply.action === "accepted" ? (inlineReply.text.trim() ? `${t("dashboard.acceptApplication")} & ${t("common.send")}` : t("dashboard.acceptApplication")) : (inlineReply.text.trim() ? `${t("dashboard.rejectApplication")} & ${t("common.send")}` : t("dashboard.rejectApplication"))}
                                 </button>
                                 <button type="button" onClick={() => setInlineReply(null)} className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">Annuleren</button>
                               </div>
@@ -1271,7 +1273,7 @@ export function DashboardPage() {
           const cityFromViews = recentViews[0]?.listing?.location?.split(",")[0]?.trim() ?? null;
           const hasSearchContext = !!(cityFromSearch ?? cityFromViews ?? lastSavedSearch);
           const searchUrl = buildSearchUrl(lastSavedSearch, cityFromViews);
-          const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews);
+          const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews, t("dashboard.searchSummaryFallback"));
 
           return (
             <div className="mt-6 space-y-6">
@@ -1316,7 +1318,7 @@ export function DashboardPage() {
               <div ref={recommendationsRef}>
                 <div className="mb-4 flex items-start justify-between gap-2">
                   <div>
-                    <h2 className="text-lg font-bold text-stone-900">Aanbevolen voor jou</h2>
+                    <h2 className="text-lg font-bold text-stone-900">{t("dashboard.recommendations")}</h2>
                     {recommendationReason && (
                       <p className="mt-0.5 text-xs text-stone-400">{recommendationReason}</p>
                     )}
@@ -1330,10 +1332,10 @@ export function DashboardPage() {
                 ) : recommendedListings.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 bg-white px-6 py-12 text-center">
                     <Home className="h-8 w-8 text-stone-300" />
-                    <p className="mt-3 text-sm font-semibold text-stone-800">Nog geen aanbevelingen</p>
-                    <p className="mt-1 text-sm text-stone-500">Zoek woningen om aanbevelingen op maat te ontvangen.</p>
+                    <p className="mt-3 text-sm font-semibold text-stone-800">{t("dashboard.noRecommendations")}</p>
+                    <p className="mt-1 text-sm text-stone-500">{t("dashboard.noRecommendations")}</p>
                     <Link href="/kamers" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600">
-                      Bekijk alle woningen
+                      {t("dashboard.searchSummaryFallback")}
                     </Link>
                   </div>
                 ) : (
@@ -1414,7 +1416,7 @@ export function DashboardPage() {
               {/* Mijn aanvragen */}
               <div id="aanvragen">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold text-stone-900">Mijn aanvragen</h2>
+                  <h2 className="text-lg font-bold text-stone-900">{t("dashboard.myApplications")}</h2>
                   {!loading && myApplications.length > 0 && !confirmClearApplications && (
                     <button type="button" onClick={() => setConfirmClearApplications(true)}
                       className="text-xs font-medium text-stone-400 transition hover:text-rose-500"

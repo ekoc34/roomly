@@ -21,9 +21,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function ResetPasswordPage() {
   const [, navigate] = useLocation();
+  const { t } = useLanguage();
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -223,8 +225,8 @@ export function ResetPasswordPage() {
             <span className="font-semibold text-rose-500">Welkthuis</span>
             <span className="font-normal text-rose-500">.nl</span>
           </p>
-          <h1 className="mt-2 text-xl font-bold text-stone-900">Nieuw wachtwoord instellen</h1>
-          <p className="mt-1 text-sm text-stone-500">Kies een sterk nieuw wachtwoord.</p>
+          <h1 className="mt-2 text-xl font-bold text-stone-900">{t("resetPassword.title")}</h1>
+          <p className="mt-1 text-sm text-stone-500">{t("resetPassword.subtitle")}</p>
         </div>
 
         {done ? (
@@ -232,27 +234,27 @@ export function ResetPasswordPage() {
             <svg className="mx-auto h-8 w-8 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="mt-3 text-sm font-semibold text-emerald-800">Wachtwoord gewijzigd!</p>
-            <p className="mt-1 text-xs text-emerald-700">Je wordt over 2 seconden doorgestuurd naar inloggen…</p>
+            <p className="mt-3 text-sm font-semibold text-emerald-800">{t("resetPassword.successTitle")}</p>
+            <p className="mt-1 text-xs text-emerald-700">{t("resetPassword.successDesc")}</p>
           </div>
 
         ) : sessionReady === null ? (
           <div className="mt-8 flex flex-col items-center gap-3">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-300 border-t-rose-500" />
-            <p className="text-xs text-stone-400">Beveiligingslink wordt geverifieerd…</p>
+            <p className="text-xs text-stone-400">{t("common.loading")}</p>
           </div>
 
         ) : sessionReady === false ? (
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-5 text-center">
-            <p className="text-sm font-semibold text-amber-800">Ongeldige of verlopen link</p>
+            <p className="text-sm font-semibold text-amber-800">{t("resetPassword.invalidLink")}</p>
             <p className="mt-1 text-xs text-amber-700">
-              De reset link is verlopen of al gebruikt. Vraag een nieuwe aan.
+              {t("resetPassword.invalidLinkDesc")}
             </p>
             <Link
               href="/wachtwoord-vergeten"
               className="mt-4 inline-block rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600"
             >
-              Nieuwe reset link aanvragen
+              {t("resetPassword.requestNewLink")}
             </Link>
           </div>
 
@@ -260,7 +262,7 @@ export function ResetPasswordPage() {
           <form onSubmit={onSubmit} className="mt-6 space-y-4">
             <div>
               <label htmlFor="rp-password" className="text-xs font-medium text-stone-700">
-                Nieuw wachtwoord
+                {t("resetPassword.newPasswordLabel")}
               </label>
               <input
                 id="rp-password"
@@ -269,13 +271,13 @@ export function ResetPasswordPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                placeholder="Min. 8 tekens"
+                placeholder={t("auth.passwordHint")}
                 className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
               />
             </div>
             <div>
               <label htmlFor="rp-confirm" className="text-xs font-medium text-stone-700">
-                Herhaal wachtwoord
+                {t("auth.confirmPasswordLabel")}
               </label>
               <input
                 id="rp-confirm"
@@ -284,7 +286,7 @@ export function ResetPasswordPage() {
                 required
                 minLength={8}
                 autoComplete="new-password"
-                placeholder="Herhaal wachtwoord"
+                placeholder={t("auth.confirmPasswordPlaceholder")}
                 className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
               />
             </div>
@@ -298,7 +300,7 @@ export function ResetPasswordPage() {
               disabled={isPending}
               className="w-full rounded-2xl bg-rose-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
             >
-              {isPending ? "Opslaan…" : "Wachtwoord opslaan"}
+              {isPending ? t("resetPassword.saving") : t("resetPassword.saveBtn")}
             </button>
           </form>
         )}

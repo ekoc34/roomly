@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { getConsent, hasConsented, setConsent } from "@/lib/cookieConsent";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Prefs = { analytisch: boolean; marketing: boolean };
 
@@ -41,6 +42,7 @@ export function CookieConsentBanner() {
   const [prefs, setPrefs] = useState<Prefs>({ analytisch: false, marketing: false });
   const panelRef = useRef<HTMLDivElement>(null);
   const firstBtnRef = useRef<HTMLButtonElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!hasConsented()) {
@@ -93,15 +95,12 @@ export function CookieConsentBanner() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Cookietoestemming"
+      aria-label={t("cookie.title")}
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
 
-      {/* Card */}
       <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl ring-1 ring-stone-900/5">
-        {/* Header */}
         <div className="px-6 pt-6 pb-4 border-b border-stone-100">
           <div className="flex items-center gap-2.5 mb-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-50">
@@ -109,17 +108,15 @@ export function CookieConsentBanner() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
               </svg>
             </span>
-            <h2 className="text-base font-bold text-stone-900">Cookies op Welkthuis</h2>
+            <h2 className="text-base font-bold text-stone-900">{t("cookie.title")}</h2>
           </div>
           <p className="text-sm leading-relaxed text-stone-500">
-            We gebruiken cookies om de website goed te laten werken, het gebruik te analyseren en jouw ervaring te verbeteren. Noodzakelijke cookies zijn altijd actief.
+            {t("cookie.desc")}
           </p>
         </div>
 
-        {/* Preferences panel — expandable */}
         {showPrefs && (
           <div ref={panelRef} className="px-6 py-4 border-b border-stone-100 space-y-4">
-            {/* Noodzakelijk — locked */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50">
@@ -129,16 +126,15 @@ export function CookieConsentBanner() {
                 </span>
                 <div>
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-semibold text-stone-800">Noodzakelijke cookies</label>
-                    <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">Altijd actief</span>
+                    <label className="text-sm font-semibold text-stone-800">{t("cookie.necessary")}</label>
+                    <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">{t("cookie.necessaryAlways")}</span>
                   </div>
-                  <p className="mt-0.5 text-xs text-stone-400">Vereist voor inloggen, beveiliging en basisfuncties.</p>
+                  <p className="mt-0.5 text-xs text-stone-400">{t("cookie.necessaryDesc")}</p>
                 </div>
               </div>
               <Toggle id="toggle-noodzakelijk" enabled={true} onChange={() => {}} disabled={true} />
             </div>
 
-            {/* Analytisch */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50">
@@ -147,8 +143,8 @@ export function CookieConsentBanner() {
                   </svg>
                 </span>
                 <div>
-                  <label htmlFor="toggle-analytisch" className="text-sm font-semibold text-stone-800">Analytische cookies</label>
-                  <p className="mt-0.5 text-xs text-stone-400">Anonieme statistieken voor het verbeteren van het platform.</p>
+                  <label htmlFor="toggle-analytisch" className="text-sm font-semibold text-stone-800">{t("cookie.analytics")}</label>
+                  <p className="mt-0.5 text-xs text-stone-400">{t("cookie.analyticsDesc")}</p>
                 </div>
               </div>
               <Toggle
@@ -158,7 +154,6 @@ export function CookieConsentBanner() {
               />
             </div>
 
-            {/* Marketing */}
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-stone-100">
@@ -167,8 +162,8 @@ export function CookieConsentBanner() {
                   </svg>
                 </span>
                 <div>
-                  <label htmlFor="toggle-marketing" className="text-sm font-semibold text-stone-400">Marketingcookies</label>
-                  <p className="mt-0.5 text-xs text-stone-400">Momenteel niet actief op Welkthuis.</p>
+                  <label htmlFor="toggle-marketing" className="text-sm font-semibold text-stone-400">{t("cookie.marketing")}</label>
+                  <p className="mt-0.5 text-xs text-stone-400">{t("cookie.marketingDesc")}</p>
                 </div>
               </div>
               <Toggle
@@ -180,7 +175,6 @@ export function CookieConsentBanner() {
           </div>
         )}
 
-        {/* Actions */}
         <div className="px-6 py-5 flex flex-col gap-2.5">
           {showPrefs ? (
             <button
@@ -188,7 +182,7 @@ export function CookieConsentBanner() {
               onClick={saveCustom}
               className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-2"
             >
-              Voorkeuren opslaan
+              {t("cookie.savePreferences")}
             </button>
           ) : (
             <button
@@ -197,7 +191,7 @@ export function CookieConsentBanner() {
               onClick={() => setShowPrefs(true)}
               className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-2"
             >
-              Voorkeuren wijzigen
+              {t("cookie.changePreferences")}
             </button>
           )}
 
@@ -207,25 +201,24 @@ export function CookieConsentBanner() {
               onClick={acceptNecessaryOnly}
               className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-2"
             >
-              Alleen noodzakelijke
+              {t("cookie.necessaryOnly")}
             </button>
             <button
               type="button"
               onClick={acceptAll}
               className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-300 focus-visible:ring-offset-2"
             >
-              Alles accepteren
+              {t("cookie.acceptAll")}
             </button>
           </div>
         </div>
 
-        {/* Footer link */}
         <div className="px-6 pb-5 -mt-1 text-center">
           <a
             href="/cookies"
             className="text-xs text-stone-400 hover:text-stone-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 rounded"
           >
-            Meer informatie over ons cookiebeleid
+            {t("cookie.moreInfo")}
           </a>
         </div>
       </div>

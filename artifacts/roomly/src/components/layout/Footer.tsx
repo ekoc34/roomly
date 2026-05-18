@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/lib/supabase";
 import type { Profile } from "@/types/database";
 
 export function Footer() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -31,37 +33,37 @@ export function Footer() {
               </p>
             </div>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-stone-500">
-              Woningen vinden in Nederland — eerlijk, duidelijk en snel.
+              {t("footer.tagline")}
             </p>
           </div>
 
           {/* Ontdekken */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Ontdekken</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t("footer.explore")}</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
-              <Link href="/kamers" className="hover:text-rose-600">Zoek woningen</Link>
+              <Link href="/kamers" className="hover:text-rose-600">{t("footer.searchListings")}</Link>
               {canPost && (
-                <Link href="/kamers/nieuw" className="hover:text-rose-600">Advertentie plaatsen</Link>
+                <Link href="/kamers/nieuw" className="hover:text-rose-600">{t("footer.postListing")}</Link>
               )}
-              <Link href="/contact" className="hover:text-rose-600">Contact</Link>
+              <Link href="/contact" className="hover:text-rose-600">{t("footer.contact")}</Link>
             </nav>
           </div>
 
           {/* Account */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Account</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">{t("footer.account")}</p>
             <nav className="mt-3 flex flex-col gap-2.5 text-sm text-stone-600">
               {user ? (
                 <>
-                  <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
-                  <Link href="/favorieten" className="hover:text-rose-600">Favorieten</Link>
-                  <Link href="/berichten" className="hover:text-rose-600">Berichten</Link>
-                  <Link href="/profiel" className="hover:text-rose-600">Profiel</Link>
+                  <Link href="/dashboard" className="hover:text-rose-600">{t("footer.dashboard")}</Link>
+                  <Link href="/favorieten" className="hover:text-rose-600">{t("footer.favorites")}</Link>
+                  <Link href="/berichten" className="hover:text-rose-600">{t("footer.messages")}</Link>
+                  <Link href="/profiel" className="hover:text-rose-600">{t("footer.profile")}</Link>
                 </>
               ) : (
                 <>
-                  <Link href="/inloggen" className="hover:text-rose-600">Inloggen</Link>
-                  <Link href="/registreren" className="hover:text-rose-600">Account aanmaken</Link>
+                  <Link href="/inloggen" className="hover:text-rose-600">{t("footer.login")}</Link>
+                  <Link href="/registreren" className="hover:text-rose-600">{t("footer.register")}</Link>
                 </>
               )}
             </nav>
@@ -72,16 +74,16 @@ export function Footer() {
 
       <div className="border-t border-stone-100 bg-stone-50/80 px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px)+3.5rem)] pt-4 text-center text-xs text-stone-400 md:pb-4">
         <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
-          <Link href="/privacy" className="hover:text-stone-600">Privacy</Link>
+          <Link href="/privacy" className="hover:text-stone-600">{t("footer.privacy")}</Link>
           <span className="text-stone-500">·</span>
-          <Link href="/voorwaarden" className="hover:text-stone-600">Voorwaarden</Link>
+          <Link href="/voorwaarden" className="hover:text-stone-600">{t("footer.terms")}</Link>
           <span className="text-stone-500">·</span>
-          <Link href="/cookies" className="hover:text-stone-600">Cookies</Link>
+          <Link href="/cookies" className="hover:text-stone-600">{t("footer.cookies")}</Link>
           <span className="text-stone-500">·</span>
-          <Link href="/cookievoorkeuren" className="hover:text-stone-600">Cookievoorkeuren</Link>
+          <Link href="/cookievoorkeuren" className="hover:text-stone-600">{t("footer.cookiePreferences")}</Link>
         </div>
-        <p className="mt-2">Gemaakt voor huurders en verhuurders in Nederland.</p>
-        <p className="mt-0.5">© 2026 Welkthuis</p>
+        <p className="mt-2">{t("footer.madeFor")}.</p>
+        <p className="mt-0.5">{t("footer.copyright").replace("{year}", "2026")}</p>
       </div>
     </footer>
   );

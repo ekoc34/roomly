@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PageTransition } from "@/components/PageTransition";
 import { SelectedCityProvider } from "@/contexts/SelectedCityContext";
 import { CompareProvider } from "@/contexts/CompareContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { useLastActive } from "@/hooks/useLastActive";
 import { useAuth } from "@/hooks/useAuth";
 import { EmailVerificationHandler } from "@/components/EmailVerificationHandler";
@@ -176,6 +177,7 @@ function AppContent() {
 
 export default function App() {
   return (
+    <LanguageProvider>
     <SelectedCityProvider>
       <CompareProvider>
         <div className="flex min-h-screen flex-col bg-stone-50">
@@ -190,5 +192,6 @@ export default function App() {
         <CookieConsentBanner />
       </CompareProvider>
     </SelectedCityProvider>
+    </LanguageProvider>
   );
 }

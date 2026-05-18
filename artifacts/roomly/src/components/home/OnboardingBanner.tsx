@@ -1,6 +1,9 @@
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function OnboardingBanner() {
+  const { t } = useLanguage();
+
   return (
     <div className="mt-10 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-5 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -10,15 +13,15 @@ export function OnboardingBanner() {
           </div>
           <div>
             <p className="text-sm font-semibold text-blue-900">
-              Welkthuis is een gratis huisvestingsplatform voor heel Nederland
+              {t("home.onboardingTitle")}
             </p>
             <p className="mt-0.5 text-sm leading-relaxed text-blue-800/80">
-              Heb je een kamer of appartement te huur? Plaats je advertentie gratis en bereik duizenden geverifieerde huurders.
+              {t("home.onboardingSubtitle")}
             </p>
           </div>
         </div>
         <Link href="/kamers/nieuw" data-testid="onboarding-banner-cta" className="shrink-0 rounded-xl border border-blue-200 bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 active:scale-95">
-          Advertentie plaatsen →
+          {t("home.onboardingCta")}
         </Link>
       </div>
     </div>
