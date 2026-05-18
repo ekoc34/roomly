@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { CitySearchAutocomplete } from "@/components/search/CitySearchAutocomplete";
 import { useSelectedCity } from "@/contexts/SelectedCityContext";
 
-const POPULAR_CITIES = ["Amsterdam", "Rotterdam", "Utrecht", "Den Haag"];
+const POPULAR_CITIES = ["Amsterdam", "Rotterdam", "Utrecht", "Eindhoven", "Den Haag"];
 
 export function HeroSearch() {
   const { selectedCity } = useSelectedCity();
@@ -28,23 +28,33 @@ export function HeroSearch() {
 
         <p className="mt-4 text-base leading-relaxed text-stone-500 sm:text-lg">
           {selectedCity
-            ? `Beschikbare kamers en appartementen in ${selectedCity} — van echte verhuurders.`
-            : "Kamers, studio's en appartementen van echte verhuurders. Geen spam, geen misleiding."}
+            ? `Beschikbare kamers en appartementen in ${selectedCity}.`
+            : "Kamers, studio's en appartementen door heel Nederland. Van echte verhuurders en woningzoekers."}
         </p>
 
         {/* Search bar — central element */}
-        <CitySearchAutocomplete />
+        <div className="mt-7">
+          <CitySearchAutocomplete />
+        </div>
 
-        {/* Secondary CTA */}
-        <p className="mt-3 text-sm text-stone-500">
-          Wil je verhuren?{" "}
-          <Link href="/kamers/nieuw" className="font-medium text-rose-600 underline-offset-4 hover:underline">
-            Advertentie plaatsen →
+        {/* Primary + secondary CTA — intentional and balanced */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/kamers"
+            className="rounded-2xl bg-rose-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-[0.98]"
+          >
+            Zoek woningen
           </Link>
-        </p>
+          <Link
+            href="/kamers/nieuw"
+            className="rounded-2xl border border-stone-200 bg-white px-6 py-2.5 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98]"
+          >
+            Advertentie plaatsen
+          </Link>
+        </div>
 
-        {/* City chips — subtle */}
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {/* City quick-links — make the page feel alive */}
+        <div className="mt-7 flex flex-wrap justify-center gap-2">
           {POPULAR_CITIES.map((city) => (
             <Link
               key={city}
@@ -65,8 +75,8 @@ export function HeroSearch() {
           <Link href="/kamers?max=800" className="rounded-full border border-stone-100 bg-stone-50 px-3.5 py-1 text-xs text-stone-400 transition hover:border-rose-200 hover:text-rose-500">Tot €800</Link>
         </div>
 
-        {/* Trust badges — minimal */}
-        <div className="mt-8 flex flex-wrap justify-center gap-4">
+        {/* Trust micro-copy — positive framing only, no defensive language */}
+        <div className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-2">
           <span className="flex items-center gap-1.5 text-xs text-stone-400">
             <svg className="h-3.5 w-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -77,13 +87,13 @@ export function HeroSearch() {
             <svg className="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            In-app chat
+            Direct contact via het platform
           </span>
           <span className="flex items-center gap-1.5 text-xs text-stone-400">
-            <svg className="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+            <svg className="h-3.5 w-3.5 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Geen spam
+            Snelle reacties
           </span>
         </div>
 

@@ -1,0 +1,192 @@
+Improve the Welkthuis homepage so it feels like a polished, trustworthy, modern Dutch housing platform — calm, premium, and easy to understand within the first 5 seconds.
+
+Main goal:
+The homepage should no longer feel like an MVP or demo marketplace. It should feel like a real product people can trust and immediately understand.
+
+Important:
+Do NOT redesign the entire visual identity.
+Keep the current Welkthuis branding, colors, and overall aesthetic.
+This is a refinement and hierarchy improvement sprint — not a full redesign.
+
+PART 1 — Hero section improvement
+
+The hero should feel calmer, more premium, and more trustworthy.
+
+Requirements:
+
+1. Improve hierarchy
+
+* Strong, clean headline
+* Softer supporting text
+* Better spacing between:
+
+  * headline
+  * subtext
+  * search area
+  * CTA buttons
+
+2. Improve trust feeling
+   Replace overly defensive trust language.
+
+Current copy like:
+
+* “Geen spam, geen misleiding”
+
+should be removed or softened.
+
+Instead, use calm and professional language such as:
+
+* “Van echte verhuurders en woningzoekers.”
+* “Eerlijk, duidelijk en snel.”
+* “Vind kamers, studio’s en appartementen door heel Nederland.”
+
+The trust feeling should come from:
+
+* layout quality
+* spacing
+* visual calmness
+* consistency
+* professional copywriting
+
+NOT from explicitly mentioning scams.
+
+3. Better CTA structure
+   Primary CTA:
+
+* Zoek woningen
+
+Secondary CTA:
+
+* Plaats advertentie
+
+Buttons should feel intentional and balanced.
+
+4. Add subtle platform context
+   Quick chips or mini-links for major cities:
+
+* Amsterdam
+* Rotterdam
+* Utrecht
+* Eindhoven
+
+These should help the homepage feel alive immediately.
+
+PART 2 — Homepage structure & rhythm
+
+The homepage currently needs stronger section separation and better flow.
+
+Requirements:
+
+1. Improve vertical rhythm
+
+* Add more intentional whitespace between sections
+* Avoid cramped stacking
+* Keep the page airy but not empty
+
+2. Improve section hierarchy
+   Sections should feel clearly separated:
+
+* hero
+* featured listings
+* city discovery
+* trust/features
+* CTA areas
+
+3. Make the homepage feel curated
+   The page should feel:
+
+* calm
+* organized
+* premium
+* trustworthy
+* modern Dutch tech product
+
+NOT:
+
+* chaotic
+* crowded
+* template-like
+* overly startup-hype
+
+PART 3 — Add “How it works” section
+
+Create a simple onboarding section for first-time users.
+
+Requirements:
+
+* 3 clean steps
+* visually minimal
+* easy to scan
+* works on mobile
+
+Suggested structure:
+
+1. Zoek een woning
+2. Neem contact op
+3. Vind je nieuwe plek
+
+Use subtle icons or visual indicators if appropriate.
+
+PART 4 — Add trust/features layer
+
+Without mentioning scams directly, subtly communicate platform quality.
+
+Possible feature points:
+
+* Geverifieerde gebruikers
+* Direct contact via het platform
+* Snelle reacties
+* Overzichtelijke woningzoektocht
+* Geschikt voor studenten, starters en expats
+
+This section should feel soft and reassuring, not defensive.
+
+PART 5 — Improve listing section presentation
+
+The homepage listings should feel more premium.
+
+Requirements:
+
+* Better spacing around listing grids
+* Cleaner section headers
+* Avoid visual heaviness
+* Keep cards aligned and visually balanced
+* Ensure the homepage feels curated rather than “database-like”
+
+PART 6 — Mobile homepage polish
+
+Mobile is currently the dominant traffic source.
+
+Requirements:
+
+* Improve breathing room on mobile
+* Prevent crowded stacking
+* Ensure CTA buttons are easy to tap
+* Ensure hero copy remains readable
+* Keep sections visually distinct on small screens
+
+PART 7 — Final quality expectations
+
+The homepage should feel closer to:
+
+* Airbnb
+* Funda
+* modern Dutch SaaS/marketplace products
+
+while still remaining:
+
+* calm
+* minimal
+* accessible
+* trustworthy
+
+The experience should communicate:
+“This is a serious platform people actually use.”
+
+After implementation:
+
+* summarize all homepage improvements
+* explain trust/copy changes
+* explain spacing and hierarchy improvements
+* explain mobile UX improvements
+* confirm the homepage now feels more polished, curated, and premium
