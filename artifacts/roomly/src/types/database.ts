@@ -69,6 +69,8 @@ export type Listing = {
   lon?: number | null;
   hidden?: boolean;
   hidden_reason?: string | null;
+  is_demo?: boolean;
+  view_count?: number;
   created_at: string;
   updated_at: string;
 };

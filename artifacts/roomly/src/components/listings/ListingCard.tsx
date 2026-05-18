@@ -88,6 +88,11 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
             {listing.boosted_at && (
               <BoostBadge boostedAt={listing.boosted_at} />
             )}
+            {listing.is_demo && (
+              <span className="inline-flex items-center rounded-full border border-stone-300 bg-stone-100/90 px-2 py-0.5 text-[10px] font-medium tracking-wide text-stone-500 backdrop-blur-sm">
+                Voorbeeldwoning
+              </span>
+            )}
           </div>
         </div>
 

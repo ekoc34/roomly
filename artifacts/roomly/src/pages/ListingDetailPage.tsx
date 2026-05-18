@@ -119,6 +119,17 @@ export function ListingDetailPage() {
           <span className="truncate text-stone-600">{listing.title}</span>
         </nav>
 
+        {listing.is_demo && (
+          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-500">
+            <svg className="mt-0.5 h-4 w-4 shrink-0 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>
+              <strong className="font-semibold text-stone-600">Voorbeeldwoning</strong> — Dit is een demo-advertentie om het platform te illustreren. Er is geen echte verhuurder aan gekoppeld.
+            </span>
+          </div>
+        )}
+
         <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
           {/* Main column */}
           <div className="space-y-5">
