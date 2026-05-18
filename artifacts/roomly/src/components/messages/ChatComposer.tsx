@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { pingLastActive } from "@/hooks/useLastActive";
 import { MAX_MESSAGE_LENGTH } from "@/lib/constants";
 import { trackEvent } from "@/lib/plausible";
@@ -25,7 +26,6 @@ async function maybeUpdateResponseTime(
 ) {
   if (!supabase) return;
 
-  // Fetch all messages in this conversation, oldest first
   const { data: msgs } = await supabase
     .from("messages")
     .select("sender_id, created_at")
@@ -37,13 +37,11 @@ async function maybeUpdateResponseTime(
   const landlordMsgs = msgs.filter((m) => m.sender_id === landlordId);
   const tenantMsgs   = msgs.filter((m) => m.sender_id === tenantId);
 
-  // Only count if this is the landlord's FIRST reply and tenant has at least one message
   if (landlordMsgs.length !== 1 || tenantMsgs.length === 0) return;
 
   const tenantFirstAt = new Date(tenantMsgs[0].created_at).getTime();
   const responseHours = (Date.now() - tenantFirstAt) / (1000 * 60 * 60);
 
-  // Fetch existing avg
   const { data: profileData } = await supabase
     .from("profiles")
     .select("avg_response_time_hours")
@@ -80,6 +78,7 @@ export function ChatComposer({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recentMsgCountRef = useRef<Map<string, number>>(new Map());
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const stopTyping = useCallback(() => {
     if (typingTimeoutRef.current) {
@@ -115,7 +114,7 @@ export function ChatComposer({
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p className="text-xs leading-relaxed text-amber-700">
-          Wacht op een reactie van de verhuurder voordat je een nieuw bericht stuurt.
+          {t("chatComposer.waitForLandlord")}
         </p>
       </div>
     );
@@ -125,10 +124,9 @@ export function ChatComposer({
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const body = String(fd.get("body") ?? "").trim();
-    if (!body) { toast.error("Bericht mag niet leeg zijn."); return; }
-    if (body.length > MAX_MESSAGE_LENGTH) { toast.error("Bericht is te lang."); return; }
+    if (!body) { toast.error(t("chatComposer.emptyError")); return; }
+    if (body.length > MAX_MESSAGE_LENGTH) { toast.error(t("chatComposer.tooLongError")); return; }
 
-    // ── Client-side spam detection ────────────────────────────────────────
     const spamResult = checkMessageSpam(body);
     if (spamResult.isSpam) {
       toast.error(getSpamMessageNL(spamResult.category));
@@ -143,30 +141,28 @@ export function ChatComposer({
       return;
     }
 
-    // ── In-session duplicate message guard ────────────────────────────────
     const msgKey = body.toLowerCase();
     if ((recentMsgCountRef.current.get(msgKey) ?? 0) >= 3) {
-      toast.error("Je hebt dit bericht al meerdere keren verstuurd. Stuur geen herhaalde berichten.");
+      toast.error(t("chatComposer.duplicateError"));
       return;
     }
 
     stopTyping();
     startTransition(async () => {
-      if (!supabase || !user) { toast.error("Niet ingelogd."); return; }
+      if (!supabase || !user) { toast.error(t("chatComposer.notLoggedIn")); return; }
       const { error: err } = await supabase.rpc("send_message", {
         p_conversation_id: conversationId,
         p_body: body,
       });
       if (err) {
         if (err.message?.includes("RATE_LIMITED")) {
-          toast.error("Te veel berichten. Wacht even en probeer opnieuw.");
+          toast.error(t("chatComposer.rateLimited"));
         } else {
-          toast.error("Versturen mislukt. Probeer opnieuw.");
+          toast.error(t("chatComposer.sendFailed"));
         }
         return;
       }
 
-      // Track for dedup
       recentMsgCountRef.current.set(msgKey, (recentMsgCountRef.current.get(msgKey) ?? 0) + 1);
 
       trackEvent("message_sent");
@@ -175,7 +171,6 @@ export function ChatComposer({
       setRows(1);
       onSent?.();
 
-      // Fire-and-forget: update landlord's avg response time on first reply
       if (landlordId && tenantId && user.id === landlordId) {
         maybeUpdateResponseTime(conversationId, landlordId, tenantId).catch(() => {});
       }
@@ -206,7 +201,7 @@ export function ChatComposer({
         data-testid="chat-input"
         required
         rows={rows}
-        placeholder="Typ een bericht..."
+        placeholder={t("chatComposer.placeholder")}
         maxLength={MAX_MESSAGE_LENGTH}
         onChange={handleInput}
         enterKeyHint="send"

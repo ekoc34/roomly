@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Notification } from "@/types/database";
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return "zojuist";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min geleden`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} uur geleden`;
-  return `${Math.floor(diff / 86400)} dagen geleden`;
+  if (diff < 60) return t("timeAgo.justNow");
+  if (diff < 3600) return t("timeAgo.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("timeAgo.hoursAgo", { count: Math.floor(diff / 3600) });
+  return t("timeAgo.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
 function notifIcon(type: Notification["type"]) {
@@ -65,6 +66,7 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [, navigate] = useLocation();
   const ref = useRef<HTMLDivElement>(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -85,7 +87,7 @@ export function NotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Meldingen"
+        aria-label={t("notifications.bellAriaLabel")}
         className="relative flex h-9 w-9 items-center justify-center rounded-full border border-stone-200 text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -101,9 +103,11 @@ export function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-xl">
           <div className="flex items-center justify-between border-b border-stone-100 px-4 py-3">
-            <span className="text-sm font-semibold text-stone-900">Meldingen</span>
+            <span className="text-sm font-semibold text-stone-900">{t("notifications.bellAriaLabel")}</span>
             {unreadCount > 0 && (
-              <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">{unreadCount} nieuw</span>
+              <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                {t("notifications.newBadge", { count: unreadCount })}
+              </span>
             )}
           </div>
 
@@ -113,7 +117,7 @@ export function NotificationBell() {
                 <svg className="h-8 w-8 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                <p className="mt-2 text-xs text-stone-400">Geen meldingen</p>
+                <p className="mt-2 text-xs text-stone-400">{t("notifications.noNotifications")}</p>
               </div>
             ) : (
               notifications.map((n) => (
@@ -130,7 +134,7 @@ export function NotificationBell() {
                       {!n.read && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" />}
                     </div>
                     {n.body && <p className="mt-0.5 line-clamp-2 text-xs text-stone-500">{n.body}</p>}
-                    <p className="mt-1 text-[10px] text-stone-400">{timeAgo(n.created_at)}</p>
+                    <p className="mt-1 text-[10px] text-stone-400">{timeAgo(n.created_at, t)}</p>
                   </div>
                 </button>
               ))
@@ -144,7 +148,7 @@ export function NotificationBell() {
                 onClick={async () => { await markAllRead(); }}
                 className="text-xs font-medium text-stone-500 transition hover:text-stone-700 hover:underline"
               >
-                Alles als gelezen markeren
+                {t("notifications.markAllRead")}
               </button>
             )}
             <button
@@ -152,7 +156,7 @@ export function NotificationBell() {
               onClick={() => { setOpen(false); navigate("/notificaties"); }}
               className="ml-auto text-xs font-medium text-rose-600 transition hover:text-rose-700 hover:underline"
             >
-              Bekijk alle notificaties →
+              {t("notifications.viewAll")}
             </button>
           </div>
         </div>

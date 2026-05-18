@@ -3,18 +3,9 @@ import { Flag, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 
-const CATEGORIES = [
-  { value: "scam",          label: "Oplichting / fraude" },
-  { value: "fake_listing",  label: "Nep advertentie" },
-  { value: "spam",          label: "Spam" },
-  { value: "harassment",    label: "Intimidatie" },
-  { value: "inappropriate", label: "Ongepaste inhoud" },
-  { value: "duplicate",     label: "Duplicaat" },
-  { value: "other",         label: "Anders" },
-] as const;
-
-type Category = typeof CATEGORIES[number]["value"];
+type Category = "scam" | "fake_listing" | "spam" | "harassment" | "inappropriate" | "duplicate" | "other";
 
 export type ReportTargetType = "listing" | "user" | "conversation";
 
@@ -25,28 +16,39 @@ type Props = {
   onClose: () => void;
 };
 
-const ENTITY_LABELS: Record<ReportTargetType, string> = {
-  listing:      "advertentie",
-  user:         "gebruiker",
-  conversation: "gesprek",
-};
-
 export function ReportModal({ targetType, targetId, targetLabel, onClose }: Props) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [category, setCategory] = useState<Category>("spam");
   const [reason, setReason] = useState("");
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const entity = ENTITY_LABELS[targetType];
+  const CATEGORIES: { value: Category; labelKey: string }[] = [
+    { value: "scam",          labelKey: "report.catScam" },
+    { value: "fake_listing",  labelKey: "report.catFakeListing" },
+    { value: "spam",          labelKey: "report.catSpam" },
+    { value: "harassment",    labelKey: "report.catHarassment" },
+    { value: "inappropriate", labelKey: "report.catInappropriate" },
+    { value: "duplicate",     labelKey: "report.catDuplicate" },
+    { value: "other",         labelKey: "report.catOther" },
+  ];
+
+  const ENTITY_LABEL_KEYS: Record<ReportTargetType, string> = {
+    listing:      "report.entityListing",
+    user:         "report.entityUser",
+    conversation: "report.entityConversation",
+  };
+
+  const entity = t(ENTITY_LABEL_KEYS[targetType]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!reason.trim()) { setError("Beschrijf kort de reden van je melding."); return; }
+    if (!reason.trim()) { setError(t("report.errorRequired")); return; }
     startTransition(async () => {
-      if (!supabase || !user) { setError("Log eerst in om een melding te doen."); return; }
+      if (!supabase || !user) { setError(t("report.errorNotLoggedIn")); return; }
       const { error: err } = await supabase.rpc("submit_report", {
         p_target_type: targetType,
         p_target_id:   targetId,
@@ -55,17 +57,17 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
       });
       if (err) {
         if (err.message?.includes("RATE_LIMITED"))
-          setError("Te veel meldingen. Probeer het over een uur opnieuw.");
+          setError(t("report.errorRateLimit"));
         else if (err.message?.includes("DUPLICATE_REPORT"))
-          setError(`Je hebt deze ${entity} al eerder gemeld.`);
+          setError(t("report.errorDuplicate", { entity }));
         else if (err.message?.includes("NOT_AUTHENTICATED"))
-          setError("Je bent niet ingelogd.");
+          setError(t("report.errorNotAuth"));
         else
-          setError("Melding mislukt. Probeer het opnieuw.");
+          setError(t("report.errorGeneral"));
         return;
       }
       setDone(true);
-      toast.success("Melding ontvangen. Bedankt!");
+      toast.success(t("report.toast"));
     });
   };
 
@@ -85,16 +87,16 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="mt-4 text-lg font-semibold text-stone-900">Melding ontvangen</h3>
+            <h3 className="mt-4 text-lg font-semibold text-stone-900">{t("report.successTitle")}</h3>
             <p className="mt-2 text-sm text-stone-500">
-              We bekijken de melding zo snel mogelijk en nemen actie indien nodig.
+              {t("report.successDesc")}
             </p>
             <button
               type="button"
               onClick={onClose}
               className="mt-6 w-full rounded-2xl bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-800 active:scale-[0.98]"
             >
-              Sluiten
+              {t("common.close")}
             </button>
           </div>
         ) : (
@@ -106,16 +108,18 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
                 </span>
                 <div>
                   <h3 className="text-base font-semibold text-stone-900">
-                    {targetLabel ? `"${targetLabel}" melden` : `Deze ${entity} melden`}
+                    {targetLabel
+                      ? t("report.modalTitleWithLabel", { label: targetLabel })
+                      : t("report.modalTitlePrefix", { entity })}
                   </h3>
-                  <p className="text-xs text-stone-500">Help ons Welkthuis veilig te houden.</p>
+                  <p className="text-xs text-stone-500">{t("report.safetyDesc")}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={onClose}
                 className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-600"
-                aria-label="Sluiten"
+                aria-label={t("report.ariaClose")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -123,7 +127,7 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
 
             <form onSubmit={onSubmit} className="mt-5 space-y-4">
               <div>
-                <p className="mb-2 text-xs font-medium text-stone-700">Reden</p>
+                <p className="mb-2 text-xs font-medium text-stone-700">{t("report.reasonLabel")}</p>
                 <div className="grid grid-cols-2 gap-2">
                   {CATEGORIES.map((c) => (
                     <button
@@ -136,7 +140,7 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
                           : "border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-50"
                       }`}
                     >
-                      {c.label}
+                      {t(c.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -144,7 +148,7 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
 
               <div>
                 <label htmlFor="report-reason" className="mb-1.5 block text-xs font-medium text-stone-700">
-                  Toelichting
+                  {t("report.detailsLabel")}
                 </label>
                 <textarea
                   id="report-reason"
@@ -153,7 +157,7 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
                   rows={3}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  placeholder={`Beschrijf waarom je deze ${entity} meldt…`}
+                  placeholder={t("report.detailsPlaceholder", { entity })}
                   className="w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
                 />
                 <p className="mt-1 text-right text-[10px] text-stone-400">{reason.length}/1000</p>
@@ -171,14 +175,14 @@ export function ReportModal({ targetType, targetId, targetLabel, onClose }: Prop
                   disabled={isPending}
                   className="flex-1 rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.98]"
                 >
-                  {isPending ? "Versturen…" : "Melding versturen"}
+                  {isPending ? t("report.submitting") : t("report.submitBtn")}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   className="rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-700 hover:bg-stone-50"
                 >
-                  Annuleren
+                  {t("common.cancel")}
                 </button>
               </div>
             </form>

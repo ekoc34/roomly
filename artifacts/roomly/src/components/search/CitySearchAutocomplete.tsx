@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
 import { useSelectedCity } from "@/contexts/SelectedCityContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 function extractCity(location: string): string {
   // "Amsterdam, Jordaan" → "Amsterdam"; "Rotterdam" → "Rotterdam"
@@ -15,10 +16,11 @@ export function CitySearchAutocomplete() {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [, navigate] = useLocation();
   const { setSelectedCity } = useSelectedCity();
+  const { t } = useLanguage();
 
   // Fetch suggestions with debounce
   useEffect(() => {
@@ -102,7 +104,7 @@ export function CitySearchAutocomplete() {
   return (
     <form onSubmit={handleSubmit} className="relative mx-auto max-w-xl" ref={containerRef}>
       <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
-        <label className="sr-only" htmlFor="city-autocomplete">Zoek een stad</label>
+        <label className="sr-only" htmlFor="city-autocomplete">{t("home.citySearchLabel")}</label>
         <div className="relative flex-1">
           <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-300">
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
@@ -120,7 +122,7 @@ export function CitySearchAutocomplete() {
             onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
             onKeyDown={handleKeyDown}
             onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
-            placeholder="Zoek op stad, type woning of budget..."
+            placeholder={t("home.searchPlaceholder")}
             className="h-[3.25rem] w-full rounded-2xl border border-stone-200 bg-white py-3.5 pl-11 pr-4 text-sm text-stone-900 shadow-[0_2px_10px_rgba(0,0,0,0.06)] placeholder:text-stone-400/70 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200/60 sm:text-base"
           />
           {loading && (
@@ -137,7 +139,7 @@ export function CitySearchAutocomplete() {
           data-testid="city-autocomplete-submit"
           className="h-[3.25rem] rounded-2xl bg-rose-500 px-6 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(244,63,94,0.25)] transition hover:bg-rose-600 active:scale-[0.98] sm:px-7 sm:text-base"
         >
-          Zoek woningen
+          {t("home.searchCta")}
         </button>
       </div>
 
@@ -149,7 +151,7 @@ export function CitySearchAutocomplete() {
           data-testid="city-autocomplete-dropdown"
         >
           {suggestions.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-stone-400">Geen resultaten gevonden</p>
+            <p className="px-4 py-3 text-sm text-stone-400">{t("home.noResults")}</p>
           ) : (
             <ul className="max-h-60 overflow-y-auto py-1.5">
               {suggestions.map((city, i) => (

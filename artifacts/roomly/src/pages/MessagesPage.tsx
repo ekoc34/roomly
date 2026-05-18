@@ -19,17 +19,17 @@ function PersonSilhouette() {
   );
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const now = Date.now();
   const then = new Date(dateStr).getTime();
   const diffSec = Math.floor((now - then) / 1000);
-  if (diffSec < 60) return "zojuist";
+  if (diffSec < 60) return t("timeAgo.justNow");
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} min geleden`;
+  if (diffMin < 60) return t("timeAgo.minutesAgo", { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr} uur geleden`;
+  if (diffHr < 24) return t("timeAgo.hoursAgo", { count: diffHr });
   const diffDay = Math.floor(diffHr / 24);
-  if (diffDay <= 7) return `${diffDay} dag${diffDay === 1 ? "" : "en"} geleden`;
+  if (diffDay <= 7) return diffDay === 1 ? t("timeAgo.oneDayAgo") : t("timeAgo.daysAgo", { count: diffDay });
   return new Date(dateStr).toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
 }
 
@@ -57,7 +57,7 @@ export function MessagesPage() {
 
         if (queryError) {
           console.error("[MessagesPage] Supabase query error:", queryError);
-          setError("Er is iets misgegaan bij het ophalen van je berichten.");
+          setError(t("messages.fetchError"));
           setConvs([]);
           setLoading(false);
           return;
@@ -87,7 +87,7 @@ export function MessagesPage() {
         setConvs(rows);
       } catch (err) {
         console.error("[MessagesPage] Unexpected error fetching conversations:", err);
-        setError("Er is iets misgegaan. Probeer de pagina opnieuw te laden.");
+        setError(t("messages.generalError"));
         setConvs([]);
       } finally {
         setLoading(false);
@@ -171,10 +171,10 @@ export function MessagesPage() {
     if (undoError) {
       console.error("[MessagesPage] Failed to restore conversation:", undoError);
       setConvs((prev) => prev.filter((c) => c.id !== conv.id));
-      toast.error("Herstellen mislukt. Probeer het opnieuw.");
+      toast.error(t("messages.restoreError"));
       return;
     }
-    toast.success("Gesprek hersteld");
+    toast.success(t("messages.restored"));
   }
 
   async function handleDelete(convId: string) {
@@ -188,14 +188,14 @@ export function MessagesPage() {
     if (updateError) {
       console.error("[MessagesPage] Failed to hide conversation:", updateError);
       if (conv) setConvs((prev) => [conv, ...prev]);
-      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+      toast.error(t("messages.deleteError"));
       setDeleting(false);
       return;
     }
     if (conv) {
       toast(t("messages.deleteConversation"), {
         duration: 6000,
-        action: { label: "Ongedaan maken", onClick: () => handleUndo(conv) },
+        action: { label: t("messages.undoAction"), onClick: () => handleUndo(conv) },
       });
     }
     setDeleting(false);
@@ -245,8 +245,8 @@ export function MessagesPage() {
         <div className="space-y-2">
           {convs.map((conv) => {
             const initial = (conv.other?.name ?? conv.other?.email ?? "?").slice(0, 1).toUpperCase();
-            const title = conv.listing?.title ?? "Verwijderde advertentie";
-            const ts = conv.last_message_at ? timeAgo(conv.last_message_at) : "";
+            const title = conv.listing?.title ?? t("messages.deletedListing");
+            const ts = conv.last_message_at ? timeAgo(conv.last_message_at, t) : "";
             const preview = conv.lastMsg
               ? conv.lastMsg.body.slice(0, 60) + (conv.lastMsg.body.length > 60 ? "…" : "")
               : null;

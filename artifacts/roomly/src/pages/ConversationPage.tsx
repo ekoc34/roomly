@@ -4,6 +4,7 @@ import { Ban, Check, CheckCheck, Flag, Unlock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { ChatComposer } from "@/components/messages/ChatComposer";
 import { ReportModal } from "@/components/moderation/ReportModal";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
@@ -49,6 +50,7 @@ function ConversationSkeleton() {
 export function ConversationPage() {
   const params = useParams<{ id: string }>();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [listing, setListing] = useState<Listing | null>(null);
   const [other, setOther] = useState<Profile | null>(null);
@@ -349,9 +351,9 @@ export function ConversationPage() {
       reported_id: other.id,
       reason: "blocked",
     });
-    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
+    if (error) { toast.error(t("conversation.actionError")); return; }
     setBlockedByMe(true);
-    toast.success("Gebruiker geblokkeerd.");
+    toast.success(t("conversation.blockSuccess"));
   }, [user, other]);
 
   const handleUnblock = useCallback(async () => {
@@ -362,9 +364,9 @@ export function ConversationPage() {
       .eq("reporter_id", user.id)
       .eq("reported_id", other.id)
       .eq("reason", "blocked");
-    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
+    if (error) { toast.error(t("conversation.actionError")); return; }
     setBlockedByMe(false);
-    toast.success("Blokkade opgeheven.");
+    toast.success(t("conversation.unblockSuccess"));
   }, [user, other]);
 
   const handleReport = useCallback(async (reason: string) => {
@@ -375,8 +377,8 @@ export function ConversationPage() {
       reported_id: other.id,
       reason,
     });
-    if (error) { toast.error("Actie mislukt. Probeer opnieuw."); return; }
-    toast.success("Gebruiker gerapporteerd.");
+    if (error) { toast.error(t("conversation.actionError")); return; }
+    toast.success(t("conversation.reportSuccess"));
   }, [user, other]);
 
   if (loading) return <ConversationSkeleton />;
@@ -389,9 +391,9 @@ export function ConversationPage() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
         </div>
-        <h1 className="mt-4 text-xl font-semibold text-stone-900">Gesprek niet gevonden</h1>
-        <p className="mt-2 text-sm text-stone-500">Dit gesprek bestaat niet of je hebt geen toegang.</p>
-        <Link href="/berichten" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">Terug naar berichten</Link>
+        <h1 className="mt-4 text-xl font-semibold text-stone-900">{t("conversation.notFound")}</h1>
+        <p className="mt-2 text-sm text-stone-500">{t("conversation.notFoundDesc")}</p>
+        <Link href="/berichten" className="mt-6 inline-block rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-rose-600">{t("conversation.backToMessages")}</Link>
       </div>
     );
   }
@@ -438,40 +440,40 @@ export function ConversationPage() {
               onClick={() => setShowOtherPanel(true)}
               className="truncate text-sm font-semibold text-stone-900 transition hover:text-rose-600 hover:underline"
             >
-              {other?.name ?? "Gebruiker"}
+              {other?.name ?? t("conversation.unknownUser")}
             </button>
 
             {blockedByMe ? (
               <button
                 type="button"
-                title="Blokkade opheffen"
+                title={t("conversation.unblockUserTitle")}
                 onClick={handleUnblock}
                 className="flex shrink-0 items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-700 transition hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 active:scale-95"
               >
                 <Unlock className="h-3 w-3" />
-                Blokkade opheffen
+                {t("conversation.unblockUser")}
               </button>
             ) : (
               <button
                 type="button"
-                title="Blokkeer gebruiker"
+                title={t("conversation.blockUserTitle")}
                 onClick={handleBlock}
                 className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700 active:scale-95"
               >
                 <Ban className="h-3 w-3" />
-                Blokkeer
+                {t("conversation.blockUser")}
               </button>
             )}
 
             <div className="relative" ref={reportMenuRef}>
               <button
                 type="button"
-                title="Rapporteer gebruiker"
+                title={t("conversation.reportUserTitle")}
                 onClick={() => setShowReportMenu((v) => !v)}
                 className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
               >
                 <Flag className="h-3 w-3" />
-                Rapporteer
+                {t("conversation.reportUser")}
               </button>
               {showReportMenu && (
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-stone-200 bg-white py-1 shadow-lg">
@@ -494,7 +496,7 @@ export function ConversationPage() {
               className="flex shrink-0 items-center gap-1 rounded-lg border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
             >
               <Flag className="h-3 w-3" />
-              Gesprek
+              {t("conversation.reportConversationBtn")}
             </button>
           </div>
           {listing && (
@@ -520,14 +522,14 @@ export function ConversationPage() {
               {loadingOlder ? (
                 <>
                   <span className="h-3 w-3 animate-spin rounded-full border border-stone-300 border-t-rose-500" />
-                  Laden…
+                  {t("common.loading")}
                 </>
               ) : (
                 <>
                   <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                   </svg>
-                  Laad oudere berichten
+                  {t("conversation.loadOlder")}
                 </>
               )}
             </button>
@@ -541,8 +543,8 @@ export function ConversationPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <p className="mt-3 text-sm font-medium text-stone-700">Nog geen berichten</p>
-            <p className="mt-1 text-xs text-stone-400">Stuur als eerste een bericht!</p>
+            <p className="mt-3 text-sm font-medium text-stone-700">{t("conversation.noMessages")}</p>
+            <p className="mt-1 text-xs text-stone-400">{t("conversation.noMessagesFirst")}</p>
           </div>
         )}
         {messages.map((msg) => {
@@ -570,12 +572,12 @@ export function ConversationPage() {
                   {isRead ? (
                     <>
                       <CheckCheck className="h-3 w-3 text-blue-500" />
-                      <span className="text-[10px] text-blue-500">Gelezen</span>
+                      <span className="text-[10px] text-blue-500">{t("conversation.messageRead")}</span>
                     </>
                   ) : (
                     <>
                       <Check className="h-3 w-3 text-stone-400" />
-                      <span className="text-[10px] text-stone-400">Verzonden</span>
+                      <span className="text-[10px] text-stone-400">{t("conversation.messageSent")}</span>
                     </>
                   )}
                 </div>
@@ -593,7 +595,7 @@ export function ConversationPage() {
         const landlordHasReplied = messages.some(m => m.sender_id === conversation.landlord_id);
         const isLocked = isTenant && tenantHasSent && !landlordHasReplied;
         const blockedMessage = (blockedByMe || blockedByOther)
-          ? "Je kunt geen berichten sturen naar deze gebruiker."
+          ? t("conversation.blockedError")
           : undefined;
         return (
           <div className="sticky bottom-[4.5rem] rounded-2xl border border-stone-200/80 bg-white p-3 shadow-md md:bottom-4">
@@ -604,7 +606,7 @@ export function ConversationPage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:150ms]" />
                   <span className="h-1.5 w-1.5 rounded-full bg-stone-400 animate-bounce [animation-delay:300ms]" />
                 </span>
-                <span className="text-xs text-stone-400">… aan het typen</span>
+                <span className="text-xs text-stone-400">{t("conversation.isTyping")}</span>
               </div>
             )}
             <ChatComposer
@@ -624,7 +626,7 @@ export function ConversationPage() {
         <ReportModal
           targetType="conversation"
           targetId={conversation.id}
-          targetLabel="dit gesprek"
+          targetLabel={t("conversation.reportConversationLabel")}
           onClose={() => setReportConvOpen(false)}
         />
       )}

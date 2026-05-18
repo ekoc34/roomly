@@ -4,15 +4,16 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import type { Notification } from "@/types/database";
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, params?: Record<string, string | number>) => string): string {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return "zojuist";
-  if (diff < 3600) return `${Math.floor(diff / 60)} min geleden`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} uur geleden`;
-  if (diff < 86400 * 2) return "1 dag geleden";
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} dagen geleden`;
+  if (diff < 60) return t("timeAgo.justNow");
+  if (diff < 3600) return t("timeAgo.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("timeAgo.hoursAgo", { count: Math.floor(diff / 3600) });
+  if (diff < 86400 * 2) return t("timeAgo.oneDayAgo");
+  if (diff < 86400 * 7) return t("timeAgo.daysAgo", { count: Math.floor(diff / 86400) });
   return new Date(dateStr).toLocaleDateString("nl-NL", { day: "numeric", month: "long" });
 }
 
@@ -86,6 +87,7 @@ function NotificationsSkeleton() {
 export function NotificationsPage() {
   const { user, loading: authLoading } = useAuth();
   const [, navigate] = useLocation();
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
@@ -162,9 +164,9 @@ export function NotificationsPage() {
     const { error } = await supabase.from("notifications").delete().eq("id", id);
     if (error) {
       setNotifications(previous);
-      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+      toast.error(t("notifications.deleteError"));
     } else {
-      toast.success("Melding verwijderd.");
+      toast.success(t("notifications.deleteSuccess"));
     }
   };
 
@@ -183,9 +185,14 @@ export function NotificationsPage() {
     setDeletingAll(false);
     if (error) {
       setNotifications(previous);
-      toast.error("Verwijderen mislukt. Probeer het opnieuw.");
+      toast.error(t("notifications.deleteError"));
     } else {
-      toast.success(`${readIds.length} melding${readIds.length !== 1 ? "en" : ""} verwijderd.`);
+      const count = readIds.length;
+      toast.success(
+        count === 1
+          ? t("notifications.deletedCountSingular", { count })
+          : t("notifications.deletedCountPlural", { count })
+      );
     }
   };
 
@@ -195,15 +202,19 @@ export function NotificationsPage() {
   return (
     <>
       <Helmet>
-        <title>Notificaties — Welkthuis.nl</title>
-        <meta name="description" content="Bekijk al je meldingen op één plek." />
+        <title>{t("notifications.pageTitle")} — Welkthuis.nl</title>
+        <meta name="description" content={t("notifications.pageMetaDesc")} />
       </Helmet>
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-stone-900">Notificatiecentrum</h1>
+            <h1 className="text-2xl font-bold text-stone-900">{t("notifications.pageTitle")}</h1>
             <p className="mt-0.5 text-sm text-stone-500">
-              {unreadCount > 0 ? `${unreadCount} ongelezen melding${unreadCount !== 1 ? "en" : ""}` : "Alle meldingen gelezen"}
+              {unreadCount > 0
+                ? (unreadCount === 1
+                  ? t("notifications.unreadCount", { count: unreadCount })
+                  : t("notifications.unreadCountPlural", { count: unreadCount }))
+                : t("notifications.allRead")}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -214,7 +225,7 @@ export function NotificationsPage() {
                 disabled={markingAll}
                 className="shrink-0 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
               >
-                {markingAll ? "Bezig…" : "Alles als gelezen markeren"}
+                {markingAll ? t("notifications.markingRead") : t("notifications.markAllRead")}
               </button>
             )}
             {readCount > 0 && !confirmDeleteAll && (
@@ -224,27 +235,27 @@ export function NotificationsPage() {
                 disabled={deletingAll}
                 className="shrink-0 rounded-full border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
               >
-                Verwijder alle gelezen meldingen
+                {t("notifications.deleteAllRead")}
               </button>
             )}
             {confirmDeleteAll && (
               <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2">
                 <p className="text-sm font-medium text-rose-800">
-                  Weet je zeker dat je alle gelezen meldingen wilt verwijderen?
+                  {t("notifications.confirmDeleteAll")}
                 </p>
                 <button
                   type="button"
                   onClick={handleDeleteAllRead}
                   className="rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95"
                 >
-                  Ja, verwijderen
+                  {t("common.confirmDelete")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmDeleteAll(false)}
                   className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95"
                 >
-                  Annuleren
+                  {t("common.cancel")}
                 </button>
               </div>
             )}
@@ -260,8 +271,8 @@ export function NotificationsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
             </div>
-            <p className="mt-4 text-base font-semibold text-stone-700">Geen notificaties</p>
-            <p className="mt-1 text-sm text-stone-400">Je hebt nog geen meldingen ontvangen.</p>
+            <p className="mt-4 text-base font-semibold text-stone-700">{t("notifications.empty")}</p>
+            <p className="mt-1 text-sm text-stone-400">{t("notifications.emptyDesc")}</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm divide-y divide-stone-100">
@@ -272,7 +283,6 @@ export function NotificationsPage() {
                   !n.read ? "bg-rose-50/50" : "bg-white"
                 } hover:bg-stone-50`}
               >
-                {/* Main clickable area */}
                 <button
                   type="button"
                   onClick={() => handleNavigate(n)}
@@ -291,17 +301,16 @@ export function NotificationsPage() {
                     {n.body && (
                       <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{n.body}</p>
                     )}
-                    <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at)}</p>
+                    <p className="mt-1 text-xs text-stone-400">{timeAgo(n.created_at, t)}</p>
                   </div>
                   <svg className="mt-1 h-4 w-4 shrink-0 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
 
-                {/* Delete button — only icon, no text, no red background */}
                 <button
                   type="button"
-                  aria-label="Melding verwijderen"
+                  aria-label={t("notifications.deleteAriaLabel")}
                   onClick={() => handleDeleteOne(n.id)}
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-stone-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
                 >

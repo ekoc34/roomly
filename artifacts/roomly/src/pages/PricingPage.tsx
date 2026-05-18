@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { stripePromise } from "@/lib/stripe";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/lib/plausible";
 
 const PACKAGES = [
@@ -14,7 +15,7 @@ const PACKAGES = [
     name: "Starter",
     credits: 1,
     price: 1.99,
-    description: "Probeer het uit",
+    descKey: "pricing.pkgStarterDesc" as const,
     Icon: Zap,
     iconColor: "text-sky-500",
     iconBg: "bg-sky-50",
@@ -25,7 +26,7 @@ const PACKAGES = [
     name: "Populair",
     credits: 5,
     price: 7.99,
-    description: "Meest gekozen",
+    descKey: "pricing.pkgPopularDesc" as const,
     Icon: Star,
     iconColor: "text-rose-500",
     iconBg: "bg-rose-50",
@@ -36,7 +37,7 @@ const PACKAGES = [
     name: "Pro",
     credits: 15,
     price: 19.99,
-    description: "Serieuze verhuurder",
+    descKey: "pricing.pkgProDesc" as const,
     Icon: Rocket,
     iconColor: "text-violet-500",
     iconBg: "bg-violet-50",
@@ -52,6 +53,7 @@ function formatPrice(price: number) {
 
 function PricingContent() {
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   const [loadingId, setLoadingId] = useState<PackageId | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -90,7 +92,7 @@ function PricingContent() {
       });
       const json = await resp.json();
       if (!resp.ok || !json.url) {
-        toast.error(json.error ?? "Kon betaling niet starten. Probeer opnieuw.");
+        toast.error(json.error ?? t("pricing.errorStart"));
         return;
       }
 
@@ -98,7 +100,7 @@ function PricingContent() {
 
       window.location.href = json.url;
     } catch {
-      toast.error("Er is een fout opgetreden. Probeer opnieuw.");
+      toast.error(t("pricing.errorGeneral"));
     } finally {
       setLoadingId(null);
     }
@@ -107,15 +109,15 @@ function PricingContent() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
       <nav className="mb-8 text-sm text-stone-500">
-        <Link href="/dashboard" className="hover:text-rose-600">Dashboard</Link>
+        <Link href="/dashboard" className="hover:text-rose-600">{t("nav.dashboard")}</Link>
         <span className="mx-2">›</span>
-        <span className="text-stone-700">Boost Credits</span>
+        <span className="text-stone-700">{t("pricing.breadcrumb")}</span>
       </nav>
 
       <div className="mb-12 text-center">
-        <h1 className="text-3xl font-black text-stone-900">Boost Credits kopen</h1>
+        <h1 className="text-3xl font-black text-stone-900">{t("pricing.pageTitle")}</h1>
         <p className="mt-3 mx-auto max-w-md text-sm text-stone-500">
-          Licht je advertentie uit en bereik meer huurders. Betaal snel en veilig via iDEAL.
+          {t("pricing.pageSubtitle")}
         </p>
       </div>
 
@@ -134,12 +136,12 @@ function PricingContent() {
               <Info className="h-5 w-5 text-stone-400" />
             </div>
           </div>
-          <p className="text-base font-semibold text-stone-700">Alleen beschikbaar voor verhuurders.</p>
+          <p className="text-base font-semibold text-stone-700">{t("pricing.landlordOnly")}</p>
           <p className="mt-2 text-sm text-stone-400">
-            Boost Credits zijn bedoeld voor verhuurders die advertenties plaatsen.
+            {t("pricing.landlordOnlyDesc")}
           </p>
           <Link href="/dashboard" className="mt-6 inline-block text-sm text-stone-400 underline underline-offset-2 hover:text-stone-600">
-            Terug naar dashboard
+            {t("pricing.backToDashboard")}
           </Link>
         </div>
       ) : (
@@ -161,7 +163,7 @@ function PricingContent() {
                 >
                   {pkg.popular && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-rose-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
-                      Meest gekozen
+                      {t("pricing.pkgPopularBadge")}
                     </span>
                   )}
 
@@ -169,17 +171,17 @@ function PricingContent() {
                     <Icon className={`h-6 w-6 ${pkg.iconColor}`} />
                   </div>
 
-                  <p className="text-xs font-medium text-stone-500">{pkg.description}</p>
+                  <p className="text-xs font-medium text-stone-500">{t(pkg.descKey)}</p>
                   <h2 className="mt-1 text-xl font-black text-stone-900">{pkg.name}</h2>
 
                   <div className="mt-3 flex items-baseline gap-1">
                     <span className="text-3xl font-black text-stone-900">{formatPrice(pkg.price)}</span>
                   </div>
                   <p className="mt-1 text-sm text-stone-500">
-                    {pkg.credits === 1 ? "1 Boost Credit" : `${pkg.credits} Boost Credits`}
+                    {pkg.credits === 1 ? t("pricing.creditSingular") : t("pricing.creditPlural", { count: pkg.credits })}
                   </p>
                   <p className="mt-0.5 text-xs text-stone-400">
-                    {formatPrice(pkg.price / pkg.credits)} per credit
+                    {t("pricing.perCredit", { price: formatPrice(pkg.price / pkg.credits) })}
                   </p>
 
                   <div className="mt-auto pt-6">
@@ -188,7 +190,7 @@ function PricingContent() {
                         href="/inloggen?next=/pricing"
                         className="block w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
                       >
-                        Inloggen om te kopen
+                        {t("pricing.loginToBuy")}
                       </Link>
                     ) : (
                       <button
@@ -196,7 +198,7 @@ function PricingContent() {
                         disabled={isLoading || anyLoading}
                         className="w-full rounded-2xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isLoading ? "Laden…" : "Koop nu"}
+                        {isLoading ? t("common.loading") : t("pricing.buyNow")}
                       </button>
                     )}
                   </div>
@@ -208,7 +210,7 @@ function PricingContent() {
           <div className="mt-10 flex flex-col items-center gap-3">
             <div className="flex items-center gap-2 rounded-2xl border border-stone-100 bg-white px-5 py-3 text-xs text-stone-500 shadow-sm">
               <Info className="h-3.5 w-3.5 shrink-0 text-stone-400" />
-              Beveiligd via <strong className="text-stone-700">iDEAL</strong> · Veilige betaling via Stripe
+              {t("pricing.paymentSafe", { method: "iDEAL" })}
             </div>
           </div>
         </>
