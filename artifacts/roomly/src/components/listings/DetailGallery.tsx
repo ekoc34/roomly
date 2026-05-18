@@ -6,6 +6,19 @@ type Props = {
   title: string;
 };
 
+// ── Shared image placeholder ──────────────────────────────────────────────────
+
+function ImgFallback({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex flex-col items-center justify-center gap-2 bg-stone-100 ${className}`}>
+      <svg className="h-8 w-8 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <span className="text-xs text-stone-300">Foto niet beschikbaar</span>
+    </div>
+  );
+}
+
 // ── Focus trap hook ──────────────────────────────────────────────────────────
 
 function useFocusTrap(ref: React.RefObject<HTMLDivElement | null>) {
@@ -33,6 +46,49 @@ function useFocusTrap(ref: React.RefObject<HTMLDivElement | null>) {
 
 // ── Lightbox ─────────────────────────────────────────────────────────────────
 
+function LightboxImage({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div className="flex h-48 w-full max-w-lg flex-col items-center justify-center gap-3 rounded-xl">
+        <svg className="h-10 w-10 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span className="text-sm text-white/30">Foto niet beschikbaar</span>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {!loaded && (
+        <div className="absolute inset-x-16 inset-y-4 flex items-center justify-center">
+          <div
+            className="h-48 w-full max-w-lg rounded-xl opacity-10"
+            style={{
+              background: "linear-gradient(90deg,#333 25%,#444 50%,#333 75%)",
+              backgroundSize: "200% 100%",
+              animation: "skeleton-shimmer 1.4s ease-in-out infinite",
+            }}
+          />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={`max-h-full max-w-full select-none rounded-lg object-contain transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={{ maxHeight: "calc(100vh - 10rem)" }}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        onClick={(e) => e.stopPropagation()}
+        draggable={false}
+      />
+    </>
+  );
+}
+
 function Lightbox({
   images,
   title,
@@ -45,7 +101,6 @@ function Lightbox({
   onClose: () => void;
 }) {
   const [current, setCurrent] = useState(startIndex);
-  const [loaded, setLoaded] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -53,12 +108,10 @@ function Lightbox({
 
   const prev = useCallback(() => {
     setCurrent((i) => (i > 0 ? i - 1 : images.length - 1));
-    setLoaded(false);
   }, [images.length]);
 
   const next = useCallback(() => {
     setCurrent((i) => (i < images.length - 1 ? i + 1 : 0));
-    setLoaded(false);
   }, [images.length]);
 
   useEffect(() => {
@@ -85,7 +138,6 @@ function Lightbox({
     touchStartX.current = null;
   };
 
-  // Preload adjacent images
   useEffect(() => {
     const preload = (idx: number) => {
       if (images[idx]) {
@@ -134,29 +186,10 @@ function Lightbox({
         onTouchEnd={onTouchEnd}
         onClick={onClose}
       >
-        {/* Loading skeleton */}
-        {!loaded && (
-          <div className="absolute inset-x-16 inset-y-4 flex items-center justify-center">
-            <div
-              className="h-48 w-full max-w-lg rounded-xl opacity-10"
-              style={{
-                background: "linear-gradient(90deg,#333 25%,#444 50%,#333 75%)",
-                backgroundSize: "200% 100%",
-                animation: "skeleton-shimmer 1.4s ease-in-out infinite",
-              }}
-            />
-          </div>
-        )}
-
-        <img
+        <LightboxImage
           key={current}
           src={images[current]}
           alt={`${title} — foto ${current + 1}`}
-          className={`max-h-full max-w-full select-none rounded-lg object-contain transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
-          style={{ maxHeight: "calc(100vh - 10rem)" }}
-          onLoad={() => setLoaded(true)}
-          onClick={(e) => e.stopPropagation()}
-          draggable={false}
         />
 
         {/* Prev / Next arrows */}
@@ -190,25 +223,64 @@ function Lightbox({
       {images.length > 1 && (
         <div className="flex shrink-0 justify-center gap-1.5 overflow-x-auto px-4 py-3">
           {images.map((src, i) => (
-            <button
+            <ThumbnailButton
               key={i}
-              type="button"
-              onClick={() => { setCurrent(i); setLoaded(false); }}
-              aria-label={`Foto ${i + 1}`}
-              aria-pressed={i === current}
-              className={`h-11 w-16 shrink-0 overflow-hidden rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
-                i === current
-                  ? "ring-2 ring-white ring-offset-1 ring-offset-[#0f0f0f] opacity-100"
-                  : "opacity-35 hover:opacity-65"
-              }`}
-            >
-              <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
-            </button>
+              src={src}
+              index={i}
+              current={current}
+              onSelect={() => setCurrent(i)}
+            />
           ))}
         </div>
       )}
     </div>,
     document.body
+  );
+}
+
+// ── Lightbox thumbnail with error handling ────────────────────────────────────
+
+function ThumbnailButton({
+  src,
+  index,
+  current,
+  onSelect,
+}: {
+  src: string;
+  index: number;
+  current: number;
+  onSelect: () => void;
+}) {
+  const [error, setError] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label={`Foto ${index + 1}`}
+      aria-pressed={index === current}
+      className={`h-11 w-16 shrink-0 overflow-hidden rounded-md transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 ${
+        index === current
+          ? "ring-2 ring-white ring-offset-1 ring-offset-[#0f0f0f] opacity-100"
+          : "opacity-35 hover:opacity-65"
+      }`}
+    >
+      {error ? (
+        <div className="flex h-full w-full items-center justify-center bg-white/10">
+          <svg className="h-4 w-4 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          className="h-full w-full object-cover"
+          onError={() => setError(true)}
+        />
+      )}
+    </button>
   );
 }
 
@@ -241,6 +313,20 @@ function GalleryTile({
   roundingClass?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`${alt} — klik om te vergroten`}
+        className={`group relative block w-full overflow-hidden ${roundingClass} ${className}`}
+      >
+        <ImgFallback className="h-full w-full" />
+      </button>
+    );
+  }
 
   return (
     <button
@@ -255,10 +341,49 @@ function GalleryTile({
         alt={alt}
         loading={priority ? "eager" : "lazy"}
         onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
         className={`h-full w-full object-cover transition-all duration-300 group-hover:brightness-[0.93] ${loaded ? "opacity-100" : "opacity-0"}`}
         draggable={false}
       />
     </button>
+  );
+}
+
+// ── Mobile swipeable image with error handling ────────────────────────────────
+
+function MobileImage({
+  src,
+  alt,
+  loading,
+  visible,
+}: {
+  src: string;
+  alt: string;
+  loading: "eager" | "lazy";
+  visible: boolean;
+}) {
+  const [error, setError] = useState(false);
+
+  if (error) {
+    return (
+      <div
+        className={`absolute inset-0 transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+      >
+        <ImgFallback className="h-full w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading={loading}
+      className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}
+      onError={() => setError(true)}
+    />
   );
 }
 
@@ -324,16 +449,15 @@ export function DetailGallery({ images, title }: Props) {
           aria-label="Klik om foto's te bekijken"
         >
           {images.map((src, i) => (
-            <img
-              key={src}
+            <MobileImage
+              key={src + i}
               src={src}
               alt={i === 0 ? `${title} — hoofdfoto` : `${title} — foto ${i + 1}`}
               loading={i === 0 ? "eager" : "lazy"}
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-                i === mobileActive ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
+              visible={i === mobileActive}
             />
           ))}
+
           {images.length > 1 && (
             <>
               <button
@@ -416,7 +540,7 @@ export function DetailGallery({ images, title }: Props) {
                 const isLast = i === Math.min(rest.length, 2) - 1;
                 const hiddenCount = totalExtra > 2 ? totalExtra - 2 : 0;
                 return (
-                  <div key={src} className="relative h-full overflow-hidden">
+                  <div key={src + i} className="relative h-full overflow-hidden">
                     <GalleryTile
                       src={src}
                       alt={`${title} — foto ${globalIndex + 1}`}
@@ -430,7 +554,6 @@ export function DetailGallery({ images, title }: Props) {
                           : "rounded-bl-lg rounded-br-2xl"
                       }
                     />
-                    {/* "Alle foto's" badge on last slot when there are hidden images */}
                     {isLast && hiddenCount > 0 && (
                       <button
                         type="button"

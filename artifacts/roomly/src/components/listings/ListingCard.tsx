@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "wouter";
 import { Users } from "lucide-react";
 import { FavoriteButton } from "@/components/listings/FavoriteButton";
@@ -48,6 +49,32 @@ function OwnerAvatar({ avatarUrl, name }: { avatarUrl?: string | null; name?: st
   );
 }
 
+function ImagePlaceholder() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-2 bg-stone-50">
+      <svg className="h-9 w-9 text-stone-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+      <span className="text-[10px] text-stone-300">Geen foto</span>
+    </div>
+  );
+}
+
+function CardImage({ src, alt }: { src: string; alt: string }) {
+  const [error, setError] = useState(false);
+
+  if (error) return <ImagePlaceholder />;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="h-full w-full object-cover transition group-hover:scale-[1.02]"
+      onError={() => setError(true)}
+    />
+  );
+}
+
 export function ListingCard({ listing, isFavorited = false, verificationBadge, avgResponseTimeHours, currentUserId, ownerAvatarUrl, ownerName }: Props) {
   const isLandlordVerified = !!verificationBadge;
   const img = listing.images[0];
@@ -66,14 +93,11 @@ export function ListingCard({ listing, isFavorited = false, verificationBadge, a
       >
         <div className="relative aspect-[4/3] bg-stone-50">
           {img ? (
-            <img src={img} alt={listing.title} className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+            <CardImage src={img} alt={listing.title} />
           ) : (
-            <div className="flex h-full items-center justify-center bg-stone-50">
-              <svg className="h-9 w-9 text-stone-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-            </div>
+            <ImagePlaceholder />
           )}
+
           <div className="absolute left-3 top-3 flex flex-col gap-1">
             {newLabel === "vandaag" && (
               <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium tracking-wide text-emerald-700">
