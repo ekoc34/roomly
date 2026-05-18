@@ -1,0 +1,293 @@
+Implement an “Identity Verified” trust layer for users who want to publish listings on Welkthuis.
+
+Goal:
+Only listing creators / landlords / advertisers must complete identity verification before they can publish a listing.
+
+This is a trust and safety feature for the housing marketplace:
+
+* reduce fake listings
+* reduce scam landlords
+* increase confidence for tenants
+* keep the platform calm, premium, and privacy-first
+
+Important:
+
+* Do NOT make this a full KYC or banking-style system
+* Do NOT expose identity documents publicly
+* Do NOT require identity verification for regular browsing or messaging users
+* Do require identity verification before a user can publish a listing
+
+==================================================
+PART 1 — VERIFICATION POLICY
+============================
+
+Make identity verification mandatory only for users who want to publish a listing.
+
+Rules:
+
+1. A user may browse, save favorites, and message normally without identity verification.
+2. A user may create a draft listing, but cannot publish it until identity verification is approved.
+3. If identity verification is pending or rejected, the “Publish” action must be blocked with a clear explanation.
+4. Once verified, the user receives an “Identity verified” badge and can publish listings.
+5. Identity verification should be reusable for future listings by the same account.
+
+==================================================
+PART 2 — USER FLOW
+==================
+
+Add a verification flow for listing creators.
+
+Flow:
+
+1. User clicks “Advertentie plaatsen”
+2. If not identity verified, show a clear step explaining:
+
+   * why verification is needed
+   * that documents are private
+   * that it helps protect tenants
+3. User uploads identity document
+4. User submits verification request
+5. Status becomes:
+
+   * pending review
+6. Admin manually reviews it
+7. User receives:
+
+   * approved
+   * rejected
+8. If rejected:
+
+   * show a short rejection reason
+   * allow resubmission
+
+The publish flow must clearly communicate:
+
+* draft can be saved
+* publishing requires identity verification approval
+
+==================================================
+PART 3 — DOCUMENT UPLOADS
+=========================
+
+Allow users to upload one of the following:
+
+* passport
+* EU ID card
+* Dutch residence permit
+* driver license
+
+Requirements:
+
+* image and PDF only
+* file size limits
+* secure upload handling
+* mobile-friendly upload UI
+* clear success/error states
+
+==================================================
+PART 4 — PRIVACY & SECURITY
+===========================
+
+This is critical.
+
+Requirements:
+
+* uploaded documents must be private
+* no public document URLs
+* no public listing API exposure
+* no document metadata exposed to other users
+* only the owner and admins can access the verification status
+* admins can review documents through secure signed access
+* review actions must be audit logged
+
+Add soft privacy reassurance text such as:
+
+* “Je documenten worden niet openbaar gedeeld.”
+* “Alleen ons team kan je verificatie beoordelen.”
+
+Do NOT use fear-based copy.
+
+==================================================
+PART 5 — DATABASE / STORAGE
+===========================
+
+Create a secure verification system with Supabase.
+
+Add:
+
+* identity_verifications table
+* private storage bucket for uploads
+* moderation/review status
+* admin review logging
+
+The table should support:
+
+* user_id
+* status:
+
+  * pending
+  * approved
+  * rejected
+* document_type
+* document_url
+* reviewed_by
+* reviewed_at
+* rejection_reason
+* created_at
+* updated_at
+
+Rules:
+
+* one active request per user at a time
+* users can resubmit after rejection
+* RLS must prevent public access
+* admins can view all requests
+* private storage only
+
+==================================================
+PART 6 — LISTING PUBLISH GATE
+=============================
+
+Add a hard gate to listing publication.
+
+When a user tries to publish:
+
+* if identity verified: allow publish
+* if not verified: block publish
+* show a clear prompt explaining the verification requirement
+* offer a CTA to start verification immediately
+
+This should be integrated into the listing creation flow and the dashboard publish controls.
+
+==================================================
+PART 7 — BADGE SYSTEM
+=====================
+
+Add an “Identity verified” badge for listing creators.
+
+Badge should appear in:
+
+* listing cards
+* listing detail page landlord panel
+* landlord profile area
+* conversation headers where relevant
+* applicant/landlord trust indicators
+
+Badge hierarchy should remain calm and subtle:
+
+* Email verified
+* Phone verified
+* Identity verified
+
+Identity verified should be the strongest trust level for listing creators.
+
+==================================================
+PART 8 — ADMIN MODERATION
+=========================
+
+Add admin tooling for reviewing identity verification requests.
+
+Admins should be able to:
+
+* view pending requests
+* preview documents securely
+* approve request
+* reject request
+* add rejection reason
+* view review history
+* filter by status
+
+Security:
+
+* every action must be logged
+* signed URLs must expire
+* no sensitive file caching
+
+==================================================
+PART 9 — INTERNATIONALIZATION
+=============================
+
+Everything in this flow must be fully translated using the existing i18n system.
+
+Support:
+
+* Dutch
+* English
+
+Translate all:
+
+* page titles
+* labels
+* buttons
+* status text
+* upload instructions
+* error messages
+* admin review labels
+* trust copy
+* rejection reasons
+* helper text
+* toasts
+
+==================================================
+PART 10 — UX / COPY
+===================
+
+Tone:
+
+* calm
+* trustworthy
+* professional
+* reassuring
+
+Avoid:
+
+* scary security language
+* “KYC”
+* “fraud-proof”
+* “government certified”
+* overly legal or banking-style wording
+
+Good tone examples:
+
+* “Verifieer je profiel om woningen te publiceren”
+* “Identity verified”
+* “Je documenten blijven privé”
+* “Gebruik deze verificatie om je advertentie te publiceren”
+
+==================================================
+PART 11 — MOBILE UX
+===================
+
+The full verification and publish-gate flow must work smoothly on mobile.
+
+Requirements:
+
+* clear upload buttons
+* readable helper text
+* responsive layout
+* no cramped modals
+* easy resubmission
+* clear blocking message if publish is disabled
+
+==================================================
+PART 12 — FINAL EXPECTATION
+===========================
+
+The final result should feel like:
+
+* a serious marketplace trust layer
+* privacy-first verification
+* landlord/listing-owner verification only
+* premium and calm
+* practical for a real housing platform
+
+After implementation, summarize:
+
+* database/storage changes
+* publish gate logic
+* badge logic
+* admin review flow
+* privacy protections
+* i18n coverage
+* mobile behavior
+* how verified listing creators are now required before publishing

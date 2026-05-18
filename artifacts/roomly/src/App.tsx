@@ -51,6 +51,7 @@ const PrivacyPage = lazy(() => import("@/pages/PrivacyPage").then((m) => ({ defa
 const VoorwaardenPage = lazy(() => import("@/pages/VoorwaardenPage").then((m) => ({ default: m.VoorwaardenPage })));
 const CookiesPage = lazy(() => import("@/pages/CookiesPage").then((m) => ({ default: m.CookiesPage })));
 const CookieVoorkeurenPage = lazy(() => import("@/pages/CookieVoorkeurenPage").then((m) => ({ default: m.CookieVoorkeurenPage })));
+const VerificationPage = lazy(() => import("@/pages/VerificationPage").then((m) => ({ default: m.VerificationPage })));
 
 function PageLoader() {
   return (
@@ -127,6 +128,7 @@ function Router() {
       <Route path="/voorwaarden" component={() => <AnimatedRoute component={VoorwaardenPage} />} />
       <Route path="/cookies" component={() => <AnimatedRoute component={CookiesPage} />} />
       <Route path="/cookievoorkeuren" component={() => <AnimatedRoute component={CookieVoorkeurenPage} />} />
+      <Route path="/verificatie" component={() => <AnimatedRoute component={VerificationPage} />} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -47,6 +47,7 @@ export type Profile = {
   avg_response_time_hours?: number | null;
   suspended_until?: string | null;
   ban_reason?: string | null;
+  identity_verified?: boolean;
 };
 
 export type Listing = {
@@ -168,4 +169,26 @@ export type UserReport = {
   reason: "blocked" | "reported";
   resolved: boolean;
   created_at: string;
+};
+
+export type IdentityVerificationStatus = "pending" | "approved" | "rejected";
+
+export type IdentityDocumentType =
+  | "passport"
+  | "id_card"
+  | "residence_permit"
+  | "drivers_license";
+
+export type IdentityVerification = {
+  id: string;
+  user_id: string;
+  status: IdentityVerificationStatus;
+  document_type: IdentityDocumentType;
+  document_path: string;
+  rejection_reason: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  submitted_at: string;
+  created_at: string;
+  updated_at: string;
 };

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ShieldCheck, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/hooks/useAuth";
+import { useIdentityVerification } from "@/hooks/useIdentityVerification";
 import { trackEvent } from "@/lib/plausible";
 import { LISTING_TYPE_LABELS, CITY_DISTRICTS } from "@/lib/constants";
 import { ListingImageUpload } from "@/components/listings/ListingImageUpload";
@@ -55,6 +56,7 @@ export function NewListingPage() {
   const [district, setDistrict] = useState("");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [activeListingCount, setActiveListingCount] = useState<number | null>(null);
+  const { verification: idVerification } = useIdentityVerification();
   const [bannerDismissed, setBannerDismissed] = useState<boolean>(
     () => localStorage.getItem(BANNER_DISMISSED_KEY) === "1"
   );
@@ -147,6 +149,12 @@ export function NewListingPage() {
     setShowPreview(true);
   };
 
+  // ── Identity verification gate ───────────────────────────────────────────
+  const isAdmin = profile?.role === "admin";
+  const isIdentityVerified = profile?.identity_verified === true;
+  const profileLoaded = profile !== null;
+  const needsVerificationGate = profileLoaded && !isAdmin && !isIdentityVerified;
+
   if (!authLoading && !user) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
@@ -193,6 +201,12 @@ export function NewListingPage() {
 
     startTransition(async () => {
       if (!supabase || !user) { setError("Niet ingelogd."); return; }
+
+      // ── Identity verification gate (server-side guard) ──────────────────
+      if (!isAdmin && !isIdentityVerified) {
+        setError("Je moet je identiteit verifiëren voordat je een advertentie kunt plaatsen.");
+        return;
+      }
 
       // ── Server-side rate limit + duplicate check ────────────────────────
       const { data: checkResult } = await supabase.rpc("check_listing_allowed", {
@@ -458,27 +472,96 @@ export function NewListingPage() {
               <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">{error}</p>
             )}
 
-            {/* Submit */}
-            <div className="space-y-3">
-              <button type="submit" disabled={isPending} data-testid="new-listing-submit"
-                className="w-full rounded-xl bg-rose-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.99]"
-              >
-                {isPending ? "Bezig…" : "Advertentie plaatsen"}
-              </button>
-              <div className="flex gap-3">
-                <button type="button" onClick={handlePreview}
-                  className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 active:scale-[0.99]"
-                >
-                  Bekijk voorbeeld
-                </button>
-                <Link href="/dashboard"
-                  className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-center text-sm font-medium text-stone-500 transition hover:bg-stone-50"
-                >
-                  Annuleren
-                </Link>
+            {/* ── Identity verification gate ─────────────────────────────── */}
+            {needsVerificationGate ? (
+              <div className="space-y-4">
+                {idVerification?.status === "pending" ? (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                      <div>
+                        <p className="font-semibold text-amber-900">Verificatie in behandeling</p>
+                        <p className="mt-1 text-sm text-amber-700">
+                          Je document is ingediend en wordt beoordeeld. Je kunt advertenties plaatsen zodra je verificatie is goedgekeurd (doorgaans 1–2 werkdagen).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : idVerification?.status === "rejected" ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+                      <div>
+                        <p className="font-semibold text-rose-900">Verificatie afgewezen</p>
+                        {idVerification.rejection_reason && (
+                          <p className="mt-0.5 text-sm text-rose-700">Reden: {idVerification.rejection_reason}</p>
+                        )}
+                        <p className="mt-1 text-sm text-rose-700">Dien een nieuw document in om verder te gaan.</p>
+                        <Link
+                          href="/verificatie"
+                          className="mt-3 inline-block rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+                        >
+                          Opnieuw indienen →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+                    <div className="flex items-start gap-3">
+                      <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-stone-400" />
+                      <div>
+                        <p className="font-semibold text-stone-800">Identiteitsverificatie vereist</p>
+                        <p className="mt-1 text-sm text-stone-600">
+                          Om advertenties te plaatsen op Welkthuis moet je eerst je identiteit verifiëren. Dit duurt slechts een paar minuten en beschermt huurders tegen oplichting.
+                        </p>
+                        <Link
+                          href="/verificatie"
+                          className="mt-3 inline-block rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600"
+                        >
+                          Identiteit verifiëren →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button type="button" onClick={handlePreview}
+                    className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 active:scale-[0.99]"
+                  >
+                    Bekijk voorbeeld
+                  </button>
+                  <Link href="/dashboard"
+                    className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-center text-sm font-medium text-stone-500 transition hover:bg-stone-50"
+                  >
+                    Annuleren
+                  </Link>
+                </div>
               </div>
-              <p className="text-center text-xs text-stone-400">Gratis plaatsen · Geen abonnement nodig</p>
-            </div>
+            ) : (
+              /* Submit */
+              <div className="space-y-3">
+                <button type="submit" disabled={isPending} data-testid="new-listing-submit"
+                  className="w-full rounded-xl bg-rose-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-[0.99]"
+                >
+                  {isPending ? "Bezig…" : "Advertentie plaatsen"}
+                </button>
+                <div className="flex gap-3">
+                  <button type="button" onClick={handlePreview}
+                    className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50 active:scale-[0.99]"
+                  >
+                    Bekijk voorbeeld
+                  </button>
+                  <Link href="/dashboard"
+                    className="flex-1 rounded-xl border border-stone-200 px-4 py-2.5 text-center text-sm font-medium text-stone-500 transition hover:bg-stone-50"
+                  >
+                    Annuleren
+                  </Link>
+                </div>
+                <p className="text-center text-xs text-stone-400">Gratis plaatsen · Geen abonnement nodig</p>
+              </div>
+            )}
 
           </form>
         </div>

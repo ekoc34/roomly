@@ -23,10 +23,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { ApplicantProfilePanel } from "@/components/dashboard/ApplicantProfilePanel";
 import { AdminModerationTab } from "@/components/admin/AdminModerationTab";
 import { AdminSeedTab } from "@/components/admin/AdminSeedTab";
+import { AdminIdentityVerificationTab } from "@/components/admin/AdminIdentityVerificationTab";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type Tab = "meldingen" | "moderatie" | "gebruikers" | "advertenties" | "betalingen" | "activiteit" | "seeding";
+type Tab = "meldingen" | "moderatie" | "gebruikers" | "advertenties" | "betalingen" | "activiteit" | "seeding" | "verificaties";
 
 type FlaggedLandlord = {
   id: string; name: string | null; email: string | null;
@@ -706,6 +707,7 @@ export function AdminDashboardPage() {
     { id: "betalingen", label: "Betalingen", icon: <CreditCard className="h-4 w-4" /> },
     { id: "activiteit", label: "Activiteit", icon: <Activity className="h-4 w-4" /> },
     { id: "seeding", label: "Demo-inhoud", icon: <Sprout className="h-4 w-4" /> },
+    { id: "verificaties", label: "Verificaties", icon: <ShieldCheck className="h-4 w-4" /> },
   ];
 
   const inputCls = "rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200";
@@ -1258,6 +1260,13 @@ export function AdminDashboardPage() {
       {/* ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "seeding" && (
         <AdminSeedTab />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {/* TAB: VERIFICATIES                                                */}
+      {/* ══════════════════════════════════════════════════════════════════ */}
+      {activeTab === "verificaties" && (
+        <AdminIdentityVerificationTab />
       )}
 
       {/* Security note */}
