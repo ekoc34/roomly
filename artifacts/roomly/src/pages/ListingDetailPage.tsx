@@ -130,17 +130,20 @@ export function ListingDetailPage() {
           </div>
         )}
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_300px]">
+        <div className="grid gap-10 lg:grid-cols-[1fr_300px]">
           {/* Main column */}
-          <div className="space-y-5">
-            {/* Gallery */}
+          <div>
+            {/* Gallery — hero section, visually distinct */}
             <div className="relative">
               <DetailGallery images={listing.images} title={listing.title} />
               <FavoriteButton listingId={listing.id} initialFavorited={favorited} variant="detail" ownerUserId={listing.user_id} />
             </div>
 
+            {/* Divider: gallery → content breathing room */}
+            <div className="mt-7 mb-1 border-t border-stone-100" />
+
             {/* Title block */}
-            <div>
+            <div className="mt-6">
               <div className="flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-0.5 text-xs font-medium text-stone-600">{typeLabel}</span>
                 {listing.availability_date && (
@@ -153,9 +156,9 @@ export function ListingDetailPage() {
                 )}
               </div>
 
-              <h1 className="mt-2.5 text-2xl font-bold leading-snug text-stone-900 sm:text-3xl">{listing.title}</h1>
+              <h1 className="mt-3 text-2xl font-bold leading-snug text-stone-900 sm:text-3xl">{listing.title}</h1>
 
-              <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-stone-500">
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-500">
                 <span className="flex items-center gap-1">
                   <svg className="h-3.5 w-3.5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -167,14 +170,14 @@ export function ListingDetailPage() {
                 <span className="text-xs">{new Date(listing.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" })}</span>
               </div>
 
-              <div className="mt-3 text-3xl font-black text-stone-900">
+              <div className="mt-4 text-3xl font-black text-stone-900">
                 €{Number(listing.price).toFixed(0)}<span className="ml-1 text-base font-normal text-stone-400">/ maand</span>
               </div>
             </div>
 
-            {/* Metadata chips — compact horizontal row */}
+            {/* Metadata chips */}
             {metaChips.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="mt-5 flex flex-wrap gap-2">
                 {metaChips.map((chip, i) => (
                   <span
                     key={i}
@@ -191,7 +194,7 @@ export function ListingDetailPage() {
             )}
 
             {/* Description */}
-            <div className="prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-stone-900 prose-p:text-stone-600 prose-p:leading-relaxed">
+            <div className="mt-7 prose prose-sm max-w-none prose-headings:font-semibold prose-headings:text-stone-900 prose-p:text-stone-600 prose-p:leading-relaxed">
               <h3>Beschrijving</h3>
               {listing.description.split("\n").filter(Boolean).map((par, i) => (
                 <p key={i}>{par}</p>
@@ -200,14 +203,14 @@ export function ListingDetailPage() {
 
             {/* House rules (if any) */}
             {listing.house_rules && (
-              <div className="rounded-xl border border-stone-100 bg-stone-50 px-4 py-3">
+              <div className="mt-6 rounded-xl border border-stone-100 bg-stone-50 px-4 py-3">
                 <p className="mb-1 text-xs font-semibold text-stone-500">Huisregels</p>
                 <p className="text-sm leading-relaxed text-stone-600">{listing.house_rules}</p>
               </div>
             )}
 
             {/* Report — quiet, at the bottom */}
-            <div className="border-t border-stone-100 pt-3">
+            <div className="mt-8 border-t border-stone-100 pt-4">
               <ReportListingButton listingId={listing.id} isLoggedIn={isLoggedIn} />
             </div>
           </div>

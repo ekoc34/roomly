@@ -1,0 +1,180 @@
+Improve the entire demo listing experience for Welkthuis in one coordinated pass.
+
+Main goals:
+
+* Make demo listings feel realistic and naturally Dutch
+* Reduce repetitive/demo-looking content
+* Improve listing detail page spacing and hierarchy
+* Make the platform visually calmer, more premium, and more trustworthy
+* Preserve all existing functionality and responsiveness
+
+PART 1 — Improve Dutch demo listing content
+
+Update the demo seed system so listings feel individually written instead of AI-templated.
+
+Requirements:
+
+1. Listing titles
+
+* Generate more natural Dutch titles
+* Avoid repeating the same structure across listings
+* Vary titles by:
+
+  * city
+  * property type
+  * target audience
+  * pricing level
+* Use different tones for:
+
+  * student rooms
+  * studios
+  * shared apartments
+  * expat rentals
+  * premium apartments/penthouses
+
+Examples of desired tone:
+
+* Studentenkamer vlak bij UvA met gedeelde keuken
+* Rustige studio in Oud-West met veel licht
+* Gemeubileerd appartement voor expats in Rotterdam Centrum
+* Moderne loft aan het water in Katendrecht
+* Ruime woning in Utrecht met balkon en aparte werkruimte
+
+2. Listing descriptions
+
+* Generate more natural Dutch descriptions
+* Vary sentence length and structure
+* Avoid repetitive phrasing
+* Avoid generic AI-style wording
+* Make each listing feel unique and believable
+
+Descriptions should naturally mention combinations of:
+
+* neighborhood atmosphere
+* furnishing
+* layout
+* natural light
+* nearby transport
+* target tenant type
+* move-in timing
+* amenities
+* indoor/outdoor feeling
+
+3. Listing personality variation
+   Different listing categories should feel different:
+
+Student rooms:
+
+* direct
+* simple
+* practical
+* budget-focused
+
+Studios:
+
+* compact
+* modern
+* efficient
+* city-oriented
+
+Shared housing:
+
+* social
+* friendly
+* functional
+
+Premium apartments:
+
+* calm
+* upscale
+* spacious
+* polished
+
+Expat rentals:
+
+* professional
+* internationally understandable
+* clean and reliable tone
+
+4. Keep demo content ethical
+
+* Keep the “Voorbeeldwoning” badge
+* Keep the demo explanation banner
+* Do not create fake conversations
+* Do not create fake tenants
+* Do not mislead users into thinking demo listings are real
+
+PART 2 — Improve listing detail page hierarchy and spacing
+
+The current detail page feels visually cramped because the image gallery and listing content are too tightly connected.
+
+Improve the layout so the gallery feels like a distinct hero section with better breathing room before the listing content begins.
+
+Requirements:
+
+1. Stronger gallery separation
+
+* Add more vertical spacing between:
+
+  * image gallery
+  * title
+  * price
+  * metadata
+  * description
+* The gallery should visually “stand alone” more
+
+2. Better visual hierarchy
+
+* The gallery should feel like the main focus at the top
+* Content should start more comfortably underneath
+* Avoid the “everything glued together” appearance
+
+3. Premium spacing
+
+* Add whitespace carefully
+* Keep the page elegant and modern
+* Do not create huge empty gaps
+* Improve readability and visual rhythm
+
+4. Desktop improvements
+
+* The transition from gallery → listing info should feel smoother
+* Metadata chips and description should breathe more
+* The landlord card should still align nicely visually
+
+5. Mobile improvements
+
+* Maintain the same separation feeling on mobile
+* Prevent stacked cramped layouts
+* Keep the detail page easy to scan on smaller screens
+
+6. Preserve existing features
+
+* Keep badges
+* Keep landlord panel
+* Keep edit buttons
+* Keep fallback image handling
+* Keep responsiveness
+* Keep all current functionality intact
+
+PART 3 — Improve image presentation quality
+
+Further improve the seeded demo images.
+
+Requirements:
+
+* Avoid visually repetitive adjacent listings
+* Keep unique lead images across listings
+* Match image style to listing type and city vibe
+* Ensure the first image on detail pages feels like a true hero image
+* Preserve graceful fallback behavior everywhere
+
+PART 4 — Final polish
+
+After implementation:
+
+* summarize all improvements made
+* explain how listing copy became more natural
+* explain how spacing/layout hierarchy improved
+* confirm the detail page now feels more premium, separated, and visually balanced
+* confirm the demo listings feel less repetitive and more realistic
