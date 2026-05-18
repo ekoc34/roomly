@@ -58,18 +58,18 @@ function EmptyState({
       if (!isLoggedIn) {
         sub = t("auth.registerSubtitle");
       } else if (isVerhuurder) {
-        sub = "Boost een van je advertenties om hier zichtbaar te worden.";
+        sub = t("home.emptyBoostPrompt");
         cta = { label: t("nav.dashboard"), href: "/dashboard" };
       } else {
-        sub = "Schakel over naar de Nieuw-tab voor recente advertenties.";
+        sub = t("home.emptySwitchToNew");
       }
     } else {
       title = t("listings.nothingFoundGeneric");
       if (!isLoggedIn) {
-        sub = "Maak een account aan om meldingen te ontvangen zodra er nieuwe woningen beschikbaar zijn.";
+        sub = t("home.emptyRegisterForAlerts");
         cta = { label: t("auth.registerBtn"), href: "/registreren" };
       } else if (isVerhuurder) {
-        sub = "Plaats een advertentie om hier zichtbaar te worden.";
+        sub = t("home.emptyPostListing");
         cta = { label: t("nav.postListing"), href: "/kamers/nieuw" };
       } else {
         sub = t("listings.tryAnotherCity");
@@ -80,23 +80,23 @@ function EmptyState({
     if (mainTab === "uitgelicht") {
       title = t("home.tabFeatured") + " — " + t("home.tabRoommates").toLowerCase();
       if (!isLoggedIn) {
-        sub = "Maak een account aan om huisgenoten te vinden en contact op te nemen.";
+        sub = t("home.emptyRegisterRoommates");
       } else if (isHuisgenotenZoeker) {
-        sub = "Boost je profiel om hier zichtbaar te worden.";
+        sub = t("home.emptyBoostProfile");
         cta = { label: t("nav.dashboard"), href: "/dashboard" };
       } else {
-        sub = "Schakel over naar de Nieuw-tab voor recente huisgenotenprofielen.";
+        sub = t("home.emptySwitchToNewRoommates");
       }
     } else {
       title = t("listings.nothingFoundGeneric");
       if (!isLoggedIn) {
-        sub = "Maak een account aan om huisgenoten te ontdekken en contact op te nemen.";
+        sub = t("home.emptyRegisterRoommatesDiscover");
         cta = { label: t("auth.registerBtn"), href: "/registreren" };
       } else if (isHuisgenotenZoeker) {
-        sub = "Maak een profiel aan om op zoek te gaan naar een geschikte huisgenoot.";
+        sub = t("home.emptyCreateProfile");
         cta = { label: t("newListing.publishBtn"), href: "/kamers/nieuw" };
       } else {
-        sub = "Er zijn momenteel geen recente profielen.";
+        sub = t("home.emptyNoRecentProfiles");
         cta = { label: t("listings.pageTitle"), href: "/kamers" };
       }
     }

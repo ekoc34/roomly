@@ -98,7 +98,7 @@ function HomePageContent() {
             show_avatar_in_listings: boolean | null;
           }[]) {
             const avatarVisible = p.show_avatar_in_listings !== false;
-            badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? "Geverifieerd" : null;
+            badgeMap[p.id] = p.email_auto_verified && p.phone_verified ? t("dashboard.verifiedBadge") : null;
             rtMap[p.id] = p.avg_response_time_hours ?? null;
             rmProfileMap[p.id] = {
               name: p.name,

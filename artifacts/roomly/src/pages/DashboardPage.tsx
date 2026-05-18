@@ -87,13 +87,13 @@ function buildSearchUrl(search: LastSavedSearch | null, fallbackCity: string | n
   return qs ? `/kamers?${qs}` : "/kamers";
 }
 
-function buildSearchSummary(search: LastSavedSearch | null, fallbackCity: string | null, fallback: string = "Bekijk alle woningen"): string {
+function buildSearchSummary(search: LastSavedSearch | null, fallbackCity: string | null, fallback: string = "Bekijk alle woningen", typeLabels?: Record<string, string>): string {
   const parts: string[] = [];
   const city = search?.filters?.city ?? fallbackCity;
   if (city) parts.push(String(city));
   if (search?.filters?.maxPrice != null) parts.push(`max €${Number(search.filters.maxPrice).toLocaleString("nl-NL")}`);
   if (search?.filters?.minPrice != null && search.filters.maxPrice == null) parts.push(`min €${Number(search.filters.minPrice).toLocaleString("nl-NL")}`);
-  const typeMap: Record<string, string> = {
+  const typeMap: Record<string, string> = typeLabels ?? {
     room_for_rent: "Kamer", roommate_search: "Huisgenoot", short_stay: "Short stay",
   };
   if (search?.filters?.type) parts.push(typeMap[String(search.filters.type)] ?? String(search.filters.type));
@@ -134,7 +134,7 @@ export function DashboardPage() {
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats | null>(null);
   const [unreadLandlordMsgCount, setUnreadLandlordMsgCount] = useState(0);
   const [recommendedListings, setRecommendedListings] = useState<RecommendedListing[]>([]);
-  const [recommendationReason, setRecommendationReason] = useState<string | null>(null);
+  const [recommendationReason, setRecommendationReason] = useState<{ key: "search" } | { key: "city"; city: string } | null>(null);
   const [boostingId, setBoostingId] = useState<string | null>(null);
   const [deletingListingId, setDeletingListingId] = useState<string | null>(null);
   const [lastSavedSearch, setLastSavedSearch] = useState<LastSavedSearch | null>(null);
@@ -248,9 +248,9 @@ export function DashboardPage() {
       } else {
         setRecommendedListings(recs);
         if (hasSearchSignals) {
-          setRecommendationReason("Op basis van jouw zoekopdracht");
+          setRecommendationReason({ key: "search" });
         } else if (topViewedCity) {
-          setRecommendationReason(`Omdat je naar ${topViewedCity} keek`);
+          setRecommendationReason({ key: "city", city: topViewedCity });
         } else {
           setRecommendationReason(null);
         }
@@ -470,7 +470,7 @@ export function DashboardPage() {
     const { error } = await supabase.rpc("boost_listing", { p_listing_id: listingId });
     setBoostingId(null);
     if (error) { toast.error("Booster mislukt. Probeer het opnieuw."); return; }
-    toast.success("🚀 Je advertentie staat nu extra zichtbaar");
+    toast.success(`🚀 ${t("dashboard.boostSuccess2")}`);
     setMyListings((prev) => prev.map((l) => l.id === listingId ? { ...l, boosted_at: new Date().toISOString() } : l));
     setProfile((p) => p ? { ...p, boost_credits: Math.max(0, (p.boost_credits ?? 0) - 1) } : p);
   }
@@ -780,21 +780,21 @@ export function DashboardPage() {
             {(() => {
               const stats = [
                 {
-                  label: "Advertenties",
+                  label: t("dashboard.statsListings"),
                   value: loading ? "…" : myListings.length,
                   href: "#listings",
                   sub: null as string | null,
-                  cta: !loading && myListings.length === 0 ? { label: "Plaatsen", href: "/kamers/nieuw" } : null,
+                  cta: !loading && myListings.length === 0 ? { label: t("nav.postListing"), href: "/kamers/nieuw" } : null,
                 },
                 {
-                  label: "Reacties",
+                  label: t("dashboard.statsApplications"),
                   value: loading ? "…" : pendingCount,
                   href: "#aanvragen",
-                  sub: !loading && recentLandlordApplicationsCount ? `+${recentLandlordApplicationsCount} nieuw` : null,
+                  sub: !loading && recentLandlordApplicationsCount ? t("dashboard.statsNew", { count: recentLandlordApplicationsCount }) : null,
                   cta: null,
                 },
                 {
-                  label: "Berichten",
+                  label: t("dashboard.statsMessages"),
                   value: loading ? "…" : unreadLandlordMsgCount,
                   href: "/berichten",
                   sub: null,
@@ -825,15 +825,15 @@ export function DashboardPage() {
 
             {/* Quick performance — this week */}
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-stone-100 bg-stone-50 px-4 py-2.5 text-xs text-stone-500">
-              <span className="font-medium text-stone-600">Deze week</span>
+              <span className="font-medium text-stone-600">{t("dashboard.thisWeek")}</span>
               {loading || !weeklyStats ? (
                 <span className="h-3.5 w-28 animate-pulse rounded-full bg-stone-200" />
               ) : weeklyStats.views === 0 && weeklyStats.reactions === 0 ? (
-                <span className="text-stone-400">Nog geen activiteit — je advertentie kan meer bereik krijgen.</span>
+                <span className="text-stone-400">{t("dashboard.noActivityYet")}</span>
               ) : (
                 <>
-                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.views}</span> weergaven</span>
-                  <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.reactions}</span> reacties</span>
+                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.views}</span> {t("dashboard.viewsLabel")}</span>
+                  <span className="flex items-center gap-1"><MessageSquare className="h-3 w-3" /><span className="font-medium text-stone-700">{weeklyStats.reactions}</span> {t("dashboard.reactionsLabel")}</span>
                 </>
               )}
             </div>
@@ -845,44 +845,44 @@ export function DashboardPage() {
               if (listingWithoutPhotos) {
                 suggestions.push({
                   icon: <Camera className="h-4 w-4 text-stone-400" />,
-                  title: "Voeg foto's toe",
-                  desc: "Advertenties met foto's krijgen tot 3× meer reacties.",
+                  title: t("dashboard.suggAddPhotos"),
+                  desc: t("dashboard.suggAddPhotosDesc"),
                   href: `/kamers/${listingWithoutPhotos.id}/bewerken`,
-                  cta: "Foto's toevoegen →",
+                  cta: t("dashboard.suggAddPhotosCta"),
                 });
               }
               if (weeklyStats && weeklyStats.views < 5) {
                 suggestions.push({
                   icon: <RefreshCw className="h-4 w-4 text-stone-400" />,
-                  title: "Ververs je advertentie",
-                  desc: "Een kleine update verhoogt je zichtbaarheid in zoekresultaten.",
+                  title: t("dashboard.suggRefresh"),
+                  desc: t("dashboard.suggRefreshDesc"),
                   href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "#listings",
-                  cta: "Bijwerken →",
+                  cta: t("dashboard.suggRefreshCta"),
                 });
               }
               if (pendingCount === 0 && receivedApplications.length === 0) {
                 suggestions.push({
                   icon: <FileText className="h-4 w-4 text-stone-400" />,
-                  title: "Verbeter je omschrijving",
-                  desc: "Een heldere beschrijving geeft woningzoekers meer vertrouwen om te reageren.",
+                  title: t("dashboard.suggImprove"),
+                  desc: t("dashboard.suggImproveDesc"),
                   href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "#listings",
-                  cta: "Aanpassen →",
+                  cta: t("dashboard.suggImproveCta"),
                 });
               }
               if (!profile?.phone) {
                 suggestions.push({
                   icon: <ShieldCheck className="h-4 w-4 text-stone-400" />,
-                  title: "Vul je profiel aan",
-                  desc: "Een telefoonnummer maakt je betrouwbaarder voor potentiële huurders.",
+                  title: t("dashboard.suggPhone"),
+                  desc: t("dashboard.suggPhoneDesc"),
                   href: "/profiel",
-                  cta: "Aanvullen →",
+                  cta: t("dashboard.suggPhoneCta"),
                 });
               }
               if (suggestions.length === 0) return null;
               const top = suggestions.slice(0, 2);
               return (
                 <div>
-                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-400">Suggesties</p>
+                  <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-400">{t("dashboard.suggestions")}</p>
                   <div className="space-y-2">
                     {top.map((s) => (
                       <Link key={s.title} href={s.href}
@@ -914,10 +914,10 @@ export function DashboardPage() {
               ) : myListings.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-stone-200 bg-white px-6 py-12 text-center">
                   <Home className="h-8 w-8 text-stone-300" />
-                  <h3 className="mt-3 text-sm font-semibold text-stone-800">Nog geen advertenties</h3>
-                  <p className="mt-1 max-w-sm text-sm text-stone-500">Plaats je eerste advertentie en bereik huurders in heel Nederland.</p>
+                  <h3 className="mt-3 text-sm font-semibold text-stone-800">{t("dashboard.noListingsTitle")}</h3>
+                  <p className="mt-1 max-w-sm text-sm text-stone-500">{t("dashboard.noListingsFirstDesc")}</p>
                   <Link href="/kamers/nieuw" className="mt-4 rounded-lg border border-rose-200 bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-600">
-                    Advertentie plaatsen
+                    {t("dashboard.createFirstListing")}
                   </Link>
                 </div>
               ) : (
@@ -944,13 +944,13 @@ export function DashboardPage() {
                           {/* Delete confirm overlay */}
                           {deletingListingId === l.id && (
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center backdrop-blur-sm">
-                              <p className="text-sm font-medium text-stone-800">Advertentie "{l.title}" verwijderen?</p>
+                              <p className="text-sm font-medium text-stone-800">{t("dashboard.confirmDeleteListing")} "{l.title}"</p>
                               <div className="flex gap-2">
                                 <button type="button" onClick={() => handleDeleteListingFromDashboard(l.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">
-                                  Ja, verwijderen
+                                  {t("common.confirmDelete")}
                                 </button>
                                 <button type="button" onClick={() => setDeletingListingId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">
-                                  Annuleren
+                                  {t("common.cancel")}
                                 </button>
                               </div>
                             </div>
@@ -961,7 +961,7 @@ export function DashboardPage() {
                               ? <img src={img} alt={l.title} className="h-full w-full object-cover" />
                               : <div className="flex h-full w-full flex-col items-center justify-center gap-1">
                                   <Camera className="h-5 w-5 text-stone-300" />
-                                  <p className="text-[10px] text-stone-300">Geen foto</p>
+                                  <p className="text-[10px] text-stone-300">{t("common.noPhoto")}</p>
                                 </div>}
                           </div>
                           {/* Info */}
@@ -970,19 +970,19 @@ export function DashboardPage() {
                               <p className="text-sm font-semibold text-stone-900 truncate leading-snug">{l.title}</p>
                               {boosted && (
                                 <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
-                                  <Zap className="h-3 w-3" /> Uitgelicht
+                                  <Zap className="h-3 w-3" /> {t("dashboard.boostedBadge")}
                                 </span>
                               )}
                               {isPopular && (
                                 <span className="rounded-full border border-stone-200 px-2 py-0.5 text-[10px] font-medium text-stone-400">
-                                  Populair
+                                  {t("dashboard.popularBadge")}
                                 </span>
                               )}
                             </div>
                             <p className="text-sm font-semibold text-stone-800">€{Number(l.price).toLocaleString("nl-NL")}<span className="text-xs font-normal text-stone-400">/mnd</span></p>
                             <p className="text-xs text-stone-400 truncate">{l.location}</p>
                             {daysSinceUpdate !== null && daysSinceUpdate > 0 && (
-                              <p className="text-xs text-stone-300">{daysSinceUpdate}d geleden bijgewerkt</p>
+                              <p className="text-xs text-stone-300">{t("dashboard.daysAgoUpdated", { days: daysSinceUpdate })}</p>
                             )}
                             <ListingAnalyticsStrip
                               viewCount={viewCount}
@@ -998,7 +998,7 @@ export function DashboardPage() {
                               className="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
                             >
                               <Edit2 className="h-3.5 w-3.5" />
-                              Bewerken
+                              {t("dashboard.editBtn")}
                             </Link>
                             <div className="flex items-center gap-1.5">
                               {!boosted && (profile?.boost_credits ?? 0) > 0 && (
@@ -1010,7 +1010,7 @@ export function DashboardPage() {
                                   title="Boost gebruiken"
                                 >
                                   <Zap className="h-3 w-3" />
-                                  {boostingId === l.id ? "Bezig…" : "Boost"}
+                                  {boostingId === l.id ? t("dashboard.boosting") : t("dashboard.boostListing")}
                                 </button>
                               )}
                               <button
@@ -1047,9 +1047,9 @@ export function DashboardPage() {
                   <p className="mt-1 text-xs text-stone-500">{t("dashboard.noReceivedApplications")}</p>
                   <div className="mt-4 space-y-2">
                     {[
-                      { text: "Voeg meer foto's toe", href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
-                      { text: "Maak je beschrijving uitgebreider", href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
-                      { text: "Boost je advertentie voor meer zichtbaarheid", href: "/pricing" },
+                      { text: t("dashboard.suggAddPhotos"), href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
+                      { text: t("dashboard.suggImprove"), href: myListings[0] ? `/kamers/${myListings[0].id}/bewerken` : "/kamers/nieuw" },
+                      { text: t("dashboard.suggRefresh"), href: "/pricing" },
                     ].map((tip) => (
                       <Link
                         key={tip.text}
@@ -1065,7 +1065,7 @@ export function DashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {receivedApplications.map((app) => {
-                    const name = app.profiles?.name ?? app.profiles?.email ?? "Onbekend";
+                    const name = app.profiles?.name ?? app.profiles?.email ?? t("common.unknown");
                     const avatarInitial = name.slice(0, 1).toUpperCase();
                     const badge = statusMap[app.status as keyof typeof statusMap] ?? statusMap.pending;
                     const isApplicantVerified = isFullyVerified(null, app.profiles as { phone_verified?: boolean | null; email_auto_verified?: boolean | null } | null);
@@ -1074,10 +1074,10 @@ export function DashboardPage() {
                       <div key={app.id} className="relative flex flex-col gap-4 rounded-lg border border-stone-200 bg-white p-4 pr-10 sm:flex-row sm:items-start">
                         {confirmDeleteId === app.id && (
                           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center backdrop-blur-sm">
-                            <p className="text-sm font-medium text-stone-800">Weet je zeker dat je deze aanvraag wilt verwijderen?</p>
+                            <p className="text-sm font-medium text-stone-800">{t("dashboard.confirmDeleteApp")}</p>
                             <div className="flex gap-2">
-                              <button type="button" onClick={() => handleDeleteApplication(app.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">Ja, verwijderen</button>
-                              <button type="button" onClick={() => setConfirmDeleteId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">Annuleren</button>
+                              <button type="button" onClick={() => handleDeleteApplication(app.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">{t("common.confirmDelete")}</button>
+                              <button type="button" onClick={() => setConfirmDeleteId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">{t("common.cancel")}</button>
                             </div>
                           </div>
                         )}
@@ -1098,23 +1098,23 @@ export function DashboardPage() {
                             </button>
                             {isApplicantVerified && (
                               <span className="flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                <ShieldCheck className="h-3 w-3" /> Geverifieerd
+                                <ShieldCheck className="h-3 w-3" /> {t("dashboard.verifiedBadge")}
                               </span>
                             )}
                             <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${badge.cls}`}>{badge.label}</span>
                           </div>
                           {app.listings?.title && (
-                            <p className="text-xs text-stone-500"><span className="font-medium text-stone-600">Advertentie:</span> {app.listings.title}</p>
+                            <p className="text-xs text-stone-500"><span className="font-medium text-stone-600">{t("dashboard.advertisementLabel")}</span> {app.listings.title}</p>
                           )}
                           <p className="text-sm text-stone-600 line-clamp-2">{app.message}</p>
                           <div className="flex flex-wrap items-center gap-3 text-xs text-stone-400">
-                            {app.budget != null && <span className="font-medium text-stone-600">Budget: €{Number(app.budget).toFixed(0)}</span>}
+                            {app.budget != null && <span className="font-medium text-stone-600">{t("dashboard.budgetLabel")} €{Number(app.budget).toFixed(0)}</span>}
                             <span>{new Date(app.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })}</span>
                           </div>
                         </div>
                         <div className="flex shrink-0 flex-col gap-2">
                           {app.status === "accepted" && conv && (
-                            <Link href={`/berichten/${conv.id}`} className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600">Gesprek →</Link>
+                            <Link href={`/berichten/${conv.id}`} className="rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600">{t("dashboard.convLink")}</Link>
                           )}
                           {app.status === "pending" && inlineReply?.appId !== app.id && (
                             <div className="flex flex-wrap gap-2">
@@ -1124,8 +1124,8 @@ export function DashboardPage() {
                           )}
                           {app.status === "pending" && inlineReply?.appId === app.id && (
                             <div className="w-full min-w-[220px] rounded-2xl border border-stone-200 bg-stone-50 p-3 space-y-2">
-                              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">Optioneel: stuur een bericht</p>
-                              <textarea rows={3} maxLength={300} placeholder="Schrijf een bericht..."
+                              <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">{t("dashboard.inlineReplyHint")}</p>
+                              <textarea rows={3} maxLength={300} placeholder={t("dashboard.inlineReplyPlaceholder")}
                                 value={inlineReply.text}
                                 onChange={(e) => setInlineReply((r) => r ? { ...r, text: e.target.value } : r)}
                                 className="w-full resize-none rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
@@ -1136,7 +1136,7 @@ export function DashboardPage() {
                                 >
                                   {inlineReply.action === "accepted" ? (inlineReply.text.trim() ? `${t("dashboard.acceptApplication")} & ${t("common.send")}` : t("dashboard.acceptApplication")) : (inlineReply.text.trim() ? `${t("dashboard.rejectApplication")} & ${t("common.send")}` : t("dashboard.rejectApplication"))}
                                 </button>
-                                <button type="button" onClick={() => setInlineReply(null)} className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">Annuleren</button>
+                                <button type="button" onClick={() => setInlineReply(null)} className="rounded-xl border border-stone-200 px-3 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">{t("common.cancel")}</button>
                               </div>
                             </div>
                           )}
@@ -1154,12 +1154,12 @@ export function DashboardPage() {
                 <span className="flex items-center gap-1.5">
                   <Zap className="h-3.5 w-3.5 text-amber-500" />
                   {(profile?.boost_credits ?? 0) > 0
-                    ? <><span className="font-medium text-stone-700">{profile!.boost_credits}</span> boost {(profile?.boost_credits ?? 0) === 1 ? "credit" : "credits"} beschikbaar</>
-                    : "Geen boost credits — boost meer bereik voor je advertentie"}
+                    ? <>{t("dashboard.boostCreditsAvailable", { count: profile!.boost_credits, unit: (profile?.boost_credits ?? 0) === 1 ? "credit" : "credits" })}</>
+                    : t("dashboard.noBoostCredits")}
                 </span>
                 <Link href="/pricing" className="flex items-center gap-1 text-stone-400 transition hover:text-rose-600">
                   <CreditCard className="h-3.5 w-3.5" />
-                  Credits kopen
+                  {t("dashboard.buyCredits")}
                 </Link>
               </div>
             )}
@@ -1172,29 +1172,29 @@ export function DashboardPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm">
             <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-base font-bold text-stone-900">Reageer op woning</h3>
+                <h3 className="text-base font-bold text-stone-900">{t("dashboard.applyModalTitle")}</h3>
                 <button type="button" onClick={() => setApplyModalListingId(null)} className="rounded-lg p-1 text-stone-400 transition hover:text-stone-600">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-stone-700">Bericht <span className="text-rose-500">*</span></label>
+                  <label className="mb-1 block text-xs font-medium text-stone-700">{t("dashboard.applyModalMsgLabel")} <span className="text-rose-500">*</span></label>
                   <textarea
                     rows={4}
-                    placeholder="Hoi, ik heb interesse in deze woning…"
+                    placeholder={t("dashboard.applyModalMsgPlaceholder")}
                     value={applyModalMessage}
                     onChange={(e) => setApplyModalMessage(e.target.value)}
                     className="w-full resize-none rounded-xl border border-stone-200 px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-stone-700">Budget (optioneel)</label>
+                  <label className="mb-1 block text-xs font-medium text-stone-700">{t("dashboard.applyModalBudgetLabel")}</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">€</span>
                     <input
                       type="number"
-                      placeholder="bijv. 1200"
+                      placeholder={t("dashboard.applyModalBudgetPlaceholder")}
                       value={applyModalBudget}
                       onChange={(e) => setApplyModalBudget(e.target.value)}
                       className="w-full rounded-xl border border-stone-200 py-2.5 pl-7 pr-3 text-sm text-stone-900 placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-100"
@@ -1209,14 +1209,14 @@ export function DashboardPage() {
                   onClick={submitApplyModal}
                   className="flex-1 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-600 active:scale-95 disabled:opacity-50"
                 >
-                  {applyModalLoading ? "Versturen…" : "Verstuur reactie"}
+                  {applyModalLoading ? t("common.sending") : t("dashboard.applyModalSend")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setApplyModalListingId(null)}
                   className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
                 >
-                  Annuleren
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>
@@ -1232,8 +1232,8 @@ export function DashboardPage() {
                   <Phone className="h-5 w-5 text-rose-500" />
                 </span>
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">Telefoonnummer toevoegen</h3>
-                  <p className="mt-1 text-sm text-stone-500">Voeg je telefoonnummer toe voordat je reageert. Dit geeft verhuurders meer vertrouwen.</p>
+                  <h3 className="text-base font-bold text-stone-900">{t("dashboard.phoneModalTitle")}</h3>
+                  <p className="mt-1 text-sm text-stone-500">{t("dashboard.phoneModalDesc")}</p>
                 </div>
               </div>
               <input
@@ -1250,14 +1250,14 @@ export function DashboardPage() {
                   onClick={handleSavePhoneAndApply}
                   className="flex-1 rounded-xl bg-rose-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-600 active:scale-95 disabled:opacity-50"
                 >
-                  {savingPhone ? "Opslaan…" : "Opslaan & reageren"}
+                  {savingPhone ? t("common.saving") : t("dashboard.phoneSaveAndApply")}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setPhoneModalOpen(false); setPhoneInput(""); setQuickApplyListingId(null); }}
                   className="rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
                 >
-                  Annuleren
+                  {t("common.cancel")}
                 </button>
               </div>
             </div>
@@ -1273,7 +1273,11 @@ export function DashboardPage() {
           const cityFromViews = recentViews[0]?.listing?.location?.split(",")[0]?.trim() ?? null;
           const hasSearchContext = !!(cityFromSearch ?? cityFromViews ?? lastSavedSearch);
           const searchUrl = buildSearchUrl(lastSavedSearch, cityFromViews);
-          const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews, t("dashboard.searchSummaryFallback"));
+          const searchSummary = buildSearchSummary(lastSavedSearch, cityFromViews, t("dashboard.searchSummaryFallback"), {
+            room_for_rent: t("listings.typeRoom"),
+            roommate_search: t("listings.typeRoommate"),
+            short_stay: t("listings.typeShortStay"),
+          });
 
           return (
             <div className="mt-6 space-y-6">
@@ -1289,10 +1293,10 @@ export function DashboardPage() {
                   <div className="flex items-center gap-3">
                     <Search className="h-4 w-4 shrink-0 text-rose-500" />
                     <div>
-                      <p className="text-xs text-stone-500">Ga verder met je zoekopdracht</p>
+                      <p className="text-xs text-stone-500">{t("dashboard.continueSearchLabel")}</p>
                       <p className="text-sm font-semibold text-stone-900">{searchSummary}</p>
                       {lastSavedSearch?.name && (
-                        <p className="text-xs text-stone-400">Opgeslagen als: {lastSavedSearch.name}</p>
+                        <p className="text-xs text-stone-400">{t("dashboard.savedAs")} {lastSavedSearch.name}</p>
                       )}
                     </div>
                   </div>
@@ -1306,8 +1310,8 @@ export function DashboardPage() {
                   <div className="flex items-center gap-3">
                     <Search className="h-4 w-4 shrink-0 text-rose-500" />
                     <div>
-                      <p className="text-xs text-stone-500">Beginnen</p>
-                      <p className="text-sm font-semibold text-stone-900">Vind jouw ideale woning</p>
+                      <p className="text-xs text-stone-500">{t("dashboard.startSearch")}</p>
+                      <p className="text-sm font-semibold text-stone-900">{t("dashboard.startSearchTitle")}</p>
                     </div>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-stone-400 transition group-hover:translate-x-0.5" />
@@ -1320,10 +1324,14 @@ export function DashboardPage() {
                   <div>
                     <h2 className="text-lg font-bold text-stone-900">{t("dashboard.recommendations")}</h2>
                     {recommendationReason && (
-                      <p className="mt-0.5 text-xs text-stone-400">{recommendationReason}</p>
+                      <p className="mt-0.5 text-xs text-stone-400">
+                        {recommendationReason.key === "search"
+                          ? t("dashboard.recommendationsBasis")
+                          : t("dashboard.recommendationsByCity", { city: recommendationReason.city })}
+                      </p>
                     )}
                   </div>
-                  <Link href="/kamers" className="shrink-0 text-xs font-medium text-rose-600 hover:underline">Alles bekijken →</Link>
+                  <Link href="/kamers" className="shrink-0 text-xs font-medium text-rose-600 hover:underline">{t("dashboard.viewAll")}</Link>
                 </div>
                 {loading ? (
                   <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
@@ -1355,11 +1363,11 @@ export function DashboardPage() {
                             </Link>
                             {boosted && (
                               <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-                                <Zap className="h-3 w-3" /> Uitgelicht
+                                <Zap className="h-3 w-3" /> {t("dashboard.featuredBadge")}
                               </span>
                             )}
                             {isNew && !boosted && (
-                              <span className="absolute left-2 top-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">Nieuw</span>
+                              <span className="absolute left-2 top-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">{t("dashboard.newBadge")}</span>
                             )}
                             <div className="absolute right-2 top-2 flex flex-col gap-1">
                               <button type="button" aria-label={isFav ? "Verwijder uit favorieten" : "Favoriet"}
@@ -1381,7 +1389,7 @@ export function DashboardPage() {
                             <p className="text-xs text-stone-500 truncate">{l.location}</p>
                             <p className="mt-1 text-xs font-semibold text-stone-900">€{Number(l.price).toLocaleString("nl-NL")}/mnd</p>
                             <Link href={`/kamers/${l.id}`} className="mt-2 flex items-center justify-center rounded-lg border border-stone-200 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-                              Bekijk
+                              {t("dashboard.viewProperty")}
                             </Link>
                           </div>
                         </div>
@@ -1396,19 +1404,19 @@ export function DashboardPage() {
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-stone-100 bg-stone-50 px-4 py-3">
                   <Link href="/favorieten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
                     <Heart className="h-3 w-3" />
-                    {favoritesCount > 0 ? `${favoritesCount} favorieten` : "Favorieten opslaan"}
+                    {favoritesCount > 0 ? t("dashboard.favoritesChip", { count: favoritesCount }) : t("dashboard.saveFavorites")}
                   </Link>
                   <a href="#aanvragen" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
                     <SendHorizontal className="h-3 w-3" />
-                    {myApplications.length > 0 ? `${myApplications.length} ${myApplications.length === 1 ? "reactie" : "reacties"}` : "Nog geen reacties"}
+                    {myApplications.length > 0 ? `${myApplications.length} ${myApplications.length === 1 ? t("dashboard.reactionsLabel").replace(/s$/, "") : t("dashboard.reactionsLabel")}` : t("dashboard.noApplicationsChip")}
                   </a>
                   <Link href="/opgeslagen-zoekopdrachten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
                     <Search className="h-3 w-3" />
-                    {savedSearchesCount > 0 ? `${savedSearchesCount} ${savedSearchesCount === 1 ? "zoekopdracht" : "zoekopdrachten"}` : "Zoekopdrachten opslaan"}
+                    {savedSearchesCount > 0 ? `${savedSearchesCount} ${t("dashboard.statsMessages").toLowerCase()}` : t("dashboard.saveSearchesChip")}
                   </Link>
                   <Link href="/berichten" className="flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-rose-200 hover:text-rose-600">
                     <MessageSquare className="h-3 w-3" />
-                    Berichten
+                    {t("nav.messages")}
                   </Link>
                 </div>
               )}
@@ -1421,22 +1429,22 @@ export function DashboardPage() {
                     <button type="button" onClick={() => setConfirmClearApplications(true)}
                       className="text-xs font-medium text-stone-400 transition hover:text-rose-500"
                     >
-                      Wis aanvragen
+                      {t("dashboard.clearApplicationsBtn")}
                     </button>
                   )}
                   {confirmClearApplications && (
                     <div className="flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5">
-                      <p className="text-xs font-medium text-rose-800">Alle aanvragen wissen?</p>
+                      <p className="text-xs font-medium text-rose-800">{t("dashboard.confirmClearAppsTitle")}</p>
                       <button type="button" disabled={clearingApplications}
                         onClick={handleClearApplications}
                         className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-95"
                       >
-                        {clearingApplications ? "Bezig…" : "Ja, wissen"}
+                        {clearingApplications ? t("common.loading") : t("dashboard.confirmYesClear")}
                       </button>
                       <button type="button" onClick={() => setConfirmClearApplications(false)}
                         className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95"
                       >
-                        Annuleren
+                        {t("common.cancel")}
                       </button>
                     </div>
                   )}
@@ -1446,14 +1454,14 @@ export function DashboardPage() {
                 ) : myApplications.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-stone-200 bg-white px-6 py-8 text-center">
                     <SendHorizontal className="mx-auto h-6 w-6 text-stone-300" />
-                    <p className="mt-3 text-sm font-semibold text-stone-800">Nog geen reacties geplaatst</p>
-                    <p className="mt-1 text-sm text-stone-500">Begin met reageren op aanbevolen woningen om je ideale plek te vinden.</p>
+                    <p className="mt-3 text-sm font-semibold text-stone-800">{t("dashboard.noApplicationsYetTitle")}</p>
+                    <p className="mt-1 text-sm text-stone-500">{t("dashboard.noApplicationsYetDesc")}</p>
                     <button
                       type="button"
                       onClick={() => recommendationsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
                       className="mt-4 rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50"
                     >
-                      Bekijk aanbevolen woningen
+                      {t("dashboard.viewRecommended")}
                     </button>
                   </div>
                 ) : (
@@ -1474,15 +1482,15 @@ export function DashboardPage() {
                       const steps: TimelineStep[] = [
                         {
                           icon: <SendHorizontal className="h-3.5 w-3.5" />,
-                          label: "Aanvraag verzonden",
+                          label: t("dashboard.applicationSent"),
                           sub: new Date(app.created_at).toLocaleDateString("nl-NL", { day: "numeric", month: "long" }),
                           done: true,
                           active: false,
                         },
                         {
                           icon: <Eye className="h-3.5 w-3.5" />,
-                          label: "Bekeken door verhuurder",
-                          sub: hasBeenSeen ? undefined : "In afwachting",
+                          label: t("dashboard.seenByLandlord"),
+                          sub: hasBeenSeen ? undefined : t("dashboard.awaiting"),
                           done: hasBeenSeen,
                           active: !hasBeenSeen && app.status === "pending",
                         },
@@ -1490,8 +1498,8 @@ export function DashboardPage() {
                           icon: hasReply
                             ? (app.status === "accepted" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <X className="h-3.5 w-3.5" />)
                             : <MessageSquare className="h-3.5 w-3.5" />,
-                          label: "Reactie ontvangen",
-                          sub: app.status === "accepted" ? "Geaccepteerd" : app.status === "rejected" ? "Afgewezen" : undefined,
+                          label: t("dashboard.replyReceived"),
+                          sub: app.status === "accepted" ? t("dashboard.statusAccepted") : app.status === "rejected" ? t("dashboard.statusRejected") : undefined,
                           done: hasReply,
                           active: false,
                         },
@@ -1502,10 +1510,10 @@ export function DashboardPage() {
                           {/* Delete confirm overlay */}
                           {confirmDeleteTenantId === app.id && (
                             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-lg bg-white/95 p-4 text-center backdrop-blur-sm">
-                              <p className="text-sm font-medium text-stone-800">Weet je zeker dat je deze aanvraag wilt verwijderen?</p>
+                              <p className="text-sm font-medium text-stone-800">{t("dashboard.confirmDeleteApp")}</p>
                               <div className="flex gap-2">
-                                <button type="button" onClick={() => handleDeleteTenantApplication(app.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">Ja, verwijderen</button>
-                                <button type="button" onClick={() => setConfirmDeleteTenantId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">Annuleren</button>
+                                <button type="button" onClick={() => handleDeleteTenantApplication(app.id)} className="rounded-xl bg-rose-500 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-600 active:scale-95">{t("common.confirmDelete")}</button>
+                                <button type="button" onClick={() => setConfirmDeleteTenantId(null)} className="rounded-xl border border-stone-200 px-4 py-2 text-xs font-medium text-stone-600 transition hover:bg-stone-50 active:scale-95">{t("common.cancel")}</button>
                               </div>
                             </div>
                           )}
@@ -1518,14 +1526,14 @@ export function DashboardPage() {
                           {/* Header */}
                           <div className="mb-4 flex flex-wrap items-start gap-2">
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-stone-900 truncate">{app.listings?.title ?? "Woning"}</p>
+                              <p className="text-sm font-semibold text-stone-900 truncate">{app.listings?.title ?? t("dashboard.startSearchTitle")}</p>
                               {app.budget != null && (
-                                <p className="text-xs text-stone-400">Budget: €{Number(app.budget).toFixed(0)}</p>
+                                <p className="text-xs text-stone-400">{t("dashboard.budgetLabel")} €{Number(app.budget).toFixed(0)}</p>
                               )}
                             </div>
                             {app.listings?.id && (
                               <Link href={`/kamers/${app.listings.id}`} className="shrink-0 text-xs font-medium text-rose-500 hover:underline">
-                                Bekijk woning →
+                                {t("dashboard.viewListingLink")}
                               </Link>
                             )}
                           </div>
@@ -1569,13 +1577,13 @@ export function DashboardPage() {
                             <div className="mt-4 space-y-2 border-t border-stone-100 pt-3">
                               {app.landlord_reply && (
                                 <div className="rounded-xl border border-stone-100 bg-stone-50 px-3 py-2">
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-400">Bericht van verhuurder</p>
+                                  <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-400">{t("dashboard.landlordMessage")}</p>
                                   <p className="mt-0.5 text-xs text-stone-700">{app.landlord_reply}</p>
                                 </div>
                               )}
                               {app.status === "accepted" && conv && (
                                 <Link href={`/berichten/${conv.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-emerald-600">
-                                  <MessageSquare className="h-3.5 w-3.5" /> Ga naar gesprek
+                                  <MessageSquare className="h-3.5 w-3.5" /> {t("dashboard.goToConversation")}
                                 </Link>
                               )}
                             </div>
@@ -1590,15 +1598,15 @@ export function DashboardPage() {
               {/* Recent bekeken */}
               <div>
                 <div className="mb-4 flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-bold text-stone-900">Recent bekeken</h2>
+                  <h2 className="text-lg font-bold text-stone-900">{t("dashboard.recentViewed")}</h2>
                   {!loading && recentViews.length > 0 && !confirmClearViews && (
                     <button type="button" onClick={() => setConfirmClearViews(true)} className="text-xs font-medium text-stone-400 transition hover:text-rose-500">
-                      Alles wissen
+                      {t("dashboard.clearAllBtn")}
                     </button>
                   )}
                   {confirmClearViews && (
                     <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5">
-                      <p className="text-xs font-medium text-rose-800">Geschiedenis wissen?</p>
+                      <p className="text-xs font-medium text-rose-800">{t("dashboard.clearHistoryConfirm")}</p>
                       <button type="button" disabled={clearingViews}
                         onClick={async () => {
                           if (!supabase || !user) return;
@@ -1610,9 +1618,9 @@ export function DashboardPage() {
                         }}
                         className="shrink-0 rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-rose-600 disabled:opacity-50 active:scale-95"
                       >
-                        {clearingViews ? "Bezig…" : "Ja, wissen"}
+                        {clearingViews ? t("common.loading") : t("dashboard.clearYesBtn")}
                       </button>
-                      <button type="button" onClick={() => setConfirmClearViews(false)} className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95">Annuleren</button>
+                      <button type="button" onClick={() => setConfirmClearViews(false)} className="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1 text-xs font-medium text-rose-700 transition hover:bg-rose-100 active:scale-95">{t("common.cancel")}</button>
                     </div>
                   )}
                 </div>
@@ -1622,8 +1630,8 @@ export function DashboardPage() {
                   </div>
                 ) : recentViews.length === 0 ? (
                   <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-stone-200 bg-white px-6 py-10 text-center shadow-sm">
-                    <p className="mt-3 text-sm font-medium text-stone-700">Je hebt nog geen woningen bekeken.</p>
-                    <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">Bekijk woningen →</Link>
+                    <p className="mt-3 text-sm font-medium text-stone-700">{t("dashboard.noViewsYet")}</p>
+                    <Link href="/kamers" className="mt-3 text-xs font-semibold text-rose-600 hover:underline">{t("dashboard.browsePropertiesLink")}</Link>
                   </div>
                 ) : (
                   <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
@@ -1659,11 +1667,11 @@ export function DashboardPage() {
                     <UserCircle className="h-4 w-4 text-stone-500" />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-stone-700">Profiel voltooiing</p>
-                    <p className="text-xs text-stone-400">Voeg je telefoonnummer toe — verhuurders nemen sneller contact op.</p>
+                    <p className="text-xs font-semibold text-stone-700">{t("dashboard.profileCompletionTitle")}</p>
+                    <p className="text-xs text-stone-400">{t("dashboard.addPhonePrompt")}</p>
                   </div>
                   <Link href="/profiel" className="shrink-0 rounded-lg bg-stone-800 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-stone-700 active:scale-95">
-                    Aanvullen
+                    {t("dashboard.completeBtn")}
                   </Link>
                 </div>
               )}
