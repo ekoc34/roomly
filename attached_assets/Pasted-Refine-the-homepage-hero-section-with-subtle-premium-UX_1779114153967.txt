@@ -1,0 +1,139 @@
+Refine the homepage hero section with subtle premium UX improvements. Do NOT redesign the page — this is a polish pass focused on clarity, balance, spacing, and visual hierarchy.
+
+The current homepage is already in a good state. The goal now is to make it feel more intentional, premium, calm, and product-quality.
+
+PART 1 — Remove duplicate CTA confusion
+
+Currently there are:
+
+* a “Zoek woningen” button attached to the search bar
+* another standalone “Zoek woningen” CTA below
+
+This creates unnecessary repetition and weakens hierarchy.
+
+Requirements:
+
+* Keep ONLY the search-attached “Zoek woningen” button
+* Remove the duplicated standalone CTA row entirely
+* Remove the standalone “Advertentie plaatsen” button from that row as well
+* After removal, rebalance spacing so the hero still feels visually centered
+
+The search bar should become the primary interaction point.
+
+PART 2 — Tighten hero spacing
+
+The hero currently feels slightly too tall and vertically stretched.
+
+Reduce excessive vertical spacing between:
+
+* headline
+* subtitle
+* search bar
+* chips
+* trust row
+
+Goal:
+Create a tighter, more editorial premium layout similar to:
+
+* Airbnb
+* Linear
+* modern Dutch marketplace landing pages
+
+Do NOT make it cramped.
+The hero should still feel calm and airy.
+
+PART 3 — Improve search bar quality
+
+The search bar should feel more premium and polished.
+
+Requirements:
+
+* Slightly increase height
+* Slightly increase border radius
+* Add softer shadow/elevation
+* Improve placeholder contrast slightly
+* Make the icon more subtle and visually aligned
+* Ensure the search button feels integrated with the input
+
+The overall search area should feel like the visual center of the page.
+
+PART 4 — Improve trust row visibility
+
+The trust row:
+
+* “Geverifieerde gebruikers”
+* “Direct contact via het platform”
+* “Snelle reacties”
+
+currently feels too faint and too detached.
+
+Requirements:
+
+* Move it slightly closer to the chips above
+* Increase readability subtly
+* Improve icon/text spacing
+* Keep it elegant and understated
+* Do NOT make it bold or loud
+
+Goal:
+It should feel like soft reassurance rather than decorative footer text.
+
+PART 5 — Improve chips interaction quality
+
+City and category chips already work well but feel slightly passive.
+
+Requirements:
+
+* Improve hover states
+* Add subtle active/focus states
+* Improve cursor/tap feedback
+* Slightly improve typography contrast
+* Maintain minimalism
+
+Do NOT make them colorful or loud.
+
+PART 6 — Headline refinement
+
+The headline is strong:
+“Vind je thuis in Nederland”
+
+But the text container is slightly too wide.
+
+Requirements:
+
+* Reduce max-width slightly
+* Improve line balance and readability
+* Keep the emphasis on “Nederland”
+
+Goal:
+More editorial / premium typography feeling.
+
+PART 7 — Navbar breathing room
+
+Add slightly more vertical breathing room between:
+
+* navbar
+* hero headline
+
+Currently they feel slightly compressed together.
+
+PART 8 — Final expectation
+
+After the changes, the homepage should feel:
+
+* calmer
+* cleaner
+* more intentional
+* less MVP-like
+* more premium
+* more focused
+
+without changing the existing brand identity.
+
+After implementation:
+
+* summarize all visual hierarchy improvements
+* summarize CTA simplification
+* summarize search bar improvements
+* summarize spacing refinements
+* explain how the homepage now feels more premium and curated

@@ -100,12 +100,12 @@ export function CitySearchAutocomplete() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative mx-auto mt-8 max-w-xl" ref={containerRef}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+    <form onSubmit={handleSubmit} className="relative mx-auto max-w-xl" ref={containerRef}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-stretch">
         <label className="sr-only" htmlFor="city-autocomplete">Zoek een stad</label>
         <div className="relative flex-1">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-stone-300">
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
@@ -120,12 +120,12 @@ export function CitySearchAutocomplete() {
             onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
             onKeyDown={handleKeyDown}
             onFocus={() => { if (suggestions.length > 0) setOpen(true); }}
-            placeholder="Zoek op stad, budget of type woning..."
-            className="min-h-14 w-full rounded-2xl border border-stone-200 bg-white py-4 pl-11 pr-4 text-base text-stone-900 shadow-sm placeholder:text-stone-400 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200"
+            placeholder="Zoek op stad, type woning of budget..."
+            className="h-[3.25rem] w-full rounded-2xl border border-stone-200 bg-white py-3.5 pl-11 pr-4 text-sm text-stone-900 shadow-[0_2px_10px_rgba(0,0,0,0.06)] placeholder:text-stone-400/70 focus:border-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-200/60 sm:text-base"
           />
           {loading && (
             <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2">
-              <svg className="h-4 w-4 animate-spin text-stone-400" fill="none" viewBox="0 0 24 24">
+              <svg className="h-4 w-4 animate-spin text-stone-300" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
@@ -135,7 +135,7 @@ export function CitySearchAutocomplete() {
         <button
           type="submit"
           data-testid="city-autocomplete-submit"
-          className="min-h-14 rounded-2xl bg-rose-500 px-7 text-base font-semibold text-white shadow-md transition hover:bg-rose-600 active:scale-[0.98]"
+          className="h-[3.25rem] rounded-2xl bg-rose-500 px-6 text-sm font-semibold text-white shadow-[0_2px_10px_rgba(244,63,94,0.25)] transition hover:bg-rose-600 active:scale-[0.98] sm:px-7 sm:text-base"
         >
           Zoek woningen
         </button>
